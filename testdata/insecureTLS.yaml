@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=../jsonschema/gohttpc.schema.json
+timeout: 60s
+transport: {}
+tls:
+  insecureSkipVerify:
+    env: TLS_INSECURE

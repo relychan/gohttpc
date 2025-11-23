@@ -1,0 +1,24 @@
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.0.0
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    command: ["--set", "receivers.otlp.protocols.grpc.endpoint=0.0.0.0:4317"]
+    environment:
+      - LOG_LEVEL=debug
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+      - "--web.enable-otlp-receiver"
+    ports:
+      - 9090:9090

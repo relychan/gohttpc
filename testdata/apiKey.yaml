@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../jsonschema/gohttpc.schema.json
+timeout: 60s
+transport: {}
+authentication:
+  in: header
+  name: x-hasura-admin-secret
+  type: http
+  scheme: bearer
+  value:
+    env: BEARER_TOKEN
+retry:
+  times:
+    value: 2
