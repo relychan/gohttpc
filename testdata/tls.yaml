@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=../jsonschema/gohttpc.schema.json
+timeout: 60s
+transport: {}
+tls:
+  rootCAFile:
+    - value: testdata/tls/certs/ca.crt
+  certificates:
+    - certFile:
+        value: testdata/tls/certs/client.pem
+      keyPem:
+        env: TLS_KEY_PEM

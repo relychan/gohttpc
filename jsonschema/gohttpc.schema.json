@@ -1,0 +1,581 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/relychan/gohttpc/httpconfig/http-client-config",
+  "$ref": "#/$defs/HTTPClientConfig",
+  "$defs": {
+    "AuthLocation": {
+      "type": "string",
+      "enum": [
+        "header",
+        "query",
+        "cookie"
+      ],
+      "description": "Defines the location enum for setting authentication value"
+    },
+    "BasicAuthConfig": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "basic"
+          ]
+        },
+        "header": {
+          "type": "string"
+        },
+        "username": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "password": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type",
+        "username",
+        "password"
+      ]
+    },
+    "ClientCredentialsOAuthFlow": {
+      "properties": {
+        "tokenUrl": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "refreshUrl": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "scopes": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "clientId": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "clientSecret": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "endpointParams": {
+          "additionalProperties": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Duration": {
+      "type": "string",
+      "pattern": "^((([0-9]+h)?([0-9]+m)?([0-9]+s))|(([0-9]+h)?([0-9]+m))|([0-9]+h))$",
+      "description": "Duration string"
+    },
+    "EnvBool": {
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "title": "value"
+        },
+        {
+          "required": [
+            "env"
+          ],
+          "title": "env"
+        }
+      ],
+      "properties": {
+        "value": {
+          "type": "boolean"
+        },
+        "env": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "EnvInt": {
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "title": "value"
+        },
+        {
+          "required": [
+            "env"
+          ],
+          "title": "env"
+        }
+      ],
+      "properties": {
+        "value": {
+          "type": "integer"
+        },
+        "env": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "EnvString": {
+      "anyOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "title": "value"
+        },
+        {
+          "required": [
+            "env"
+          ],
+          "title": "env"
+        }
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "env": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HTTPAuthConfig": {
+      "properties": {
+        "in": {
+          "$ref": "#/$defs/AuthLocation",
+          "description": "The location enum for setting authentication value"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scheme": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "http"
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "in",
+        "name",
+        "type",
+        "value"
+      ]
+    },
+    "HTTPClientAuthConfig": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/BasicAuthConfig",
+          "description": "Configuration for the basic authentication"
+        },
+        {
+          "$ref": "#/$defs/HTTPAuthConfig",
+          "description": "Configuration for the http and API Key authentication"
+        },
+        {
+          "$ref": "#/$defs/OAuth2Config",
+          "description": "Configuration for the OAuth2 authentication"
+        }
+      ],
+      "description": "Define authentication configurations"
+    },
+    "HTTPClientConfig": {
+      "properties": {
+        "timeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transport": {
+          "$ref": "#/$defs/HTTPTransportConfig"
+        },
+        "tls": {
+          "$ref": "#/$defs/TLSConfig"
+        },
+        "retry": {
+          "$ref": "#/$defs/HTTPRetryConfig"
+        },
+        "authentication": {
+          "$ref": "#/$defs/HTTPClientAuthConfig"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HTTPDialerConfig": {
+      "properties": {
+        "timeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keepAliveEnabled": {
+          "type": "boolean"
+        },
+        "keepAliveInterval": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keepAliveCount": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "keepAliveIdle": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fallbackDelay": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HTTPRetryConfig": {
+      "properties": {
+        "times": {
+          "$ref": "#/$defs/EnvInt"
+        },
+        "delay": {
+          "$ref": "#/$defs/EnvInt"
+        },
+        "httpStatus": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "jitter": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "multiplier": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "HTTPTransportConfig": {
+      "properties": {
+        "dialer": {
+          "$ref": "#/$defs/HTTPDialerConfig"
+        },
+        "idleConnTimeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "responseHeaderTimeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tlsHandshakeTimeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expectContinueTimeout": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxIdleConns": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxIdleConnsPerHost": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxConnsPerHost": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxResponseHeaderBytes": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "readBufferSize": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "writeBufferSize": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disableKeepAlives": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "OAuth2Config": {
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "oauth2"
+          ]
+        },
+        "flows": {
+          "$ref": "#/$defs/OAuth2Flows"
+        },
+        "description": {
+          "type": "string"
+        },
+        "tokenLocation": {
+          "$ref": "#/$defs/TokenLocation"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type",
+        "flows"
+      ]
+    },
+    "OAuth2Flows": {
+      "properties": {
+        "clientCredentials": {
+          "$ref": "#/$defs/ClientCredentialsOAuthFlow"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "clientCredentials"
+      ]
+    },
+    "TLSClientCertificate": {
+      "properties": {
+        "certFile": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "certPem": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "keyFile": {
+          "$ref": "#/$defs/EnvString"
+        },
+        "keyPem": {
+          "$ref": "#/$defs/EnvString"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "TLSConfig": {
+      "properties": {
+        "reloadInterval": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Duration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rootCAFile": {
+          "items": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "array"
+        },
+        "rootCAPem": {
+          "items": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "array"
+        },
+        "caFile": {
+          "items": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "array"
+        },
+        "caPem": {
+          "items": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "array"
+        },
+        "certificates": {
+          "items": {
+            "$ref": "#/$defs/TLSClientCertificate"
+          },
+          "type": "array"
+        },
+        "insecureSkipVerify": {
+          "$ref": "#/$defs/EnvBool"
+        },
+        "includeSystemCACertsPool": {
+          "$ref": "#/$defs/EnvBool"
+        },
+        "minVersion": {
+          "type": "string"
+        },
+        "maxVersion": {
+          "type": "string"
+        },
+        "cipherSuites": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "serverName": {
+          "$ref": "#/$defs/EnvString"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "TokenLocation": {
+      "properties": {
+        "in": {
+          "$ref": "#/$defs/AuthLocation",
+          "description": "The location enum for setting authentication value"
+        },
+        "name": {
+          "type": "string"
+        },
+        "scheme": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "in",
+        "name"
+      ]
+    }
+  }
+}
