@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"log/slog"
-	"net/http"
 	"net/http/httptrace"
 	"net/textproto"
 	"net/url"
@@ -513,9 +512,4 @@ func getBuildVersion() string {
 	}
 
 	return "unknown"
-}
-
-type requestDebugInfo struct {
-	RequestHeaders  http.Header
-	ResponseHeaders http.Header
 }

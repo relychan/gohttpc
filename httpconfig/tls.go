@@ -164,7 +164,7 @@ func (tc TLSConfig) GetMinVersion() (uint16, error) {
 
 // GetMaxVersion parses the max TLS version from string.
 func (tc TLSConfig) GetMaxVersion() (uint16, error) {
-	return tc.convertTLSVersion(tc.MinVersion, defaultMaxTLSVersion)
+	return tc.convertTLSVersion(tc.MaxVersion, defaultMaxTLSVersion)
 }
 
 func (tc TLSConfig) validateCertificates() error {

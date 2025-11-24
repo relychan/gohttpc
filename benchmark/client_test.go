@@ -41,7 +41,32 @@ func BenchmarkHTTPClientGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   27543	     42054 ns/op	   11150 B/op	     129 allocs/op
+// BenchmarkRestyGet-11    	   29535	     38122 ns/op	    5365 B/op	      58 allocs/op
+func BenchmarkRestyGet(b *testing.B) {
+	client := resty.New()
+
+	defer func() {
+		_ = client.Close()
+	}()
+
+	for b.Loop() {
+		resp, err := client.R().Get(serverURL)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode() != 200 {
+			slog.Error(resp.RawResponse.Status)
+		}
+	}
+}
+
+// goos: darwin
+// goarch: arm64
+// pkg: github.com/relychan/gohttpc/benchmark
+// cpu: Apple M3 Pro
+// BenchmarkGoHTTPCGet-11    	   22602	     49911 ns/op	   10734 B/op	     120 allocs/op
 func BenchmarkGoHTTPCGet(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -57,31 +82,6 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 		}
 
 		_ = resp.Close()
-
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkRestyGet-11    	   29535	     38122 ns/op	    5365 B/op	      58 allocs/op
-func BenchmarkRestyGet(b *testing.B) {
-	client := resty.New()
-
-	defer func() {
-		_ = client.Close()
-	}()
-
-	for b.Loop() {
-		resp, err := client.R().Get(serverURL)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode() != 200 {
 			slog.Error(resp.RawResponse.Status)
@@ -115,7 +115,32 @@ func BenchmarkHTTPClientPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    3826	    308979 ns/op	   61007 B/op	     231 allocs/op
+// BenchmarkRestyPost-11    	     939	   1567244 ns/op	 5295167 B/op	     183 allocs/op
+func BenchmarkRestyPost(b *testing.B) {
+	client := resty.New()
+
+	defer func() {
+		_ = client.Close()
+	}()
+
+	for b.Loop() {
+		resp, err := client.R().SetBody(randomData).Post(serverURL)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode() != 200 {
+			slog.Error(resp.RawResponse.Status)
+		}
+	}
+}
+
+// goos: darwin
+// goarch: arm64
+// pkg: github.com/relychan/gohttpc/benchmark
+// cpu: Apple M3 Pro
+// BenchmarkGoHTTPCPost-11    	    3772	    306853 ns/op	   60736 B/op	     223 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -143,32 +168,7 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkRestyPost-11    	     939	   1567244 ns/op	 5295167 B/op	     183 allocs/op
-func BenchmarkRestyPost(b *testing.B) {
-	client := resty.New()
-
-	defer func() {
-		_ = client.Close()
-	}()
-
-	for b.Loop() {
-		resp, err := client.R().SetBody(randomData).Post(serverURL)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPostWithClientTrace-11    	    3841	    300587 ns/op	   64225 B/op	     282 allocs/op
+// BenchmarkGoHTTPCPostWithClientTrace-11    	    3716	    309954 ns/op	   63630 B/op	     273 allocs/op
 func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,

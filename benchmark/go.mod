@@ -12,7 +12,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hasura/gotel v0.4.0 // indirect
+	github.com/hasura/gotel v0.4.1 // indirect
 	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/relychan/gocompress v0.1.0 // indirect
 	github.com/relychan/goutils v0.0.0-20251121111319-b810d743c7c5 // indirect

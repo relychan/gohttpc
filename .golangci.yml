@@ -61,6 +61,10 @@ linters:
           disabled: true
     exhaustive:
       default-signifies-exhaustive: true
+    nestif:
+      # Minimal complexity of if statements to report.
+      # Default: 5
+      min-complexity: 10
 
   # Defines a set of rules to ignore issues.
   # It does not skip the analysis, and so does not ignore "typecheck" errors.

@@ -58,19 +58,48 @@ func (c *Client) Close() error {
 
 // ClientOptions defines options for the client.
 type ClientOptions struct {
-	HTTPClient                *http.Client
-	Logger                    *slog.Logger
-	Tracer                    trace.Tracer
-	Metrics                   *HTTPClientMetrics
-	TraceHighCardinalityPath  bool
-	MetricHighCardinalityPath bool
-	CustomAttributesFunc      CustomAttributesFunc
-	Retry                     *RetryPolicy
-	Timeout                   time.Duration
-	Authenticator             authscheme.HTTPClientAuthenticator
-	ClientTraceEnabled        bool
-	UserAgent                 string
-	CreateRequest             CreateRequestFunc
+	HTTPClient                  *http.Client
+	Logger                      *slog.Logger
+	Tracer                      trace.Tracer
+	Metrics                     *HTTPClientMetrics
+	TraceHighCardinalityPath    bool
+	MetricHighCardinalityPath   bool
+	CustomAttributesFunc        CustomAttributesFunc
+	Retry                       *RetryPolicy
+	Timeout                     time.Duration
+	Authenticator               authscheme.HTTPClientAuthenticator
+	ClientTraceEnabled          bool
+	UserAgent                   string
+	CreateRequest               CreateRequestFunc
+	AllowedTraceRequestHeaders  []string
+	AllowedTraceResponseHeaders []string
+}
+
+// NewClientOptions create a new ClientOptions instance.
+func NewClientOptions(options ...Option) *ClientOptions {
+	opts := ClientOptions{
+		Logger:        slog.Default(),
+		Tracer:        tracer,
+		Metrics:       &noopHTTPClientMetrics,
+		UserAgent:     "gohttpc/" + getBuildVersion(),
+		CreateRequest: createRequest,
+	}
+
+	for _, opt := range options {
+		opt(&opts)
+	}
+
+	return &opts
+}
+
+// IsTraceRequestHeadersEnabled checks if the trace request headers are enabled.
+func (co ClientOptions) IsTraceRequestHeadersEnabled() bool {
+	return co.AllowedTraceRequestHeaders == nil || len(co.AllowedTraceRequestHeaders) > 0
+}
+
+// IsTraceResponseHeadersEnabled checks if the trace request headers are enabled.
+func (co ClientOptions) IsTraceResponseHeadersEnabled() bool {
+	return co.AllowedTraceResponseHeaders == nil || len(co.AllowedTraceResponseHeaders) > 0
 }
 
 // CustomAttributesFunc abstracts a function to add custom attributes to spans and metrics.
@@ -158,28 +187,25 @@ func EnableClientTrace(enabled bool) Option {
 	}
 }
 
+// AllowTraceRequestHeaders creates an option to set allowed headers for tracing.
+func AllowTraceRequestHeaders(keys []string) Option {
+	return func(co *ClientOptions) {
+		co.AllowedTraceRequestHeaders = keys
+	}
+}
+
+// AllowTraceResponseHeaders creates an option to set allowed headers for tracing.
+func AllowTraceResponseHeaders(keys []string) Option {
+	return func(co *ClientOptions) {
+		co.AllowedTraceResponseHeaders = keys
+	}
+}
+
 // WithUserAgent creates an option to set the user agent.
 func WithUserAgent(userAgent string) Option {
 	return func(co *ClientOptions) {
 		co.UserAgent = userAgent
 	}
-}
-
-// NewClientOptions create a new ClientOptions instance.
-func NewClientOptions(options ...Option) *ClientOptions {
-	opts := ClientOptions{
-		Logger:        slog.Default(),
-		Tracer:        tracer,
-		Metrics:       &noopHTTPClientMetrics,
-		UserAgent:     "gohttpc/" + getBuildVersion(),
-		CreateRequest: createRequest,
-	}
-
-	for _, opt := range options {
-		opt(&opts)
-	}
-
-	return &opts
 }
 
 // WithCreateRequestFunc creates an option to set the request constructor function.
