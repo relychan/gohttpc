@@ -464,6 +464,7 @@ func (r *Request) executeWithRetries( //nolint:funlen
 }
 
 func (r *Request) compressBody() (io.Reader, error) {
+	// Optimization: check r.header directly to avoid initialization if no headers were set
 	if r.compressed || len(r.header) == 0 {
 		return r.Body, nil
 	}
