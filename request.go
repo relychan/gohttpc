@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/url"
 	"slices"
@@ -50,39 +51,6 @@ type Request struct {
 	// request.
 	URL string
 
-	// Header contains the request header fields either received
-	// by the server or to be sent by the client.
-	//
-	// If a server received a request with header lines,
-	//
-	//	Host: example.com
-	//	accept-encoding: gzip, deflate
-	//	Accept-Language: en-us
-	//	fOO: Bar
-	//	foo: two
-	//
-	// then
-	//
-	//	Header = map[string][]string{
-	//		"Accept-Encoding": {"gzip, deflate"},
-	//		"Accept-Language": {"en-us"},
-	//		"Foo": {"Bar", "two"},
-	//	}
-	//
-	// For incoming requests, the Host header is promoted to the
-	// Request.Host field and removed from the Header map.
-	//
-	// HTTP defines that header names are case-insensitive. The
-	// request parser implements this by using CanonicalHeaderKey,
-	// making the first character and any characters following a
-	// hyphen uppercase and the rest lowercase.
-	//
-	// For client requests, certain headers such as Content-Length
-	// and Connection are automatically written when needed and
-	// values in Header may be ignored. See the documentation
-	// for the Request.Write method.
-	Header http.Header
-
 	// Body is the request's body.
 	//
 	// For client requests, a nil body means the request has no
@@ -107,6 +75,26 @@ type Request struct {
 	client        *Client
 	compressed    bool
 	authenticator authscheme.HTTPClientAuthenticator
+	header        http.Header
+}
+
+// Header returns the request header fields to be sent by the client.
+//
+// HTTP defines that header names are case-insensitive. The
+// request parser implements this by using CanonicalHeaderKey,
+// making the first character and any characters following a
+// hyphen uppercase and the rest lowercase.
+//
+// For client requests, certain headers such as Content-Length
+// and Connection are automatically written when needed and
+// values in Header may be ignored. See the documentation
+// for the Request.Write method.
+func (r *Request) Header() http.Header {
+	if r.header == nil {
+		r.header = make(http.Header)
+	}
+
+	return r.header
 }
 
 // SetBody handles the HTTP request to the remote server.
@@ -133,7 +121,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 
 	var requestBodyStr string
 
-	if isDebug && r.Body != nil && isContentTypeDebuggable(r.Header.Get(httpheader.ContentType)) {
+	if isDebug && r.Body != nil && isContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Error(
@@ -476,18 +464,19 @@ func (r *Request) executeWithRetries( //nolint:funlen
 }
 
 func (r *Request) compressBody() (io.Reader, error) {
-	if r.compressed {
+	// Optimization: check r.header directly to avoid initialization if no headers were set
+	if r.compressed || len(r.header) == 0 {
 		return r.Body, nil
 	}
 
-	encoding := r.Header.Get(httpheader.ContentEncoding)
+	encoding := r.Header().Get(httpheader.ContentEncoding)
 	if encoding == "" {
 		return r.Body, nil
 	}
 
 	// should ignore the compression if the encoding isn't supported.
 	if !r.client.compressors.IsEncodingSupported(encoding) {
-		r.Header.Del(httpheader.ContentEncoding)
+		r.Header().Del(httpheader.ContentEncoding)
 
 		return r.Body, nil
 	}
@@ -604,6 +593,8 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 
 	span.SetAttributes(protocolVersionAttr)
 	span.SetMetricAttributes(commonAttrs)
+
+	maps.Copy(req.Header, r.header)
 
 	err = r.applyAuth(req)
 	if err != nil {
