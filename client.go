@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/relychan/gocompress"
@@ -78,11 +79,12 @@ type ClientOptions struct {
 // NewClientOptions create a new ClientOptions instance.
 func NewClientOptions(options ...Option) *ClientOptions {
 	opts := ClientOptions{
-		Logger:        slog.Default(),
-		Tracer:        tracer,
-		Metrics:       &noopHTTPClientMetrics,
-		UserAgent:     "gohttpc/" + getBuildVersion(),
-		CreateRequest: createRequest,
+		Logger:             slog.Default(),
+		Tracer:             tracer,
+		Metrics:            &noopHTTPClientMetrics,
+		UserAgent:          "gohttpc/" + getBuildVersion(),
+		CreateRequest:      createRequest,
+		ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
 	}
 
 	for _, opt := range options {
