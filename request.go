@@ -75,7 +75,6 @@ type Request struct {
 	client        *Client
 	authenticator authscheme.HTTPClientAuthenticator
 	header        http.Header
-	done          bool
 }
 
 // Header returns the request header fields to be sent by the client.
@@ -100,7 +99,10 @@ func (r *Request) Header() http.Header {
 // Clone a new request. The body can be null if it was already read.
 func (r *Request) Clone() *Request {
 	newRequest := *r
-	newRequest.done = false
+
+	if newRequest.header != nil {
+		newRequest.header = maps.Clone(r.header)
+	}
 
 	return &newRequest
 }
@@ -128,15 +130,10 @@ func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthentica
 func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 	ctx context.Context,
 ) (*Response, error) {
-	if r.done {
-		return nil, ErrRequestAlreadyExecuted
-	}
-
 	if r.Method == "" {
 		return nil, ErrRequestMethodRequired
 	}
 
-	r.done = true
 	startTime := time.Now()
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)
@@ -493,7 +490,7 @@ func (r *Request) compressBody() (io.Reader, error) {
 	r.Body = nil
 
 	// Optimization: check r.header directly to avoid initialization if no headers were set
-	if r.Body == nil || len(r.header) == 0 {
+	if body == nil || len(r.header) == 0 {
 		return body, nil
 	}
 

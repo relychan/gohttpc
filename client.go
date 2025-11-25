@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/relychan/gocompress"
@@ -104,13 +105,28 @@ func NewClientOptions(options ...Option) *ClientOptions {
 	return &opts
 }
 
+// Clone a new client options.
+func (co *ClientOptions) Clone() *ClientOptions {
+	newOptions := *co
+
+	if co.AllowedTraceRequestHeaders != nil {
+		newOptions.AllowedTraceRequestHeaders = slices.Clone(co.AllowedTraceRequestHeaders)
+	}
+
+	if co.AllowedTraceResponseHeaders != nil {
+		newOptions.AllowedTraceResponseHeaders = slices.Clone(co.AllowedTraceResponseHeaders)
+	}
+
+	return &newOptions
+}
+
 // IsTraceRequestHeadersEnabled checks if the trace request headers are enabled.
-func (co ClientOptions) IsTraceRequestHeadersEnabled() bool {
+func (co *ClientOptions) IsTraceRequestHeadersEnabled() bool {
 	return co.AllowedTraceRequestHeaders == nil || len(co.AllowedTraceRequestHeaders) > 0
 }
 
 // IsTraceResponseHeadersEnabled checks if the trace request headers are enabled.
-func (co ClientOptions) IsTraceResponseHeadersEnabled() bool {
+func (co *ClientOptions) IsTraceResponseHeadersEnabled() bool {
 	return co.AllowedTraceResponseHeaders == nil || len(co.AllowedTraceResponseHeaders) > 0
 }
 
