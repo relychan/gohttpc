@@ -49,7 +49,7 @@ func (c *Client) NewRequest(method string, requestURI string) *Request {
 	}
 }
 
-// Clone a new client with properties copied.
+// Clone creates a new client with properties copied.
 func (c *Client) Clone() *Client {
 	options := *c.options
 
@@ -105,7 +105,7 @@ func NewClientOptions(options ...Option) *ClientOptions {
 	return &opts
 }
 
-// Clone a new client options.
+// Clone creates a new ClientOptions instance with copied values.
 func (co *ClientOptions) Clone() *ClientOptions {
 	newOptions := *co
 

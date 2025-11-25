@@ -96,7 +96,7 @@ func (r *Request) Header() http.Header {
 	return r.header
 }
 
-// Clone a new request. The body can be null if it was already read.
+// Clone creates a new request. The body can be nil if it was already read.
 func (r *Request) Clone() *Request {
 	newRequest := *r
 
