@@ -43,7 +43,7 @@ func (c *Client) NewRequest(method string, requestURI string) *Request {
 	return &Request{
 		Method:  method,
 		URL:     requestURI,
-		Retry:   c.options.Retry,
+		retry:   c.options.Retry,
 		Timeout: c.options.Timeout,
 		client:  c,
 	}
