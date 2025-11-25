@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/relychan/gocompress"
@@ -42,9 +43,19 @@ func (c *Client) NewRequest(method string, requestURI string) *Request {
 	return &Request{
 		Method:  method,
 		URL:     requestURI,
-		Retry:   c.options.Retry,
+		retry:   c.options.Retry,
 		Timeout: c.options.Timeout,
 		client:  c,
+	}
+}
+
+// Clone creates a new client with properties copied.
+func (c *Client) Clone() *Client {
+	options := *c.options
+
+	return &Client{
+		options:     &options,
+		compressors: c.compressors,
 	}
 }
 
@@ -94,13 +105,28 @@ func NewClientOptions(options ...Option) *ClientOptions {
 	return &opts
 }
 
+// Clone creates a new ClientOptions instance with copied values.
+func (co *ClientOptions) Clone() *ClientOptions {
+	newOptions := *co
+
+	if co.AllowedTraceRequestHeaders != nil {
+		newOptions.AllowedTraceRequestHeaders = slices.Clone(co.AllowedTraceRequestHeaders)
+	}
+
+	if co.AllowedTraceResponseHeaders != nil {
+		newOptions.AllowedTraceResponseHeaders = slices.Clone(co.AllowedTraceResponseHeaders)
+	}
+
+	return &newOptions
+}
+
 // IsTraceRequestHeadersEnabled checks if the trace request headers are enabled.
-func (co ClientOptions) IsTraceRequestHeadersEnabled() bool {
+func (co *ClientOptions) IsTraceRequestHeadersEnabled() bool {
 	return co.AllowedTraceRequestHeaders == nil || len(co.AllowedTraceRequestHeaders) > 0
 }
 
 // IsTraceResponseHeadersEnabled checks if the trace request headers are enabled.
-func (co ClientOptions) IsTraceResponseHeadersEnabled() bool {
+func (co *ClientOptions) IsTraceResponseHeadersEnabled() bool {
 	return co.AllowedTraceResponseHeaders == nil || len(co.AllowedTraceResponseHeaders) > 0
 }
 

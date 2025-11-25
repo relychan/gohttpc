@@ -57,23 +57,17 @@ type Request struct {
 	// body, such as a GET request. The HTTP Client's Transport
 	// is responsible for calling the Close method.
 	//
-	// For server requests, the Request Body is always non-nil
-	// but will return EOF immediately when no body is present.
-	// The Server will close the request body. The ServeHTTP
-	// Handler does not need to.
-	//
 	// Body must allow Read to be called concurrently with Close.
 	// In particular, calling Close should unblock a Read waiting
 	// for input.
-	Body io.Reader
+	body io.Reader
 
 	// Timeout is the maximum timeout for the request.
 	Timeout time.Duration
-	// RetryPolicy is the retry policy for the request.
-	Retry *RetryPolicy
 
+	// RetryPolicy is the retry policy for the request.
+	retry         *RetryPolicy
 	client        *Client
-	compressed    bool
 	authenticator authscheme.HTTPClientAuthenticator
 	header        http.Header
 }
@@ -97,9 +91,55 @@ func (r *Request) Header() http.Header {
 	return r.header
 }
 
-// SetBody handles the HTTP request to the remote server.
+// Clone creates a new request. The body can be nil if it was already read.
+func (r *Request) Clone() *Request {
+	newRequest := *r
+
+	if newRequest.header != nil {
+		newRequest.header = maps.Clone(r.header)
+	}
+
+	return &newRequest
+}
+
+// Body returns the request body.
+func (r *Request) Body() io.Reader {
+	return r.body
+}
+
+// SetBody sets the request body.
 func (r *Request) SetBody(body io.Reader) *Request {
-	r.Body = body
+	r.body = body
+
+	return r
+}
+
+// Retry returns the retry policy.
+func (r *Request) Retry() *RetryPolicy {
+	if r.retry == nil {
+		return nil
+	}
+
+	retry := *r.retry
+
+	return &retry
+}
+
+// SetRetry sets the retry policy.
+func (r *Request) SetRetry(retry *RetryPolicy) *Request {
+	r.retry = retry
+
+	return r
+}
+
+// Authenticator returns the HTTP client authenticator.
+func (r *Request) Authenticator() authscheme.HTTPClientAuthenticator {
+	return r.authenticator
+}
+
+// SetAuthenticator sets the HTTP authenticator.
+func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) *Request {
+	r.authenticator = authenticator
 
 	return r
 }
@@ -121,8 +161,8 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 
 	var requestBodyStr string
 
-	if isDebug && r.Body != nil && isContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
-		body, err := io.ReadAll(r.Body)
+	if isDebug && r.body != nil && isContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
+		body, err := io.ReadAll(r.body)
 		if err != nil {
 			logger.Error(
 				"failed to read request body",
@@ -141,7 +181,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 			slog.String("body", requestBodyStr),
 		)
 
-		r.Body = bytes.NewReader(body)
+		r.body = bytes.NewReader(body)
 	}
 
 	endpoint, err := goutils.ParseRelativeOrHTTPURL(r.URL)
@@ -218,7 +258,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 
 	var resp *Response
 
-	if r.Retry == nil || r.Retry.Times == 0 {
+	if r.retry == nil || r.retry.Times == 0 {
 		if r.Timeout > 0 {
 			contextTimeout, cancel := context.WithTimeout(spanContext, r.Timeout)
 			defer cancel()
@@ -417,7 +457,7 @@ func (r *Request) executeWithRetries( //nolint:funlen
 
 		httpErr = &he
 
-		if !slices.Contains(r.Retry.GetRetryHTTPStatus(), resp.RawResponse.StatusCode) {
+		if !slices.Contains(r.retry.GetRetryHTTPStatus(), resp.RawResponse.StatusCode) {
 			return resp, backoff.Permanent(err)
 		}
 
@@ -431,11 +471,11 @@ func (r *Request) executeWithRetries( //nolint:funlen
 		return resp, httpErr
 	}
 
-	backoffConfig := r.Retry.GetExponentialBackoff()
+	backoffConfig := r.retry.GetExponentialBackoff()
 
 	retryOptions := []backoff.RetryOption{
 		backoff.WithBackOff(backoffConfig),
-		backoff.WithMaxTries(r.Retry.Times + 1),
+		backoff.WithMaxTries(r.retry.Times + 1),
 	}
 
 	if r.Timeout > 0 {
@@ -464,31 +504,32 @@ func (r *Request) executeWithRetries( //nolint:funlen
 }
 
 func (r *Request) compressBody() (io.Reader, error) {
+	body := r.body
+	r.body = nil
+
 	// Optimization: check r.header directly to avoid initialization if no headers were set
-	if r.compressed || len(r.header) == 0 {
-		return r.Body, nil
+	if body == nil || len(r.header) == 0 {
+		return body, nil
 	}
 
 	encoding := r.Header().Get(httpheader.ContentEncoding)
 	if encoding == "" {
-		return r.Body, nil
+		return body, nil
 	}
 
 	// should ignore the compression if the encoding isn't supported.
 	if !r.client.compressors.IsEncodingSupported(encoding) {
 		r.Header().Del(httpheader.ContentEncoding)
 
-		return r.Body, nil
+		return body, nil
 	}
 
 	var buf bytes.Buffer
 
-	_, err := r.client.compressors.Compress(&buf, encoding, r.Body)
+	_, err := r.client.compressors.Compress(&buf, encoding, body)
 	if err != nil {
 		return nil, err
 	}
-
-	r.compressed = true
 
 	return &buf, nil
 }
