@@ -1,4 +1,4 @@
-package httpconfig
+package gohttpc
 
 import (
 	"context"
