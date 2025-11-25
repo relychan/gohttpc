@@ -48,6 +48,16 @@ func (c *Client) NewRequest(method string, requestURI string) *Request {
 	}
 }
 
+// Clone a new client with properties copied.
+func (c *Client) Clone() *Client {
+	options := *c.options
+
+	return &Client{
+		options:     &options,
+		compressors: c.compressors,
+	}
+}
+
 // Close terminates internal processes.
 func (c *Client) Close() error {
 	if c.options.HTTPClient != nil {
