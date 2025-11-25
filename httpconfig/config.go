@@ -14,7 +14,7 @@ type HTTPClientConfig struct {
 	// Default maximum timeout duration that is applied for all requests.
 	Timeout *goutils.Duration `json:"timeout,omitempty" jsonschema:"oneof_ref=#/$defs/Duration,oneof_type=null" yaml:"timeout,omitempty"`
 	// Transport stores the http.Transport configuration for the http client.
-	Transport *HTTPTransportConfig `json:"transport,omitempty" yaml:"transport,omitempty"`
+	Transport *gohttpc.HTTPTransportConfig `json:"transport,omitempty" yaml:"transport,omitempty"`
 	// The transport layer security (LTS) configuration for the mutualTLS authentication.
 	TLS *TLSConfig `json:"tls,omitempty" yaml:"tls,omitempty"`
 	// Retry policy of client requests.
@@ -61,7 +61,7 @@ func NewClientFromConfig(
 		return gohttpc.NewClientWithOptions(opts), nil
 	}
 
-	newTransport := TransportFromConfig(config.Transport, opts)
+	newTransport := gohttpc.TransportFromConfig(config.Transport, opts)
 	httpClient := &http.Client{
 		Transport: newTransport,
 	}

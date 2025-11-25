@@ -1,4 +1,4 @@
-package httpconfig
+package gohttpc
 
 import (
 	"net"
@@ -6,7 +6,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/relychan/gohttpc"
 	"github.com/relychan/goutils"
 )
 
@@ -67,9 +66,9 @@ type HTTPTransportConfig struct {
 }
 
 // TransportFromConfig creates an http transport from the configuration.
-func TransportFromConfig( //nolint:funlen
+func TransportFromConfig(
 	ttc *HTTPTransportConfig,
-	clientOptions *gohttpc.ClientOptions,
+	clientOptions *ClientOptions,
 ) *http.Transport {
 	var dialerConf *HTTPDialerConfig
 
@@ -102,6 +101,10 @@ func TransportFromConfig( //nolint:funlen
 		return defaultTransport
 	}
 
+	return applyTransport(ttc, defaultTransport)
+}
+
+func applyTransport(ttc *HTTPTransportConfig, defaultTransport *http.Transport) *http.Transport {
 	if ttc.DisableKeepAlives {
 		defaultTransport.DisableKeepAlives = true
 	}

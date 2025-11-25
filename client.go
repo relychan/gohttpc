@@ -29,7 +29,9 @@ func NewClient(options ...Option) *Client {
 // NewClientWithOptions creates a new HTTP client wrapper with client options.
 func NewClientWithOptions(options *ClientOptions) *Client {
 	if options.HTTPClient == nil {
-		options.HTTPClient = http.DefaultClient
+		options.HTTPClient = &http.Client{
+			Transport: TransportFromConfig(nil, options),
+		}
 	}
 
 	return &Client{
