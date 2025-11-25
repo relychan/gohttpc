@@ -107,7 +107,7 @@ func (r *Request) Body() io.Reader {
 	return r.body
 }
 
-// SetBody set the request body.
+// SetBody sets the request body.
 func (r *Request) SetBody(body io.Reader) *Request {
 	r.body = body
 
