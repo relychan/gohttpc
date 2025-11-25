@@ -73,9 +73,9 @@ type Request struct {
 	Retry *RetryPolicy
 
 	client        *Client
-	compressed    bool
 	authenticator authscheme.HTTPClientAuthenticator
 	header        http.Header
+	done          bool
 }
 
 // Header returns the request header fields to be sent by the client.
@@ -97,9 +97,29 @@ func (r *Request) Header() http.Header {
 	return r.header
 }
 
+// Clone a new request. The body can be null if it was already read.
+func (r *Request) Clone() *Request {
+	newRequest := *r
+	newRequest.done = false
+
+	return &newRequest
+}
+
 // SetBody handles the HTTP request to the remote server.
 func (r *Request) SetBody(body io.Reader) *Request {
 	r.Body = body
+
+	return r
+}
+
+// Authenticator returns the HTTP client authenticator.
+func (r *Request) Authenticator() authscheme.HTTPClientAuthenticator {
+	return r.authenticator
+}
+
+// SetAuthenticator sets the HTTP authenticator.
+func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) *Request {
+	r.authenticator = authenticator
 
 	return r
 }
@@ -108,10 +128,15 @@ func (r *Request) SetBody(body io.Reader) *Request {
 func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 	ctx context.Context,
 ) (*Response, error) {
+	if r.done {
+		return nil, ErrRequestAlreadyExecuted
+	}
+
 	if r.Method == "" {
 		return nil, ErrRequestMethodRequired
 	}
 
+	r.done = true
 	startTime := time.Now()
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)
@@ -464,31 +489,32 @@ func (r *Request) executeWithRetries( //nolint:funlen
 }
 
 func (r *Request) compressBody() (io.Reader, error) {
+	body := r.Body
+	r.Body = nil
+
 	// Optimization: check r.header directly to avoid initialization if no headers were set
-	if r.compressed || len(r.header) == 0 {
-		return r.Body, nil
+	if r.Body == nil || len(r.header) == 0 {
+		return body, nil
 	}
 
 	encoding := r.Header().Get(httpheader.ContentEncoding)
 	if encoding == "" {
-		return r.Body, nil
+		return body, nil
 	}
 
 	// should ignore the compression if the encoding isn't supported.
 	if !r.client.compressors.IsEncodingSupported(encoding) {
 		r.Header().Del(httpheader.ContentEncoding)
 
-		return r.Body, nil
+		return body, nil
 	}
 
 	var buf bytes.Buffer
 
-	_, err := r.client.compressors.Compress(&buf, encoding, r.Body)
+	_, err := r.client.compressors.Compress(&buf, encoding, body)
 	if err != nil {
 		return nil, err
 	}
-
-	r.compressed = true
 
 	return &buf, nil
 }

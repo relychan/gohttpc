@@ -15,6 +15,8 @@ var (
 	ErrResponseBodyAlreadyRead = errors.New("response body was already read")
 	// ErrRequestMethodRequired occurs when the request method is null.
 	ErrRequestMethodRequired = errors.New("request method is required")
+	// ErrRequestAlreadyExecuted occurs when the request was already executed.
+	ErrRequestAlreadyExecuted = errors.New("request was already executed")
 )
 
 // httpErrorFromResponse creates an error from the HTTP response.
