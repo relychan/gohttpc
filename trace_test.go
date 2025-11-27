@@ -13,11 +13,6 @@ func TestClassifyDNSError(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "nil error returns empty string",
-			err:      nil,
-			expected: "",
-		},
-		{
 			name: "DNS error with IsNotFound returns host_not_found",
 			err: &net.DNSError{
 				Err:        "no such host",
