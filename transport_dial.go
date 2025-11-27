@@ -3,6 +3,7 @@ package gohttpc
 import (
 	"context"
 	"net"
+	"time"
 
 	"github.com/hasura/gotel/otelutils"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,9 +13,11 @@ import (
 
 func transportDialContext(
 	dialer *net.Dialer,
-	openConnMetric metric.Int64UpDownCounter,
+	metrics *HTTPClientMetrics,
 ) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network string, address string) (net.Conn, error) {
+		createdTime := time.Now()
+
 		conn, err := dialer.DialContext(ctx, network, address)
 		if err != nil {
 			return nil, err
@@ -23,8 +26,9 @@ func transportDialContext(
 		_, port, _ := otelutils.SplitHostPort(address, "")
 
 		connMetric := &connWithMetric{
-			Conn:           conn,
-			openConnMetric: openConnMetric,
+			Conn:        conn,
+			metrics:     metrics,
+			createdTime: createdTime,
 			metricAttrSet: metric.WithAttributeSet(attribute.NewSet(
 				semconv.ServerAddress(address),
 				semconv.ServerPort(port),
@@ -32,7 +36,7 @@ func transportDialContext(
 			)),
 		}
 
-		connMetric.openConnMetric.Add(ctx, 1, connMetric.metricAttrSet)
+		connMetric.metrics.OpenConnections.Add(ctx, 1, connMetric.metricAttrSet)
 
 		return connMetric, nil
 	}
@@ -42,12 +46,18 @@ func transportDialContext(
 type connWithMetric struct {
 	net.Conn
 
-	openConnMetric metric.Int64UpDownCounter
-	metricAttrSet  metric.MeasurementOption
+	createdTime   time.Time
+	metrics       *HTTPClientMetrics
+	metricAttrSet metric.MeasurementOption
 }
 
 func (c *connWithMetric) Close() error {
-	c.openConnMetric.Add(context.TODO(), -1, c.metricAttrSet)
+	c.metrics.OpenConnections.Add(context.TODO(), -1, c.metricAttrSet)
+	c.metrics.ConnectionDuration.Record(
+		context.TODO(),
+		time.Since(c.createdTime).Seconds(),
+		c.metricAttrSet,
+	)
 
 	return c.Conn.Close()
 }

@@ -5,7 +5,10 @@ import (
 	"go.opentelemetry.io/otel/metric/noop"
 )
 
-// HTTPClientMetrics hold metrics of an HTTP client.
+// HTTPClientMetrics hold semantic metrics of an HTTP client.
+// These metrics are inspired by OpenTelemetry semantic specifications and [built-in .NET system metrics].
+//
+// [built-in .NET system metrics]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/built-in-metrics-system-net#instrument-httpclientconnectionduration
 type HTTPClientMetrics struct {
 	// The duration of how long the connection was previously idle.
 	IdleConnectionDuration metric.Float64Histogram
@@ -23,6 +26,8 @@ type HTTPClientMetrics struct {
 	RequestDuration metric.Float64Histogram
 	// The duration of the successfully established outbound HTTP connections.
 	ConnectionDuration metric.Float64Histogram
+	// The duration of DNS lookup operations performed by the HTTP client.
+	DNSLookupDuration metric.Float64Histogram
 }
 
 // NewHTTPClientMetrics creates an HTTPClientMetrics instance from the OpenTelemetry meter.
@@ -32,7 +37,7 @@ func NewHTTPClientMetrics( //nolint:funlen
 ) (*HTTPClientMetrics, error) {
 	metrics := HTTPClientMetrics{
 		IdleConnectionDuration: noop.Float64Histogram{},
-		ServerDuration:         noop.Float64Histogram{},
+		ConnectionDuration:     noop.Float64Histogram{},
 		OpenConnections:        noop.Int64UpDownCounter{},
 	}
 
@@ -83,6 +88,16 @@ func NewHTTPClientMetrics( //nolint:funlen
 		return nil, err
 	}
 
+	metrics.ServerDuration, err = meter.Float64Histogram(
+		"http.client.server.duration",
+		metric.WithDescription("The duration of the server for responding to the first byte."),
+		metric.WithUnit("s"),
+		requestDurationBucketBoundaries,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	metrics.ResponseBodySize, err = meter.Int64Histogram(
 		"http.client.response.body.size",
 		metric.WithDescription("Size of HTTP client response bodies."),
@@ -123,11 +138,13 @@ func NewHTTPClientMetrics( //nolint:funlen
 		return nil, err
 	}
 
-	metrics.ServerDuration, err = meter.Float64Histogram(
-		"http.client.server.duration",
-		metric.WithDescription("The duration of the server for responding to the first byte."),
+	metrics.ConnectionDuration, err = meter.Float64Histogram(
+		"http.client.connection.duration",
+		metric.WithDescription(
+			"The duration of the successfully established outbound HTTP connections.",
+		),
 		metric.WithUnit("s"),
-		requestDurationBucketBoundaries,
+		connectionDurationBucketBoundaries,
 	)
 	if err != nil {
 		return nil, err
@@ -144,13 +161,11 @@ func NewHTTPClientMetrics( //nolint:funlen
 		return nil, err
 	}
 
-	metrics.ConnectionDuration, err = meter.Float64Histogram(
-		"http.client.connection.duration",
-		metric.WithDescription(
-			"The duration of the successfully established outbound HTTP connections.",
-		),
+	metrics.DNSLookupDuration, err = meter.Float64Histogram(
+		"dns.lookup.duration",
+		metric.WithDescription("Measures the time taken to perform a DNS lookup."),
 		metric.WithUnit("s"),
-		connectionDurationBucketBoundaries,
+		requestDurationBucketBoundaries,
 	)
 	if err != nil {
 		return nil, err
@@ -168,4 +183,5 @@ var noopHTTPClientMetrics = HTTPClientMetrics{
 	RequestBodySize:        noop.Int64Histogram{},
 	ResponseBodySize:       noop.Int64Histogram{},
 	RequestDuration:        noop.Float64Histogram{},
+	DNSLookupDuration:      noop.Float64Histogram{},
 }

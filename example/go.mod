@@ -3,7 +3,7 @@ module github.com/relychan/gohttpc/example
 go 1.25.4
 
 require (
-	github.com/hasura/gotel v0.4.0
+	github.com/hasura/gotel v0.4.1
 	github.com/relychan/gohttpc v0.0.0-00010101000000-000000000000
 	github.com/relychan/goutils v0.0.0-20251121111319-b810d743c7c5
 	go.opentelemetry.io/otel v1.38.0

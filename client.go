@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"slices"
 	"time"
 
 	"github.com/relychan/gocompress"
@@ -52,11 +51,9 @@ func (c *Client) NewRequest(method string, requestURI string) *Request {
 }
 
 // Clone creates a new client with properties copied.
-func (c *Client) Clone() *Client {
-	options := *c.options
-
+func (c *Client) Clone(options ...Option) *Client {
 	return &Client{
-		options:     &options,
+		options:     c.options.Clone(options...),
 		compressors: c.compressors,
 	}
 }
@@ -108,15 +105,11 @@ func NewClientOptions(options ...Option) *ClientOptions {
 }
 
 // Clone creates a new ClientOptions instance with copied values.
-func (co *ClientOptions) Clone() *ClientOptions {
+func (co *ClientOptions) Clone(options ...Option) *ClientOptions {
 	newOptions := *co
 
-	if co.AllowedTraceRequestHeaders != nil {
-		newOptions.AllowedTraceRequestHeaders = slices.Clone(co.AllowedTraceRequestHeaders)
-	}
-
-	if co.AllowedTraceResponseHeaders != nil {
-		newOptions.AllowedTraceResponseHeaders = slices.Clone(co.AllowedTraceResponseHeaders)
+	for _, opt := range options {
+		opt(&newOptions)
 	}
 
 	return &newOptions
