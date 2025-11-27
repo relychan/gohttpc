@@ -3,7 +3,9 @@ package gohttpc
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log/slog"
+	"net"
 	"net/http/httptrace"
 	"net/textproto"
 	"net/url"
@@ -131,6 +133,7 @@ type clientTrace struct {
 	gotConn              time.Time
 	gotFirstResponseByte time.Time
 	totalTime            time.Duration
+	host                 string
 	remoteAddr           string
 }
 
@@ -227,252 +230,268 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 	t.startTime = time.Now()
 	isTraceLogLevelEnabled := t.logger.Enabled(ctx, LogLevelTrace)
 
-	return httptrace.WithClientTrace(
-		ctx,
-		&httptrace.ClientTrace{
-			DNSStart: func(info httptrace.DNSStartInfo) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"DNSStart",
-						slog.String("host", info.Host),
-					)
+	ct := &httptrace.ClientTrace{
+		DNSStart: func(info httptrace.DNSStartInfo) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(
+					ctx,
+					LogLevelTrace,
+					"DNSStart",
+					slog.String("host", info.Host),
+				)
+			}
+
+			// Calculate the total time accordingly when connection is reused,
+			// and DNS start and get conn time may be zero if the request is invalid.
+			t.host = info.Host
+			t.dnsStart = time.Now()
+			t.startTime = t.dnsStart
+		},
+		DNSDone: func(info httptrace.DNSDoneInfo) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(ctx, LogLevelTrace, "DNSDone", slog.Any("info", info))
+			}
+
+			t.dnsDone = time.Now()
+
+			if t.dnsStart.IsZero() {
+				return
+			}
+
+			dnsLookupDuration := time.Since(t.dnsStart)
+
+			t.SetAttributes(
+				attribute.Float64(
+					"http.stats.dns_lookup_time_ms",
+					float64(dnsLookupDuration)/millisecond,
+				),
+			)
+
+			metricAttrs := []attribute.KeyValue{
+				semconv.DNSQuestionName(t.host),
+			}
+
+			if info.Err != nil {
+				errorType := "_OTHER"
+
+				var dnsError *net.DNSError
+
+				if errors.As(info.Err, &dnsError) {
+					switch {
+					case dnsError.IsNotFound:
+						errorType = "host_not_found"
+					case dnsError.IsTimeout:
+						errorType = "timeout"
+					}
 				}
 
+				metricAttrs = append(
+					metricAttrs,
+					semconv.ErrorTypeKey.String(errorType),
+				)
+			}
+
+			t.metrics.DNSLookupDuration.Record(
+				ctx,
+				dnsLookupDuration.Seconds(),
+				metric.WithAttributeSet(attribute.NewSet(metricAttrs...)),
+			)
+		},
+		ConnectStart: func(network, addr string) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(
+					ctx,
+					LogLevelTrace,
+					"ConnectStart",
+					slog.String("network", network),
+					slog.String("address", addr),
+				)
+			}
+
+			if t.dnsDone.IsZero() {
+				t.dnsDone = time.Now()
+			}
+
+			if t.dnsStart.IsZero() {
+				t.dnsStart = t.dnsDone
+			}
+		},
+		ConnectDone: func(network, addr string, err error) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(
+					ctx,
+					LogLevelTrace,
+					"ConnectDone",
+					slog.String("network", network),
+					slog.String("address", addr),
+					slog.Any("error", err),
+				)
+			}
+
+			t.connectDone = time.Now()
+			tcpConnTime := t.connectDone.Sub(t.dnsDone)
+
+			t.SetAttributes(
+				attribute.Float64(
+					"http.stats.tcp_connection_time_ms",
+					float64(tcpConnTime)/millisecond,
+				),
+			)
+		},
+		GetConn: func(hostPort string) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(
+					ctx,
+					LogLevelTrace,
+					"GetConn",
+					slog.String("hostPort", hostPort),
+				)
+			}
+
+			t.getConn = time.Now()
+		},
+		GotConn: func(ci httptrace.GotConnInfo) {
+			if ci.Reused {
 				// Calculate the total time accordingly when connection is reused,
 				// and DNS start and get conn time may be zero if the request is invalid.
-				t.dnsStart = time.Now()
-				t.startTime = t.dnsStart
-			},
-			DNSDone: func(info httptrace.DNSDoneInfo) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "DNSDone", slog.Any("info", info))
-				}
+				t.startTime = t.getConn
+			}
 
-				t.dnsDone = time.Now()
-				dnsLookupDuration := time.Since(t.dnsStart)
-
-				if dnsLookupDuration == 0 {
-					return
-				}
-
-				t.SetAttributes(
-					attribute.Float64(
-						"http.stats.dns_lookup_time_ms",
-						float64(dnsLookupDuration)/millisecond,
-					),
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(ctx, LogLevelTrace, "GotConn",
+					slog.String("idleTime", ci.IdleTime.String()),
+					slog.Bool("reused", ci.Reused),
+					slog.Bool("wasIdle", ci.WasIdle),
 				)
-			},
-			ConnectStart: func(network, addr string) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"ConnectStart",
-						slog.String("network", network),
-						slog.String("address", addr),
-					)
-				}
+			}
 
-				if t.dnsDone.IsZero() {
-					t.dnsDone = time.Now()
-				}
+			t.gotConn = time.Now()
+			t.remoteAddr = ci.Conn.RemoteAddr().String()
 
-				if t.dnsStart.IsZero() {
-					t.dnsStart = t.dnsDone
-				}
-			},
-			ConnectDone: func(network, addr string, err error) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"ConnectDone",
-						slog.String("network", network),
-						slog.String("address", addr),
-						slog.Any("error", err),
-					)
-				}
+			connTime := time.Since(t.getConn)
 
-				t.connectDone = time.Now()
-				tcpConnTime := t.connectDone.Sub(t.dnsDone)
-
-				t.SetAttributes(
-					attribute.Float64(
-						"http.stats.tcp_connection_time_ms",
-						float64(tcpConnTime)/millisecond,
-					),
-				)
-			},
-			GetConn: func(hostPort string) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"GetConn",
-						slog.String("hostPort", hostPort),
-					)
-				}
-
-				t.getConn = time.Now()
-			},
-			GotConn: func(ci httptrace.GotConnInfo) {
-				if ci.Reused {
-					// Calculate the total time accordingly when connection is reused,
-					// and DNS start and get conn time may be zero if the request is invalid.
-					t.startTime = t.getConn
-				}
-
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "GotConn",
-						slog.String("idleTime", ci.IdleTime.String()),
-						slog.Bool("reused", ci.Reused),
-						slog.Bool("wasIdle", ci.WasIdle),
-					)
-				}
-
-				t.gotConn = time.Now()
-				t.remoteAddr = ci.Conn.RemoteAddr().String()
-
-				connTime := time.Since(t.getConn)
-
-				t.metrics.ConnectionDuration.Record(
+			if ci.WasIdle {
+				t.metrics.IdleConnectionDuration.Record(
 					ctx,
-					connTime.Seconds(),
+					ci.IdleTime.Seconds(),
 					metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),
 				)
-
-				if ci.WasIdle {
-					t.metrics.IdleConnectionDuration.Record(
-						ctx,
-						ci.IdleTime.Seconds(),
-						metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),
-					)
-					t.SetAttributes(
-						attribute.Float64(
-							"http.stats.idle_connection_time_ms",
-							float64(ci.IdleTime)/millisecond,
-						),
-					)
-				}
-
 				t.SetAttributes(
 					attribute.Float64(
-						"http.stats.connection_time_ms",
-						float64(connTime)/millisecond,
-					),
-					attribute.Bool("http.stats.is_connection_reused", ci.Reused),
-					attribute.Bool("http.stats.is_connection_was_idle", ci.WasIdle),
-				)
-			},
-			GotFirstResponseByte: func() {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "GotFirstResponseByte")
-				}
-
-				t.gotFirstResponseByte = time.Now()
-
-				if !t.gotConn.IsZero() {
-					serverTime := t.gotFirstResponseByte.Sub(t.gotConn)
-					t.metrics.ServerDuration.Record(
-						ctx,
-						serverTime.Seconds(),
-						metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),
-					)
-					t.SetAttributes(
-						attribute.Float64(
-							"http.stats.server_time_ms",
-							float64(serverTime)/millisecond,
-						),
-					)
-				}
-			},
-			TLSHandshakeStart: func() {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeStart")
-				}
-
-				t.tlsHandshakeStart = time.Now()
-			},
-			TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeDone",
-						slog.Int("tlsVersion", int(connState.Version)),
-						slog.Bool("handshakeComplete", connState.HandshakeComplete),
-						slog.Bool("didResume", connState.DidResume),
-						slog.Bool("echAccepted", connState.ECHAccepted),
-						slog.String("serverName", connState.ServerName),
-						slog.Any("error", err),
-					)
-				}
-
-				t.tlsHandshakeDone = time.Now()
-
-				if t.tlsHandshakeStart.IsZero() {
-					return
-				}
-
-				tlsHandshakeDuration := time.Since(t.tlsHandshakeStart)
-
-				t.SetAttributes(
-					attribute.Float64(
-						"http.stats.tls_handshake_time_ms",
-						float64(tlsHandshakeDuration)/millisecond,
+						"http.stats.idle_connection_time_ms",
+						float64(ci.IdleTime)/millisecond,
 					),
 				)
-			},
-			Got100Continue: func() {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "Got100Continue")
-				}
-			},
-			Got1xxResponse: func(code int, header textproto.MIMEHeader) error {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"Got1xxResponse",
-						slog.Int("code", code),
-						slog.Any("headers", header),
-					)
-				}
+			}
 
-				return nil
-			},
-			WroteHeaderField: func(key string, value []string) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"WroteHeaderField",
-						slog.String("key", key),
-						slog.Any("value", value),
-					)
-				}
-			},
-			WroteHeaders: func() {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "WroteHeaders")
-				}
-			},
-			Wait100Continue: func() {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(ctx, LogLevelTrace, "Wait100Continue")
-				}
-			},
-			WroteRequest: func(wri httptrace.WroteRequestInfo) {
-				if isTraceLogLevelEnabled {
-					t.logger.LogAttrs(
-						ctx,
-						LogLevelTrace,
-						"WroteRequest",
-						slog.Any("error", wri.Err),
-					)
-				}
-			},
+			t.SetAttributes(
+				attribute.Float64(
+					"http.stats.connection_acquire_time_ms",
+					float64(connTime)/millisecond,
+				),
+				attribute.Bool("http.stats.is_connection_reused", ci.Reused),
+				attribute.Bool("http.stats.is_connection_was_idle", ci.WasIdle),
+			)
 		},
-	)
+		GotFirstResponseByte: func() {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(ctx, LogLevelTrace, "GotFirstResponseByte")
+			}
+
+			t.gotFirstResponseByte = time.Now()
+
+			if !t.gotConn.IsZero() {
+				serverTime := t.gotFirstResponseByte.Sub(t.gotConn)
+				t.metrics.ServerDuration.Record(
+					ctx,
+					serverTime.Seconds(),
+					metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),
+				)
+				t.SetAttributes(
+					attribute.Float64(
+						"http.stats.server_time_ms",
+						float64(serverTime)/millisecond,
+					),
+				)
+			}
+		},
+		TLSHandshakeStart: func() {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeStart")
+			}
+
+			t.tlsHandshakeStart = time.Now()
+		},
+		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
+			if isTraceLogLevelEnabled {
+				t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeDone",
+					slog.Int("tlsVersion", int(connState.Version)),
+					slog.Bool("handshakeComplete", connState.HandshakeComplete),
+					slog.Bool("didResume", connState.DidResume),
+					slog.Bool("echAccepted", connState.ECHAccepted),
+					slog.String("serverName", connState.ServerName),
+					slog.Any("error", err),
+				)
+			}
+
+			t.tlsHandshakeDone = time.Now()
+
+			if t.tlsHandshakeStart.IsZero() {
+				return
+			}
+
+			tlsHandshakeDuration := time.Since(t.tlsHandshakeStart)
+
+			t.SetAttributes(
+				attribute.Float64(
+					"http.stats.tls_handshake_time_ms",
+					float64(tlsHandshakeDuration)/millisecond,
+				),
+			)
+		},
+	}
+
+	if isTraceLogLevelEnabled {
+		ct.WroteHeaders = func() {
+			t.logger.LogAttrs(ctx, LogLevelTrace, "WroteHeaders")
+		}
+		ct.Wait100Continue = func() {
+			t.logger.LogAttrs(ctx, LogLevelTrace, "Wait100Continue")
+		}
+		ct.WroteHeaderField = func(key string, value []string) {
+			t.logger.LogAttrs(
+				ctx,
+				LogLevelTrace,
+				"WroteHeaderField",
+				slog.String("key", key),
+				slog.Any("value", value),
+			)
+		}
+		ct.WroteRequest = func(wri httptrace.WroteRequestInfo) {
+			t.logger.LogAttrs(
+				ctx,
+				LogLevelTrace,
+				"WroteRequest",
+				slog.Any("error", wri.Err),
+			)
+		}
+		ct.Got1xxResponse = func(code int, header textproto.MIMEHeader) error {
+			t.logger.LogAttrs(
+				ctx,
+				LogLevelTrace,
+				"Got1xxResponse",
+				slog.Int("code", code),
+				slog.Any("headers", header),
+			)
+
+			return nil
+		}
+		ct.Got100Continue = func() {
+			t.logger.LogAttrs(ctx, LogLevelTrace, "Got100Continue")
+		}
+	}
+
+	return httptrace.WithClientTrace(ctx, ct)
 }
 
 func httpRequestMethodAttr(method string) attribute.KeyValue {

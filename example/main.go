@@ -99,7 +99,7 @@ func createPost(client *gohttpc.Client, id int) {
 		panic(err)
 	}
 
-	req.Body = bytes.NewReader(body)
+	req.SetBody(bytes.NewReader(body))
 
 	resp, err := req.Execute(ctx)
 	if err != nil {

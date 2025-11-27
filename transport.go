@@ -93,7 +93,7 @@ func TransportFromConfig(
 	if clientOptions.ClientTraceEnabled {
 		defaultTransport.DialContext = transportDialContext(
 			dialer,
-			clientOptions.Metrics.OpenConnections,
+			clientOptions.Metrics,
 		)
 	}
 
