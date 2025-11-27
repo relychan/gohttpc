@@ -524,10 +524,6 @@ func getBuildVersion() string {
 // Returns "host_not_found" for DNS not found errors, "timeout" for DNS timeout errors,
 // and "_OTHER" for all other errors.
 func classifyDNSError(err error) string {
-	if err == nil {
-		return ""
-	}
-
 	var dnsError *net.DNSError
 
 	if errors.As(err, &dnsError) {
