@@ -272,22 +272,9 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 			}
 
 			if info.Err != nil {
-				errorType := "_OTHER"
-
-				var dnsError *net.DNSError
-
-				if errors.As(info.Err, &dnsError) {
-					switch {
-					case dnsError.IsNotFound:
-						errorType = "host_not_found"
-					case dnsError.IsTimeout:
-						errorType = "timeout"
-					}
-				}
-
 				metricAttrs = append(
 					metricAttrs,
-					semconv.ErrorTypeKey.String(errorType),
+					semconv.ErrorTypeKey.String(classifyDNSError(info.Err)),
 				)
 			}
 
@@ -531,4 +518,26 @@ func getBuildVersion() string {
 	}
 
 	return "unknown"
+}
+
+// classifyDNSError classifies a DNS error into a specific error type for metrics.
+// Returns "host_not_found" for DNS not found errors, "timeout" for DNS timeout errors,
+// and "_OTHER" for all other errors.
+func classifyDNSError(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	var dnsError *net.DNSError
+
+	if errors.As(err, &dnsError) {
+		switch {
+		case dnsError.IsNotFound:
+			return "host_not_found"
+		case dnsError.IsTimeout:
+			return "timeout"
+		}
+	}
+
+	return "_OTHER"
 }
