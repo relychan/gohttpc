@@ -54,4 +54,4 @@ The library provides two tracing modes:
 | `http.client.open_connections`         | Gauge     | Number of active or idle outbound connections |
 | `http.client.connection.duration`      | Histogram | Duration to establish outbound connections    |
 | `http.client.idle_connection.duration` | Histogram | How long connections were idle before reuse   |
-| `http.client.idle_connection.duration` | Histogram | How long connections were idle before reuse   |
+

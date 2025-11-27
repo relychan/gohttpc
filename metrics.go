@@ -26,7 +26,7 @@ type HTTPClientMetrics struct {
 	RequestDuration metric.Float64Histogram
 	// The duration of the successfully established outbound HTTP connections.
 	ConnectionDuration metric.Float64Histogram
-	// The duration of the successfully established outbound HTTP connections.
+	// The duration of DNS lookup operations performed by the HTTP client.
 	DNSLookupDuration metric.Float64Histogram
 }
 
