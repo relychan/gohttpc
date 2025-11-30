@@ -13,26 +13,27 @@ import (
 
 // mockLoadBalancer is a mock implementation of LoadBalancer for testing.
 type mockLoadBalancer struct {
-	servers              []*Server
-	nextFunc             func() (*Server, error)
+	hosts                []*Host
+	nextFunc             func() (*Host, error)
 	startHealthCheckFunc func(ctx context.Context)
 	closeFunc            func() error
 	healthCheckCalled    bool
 	closeCalled          bool
 }
 
-func (m *mockLoadBalancer) Servers() []*Server {
-	return m.servers
+func (m *mockLoadBalancer) Hosts() []*Host {
+	return m.hosts
 }
 
-func (m *mockLoadBalancer) Next() (*Server, error) {
+func (m *mockLoadBalancer) Next() (*Host, error) {
 	if m.nextFunc != nil {
 		return m.nextFunc()
 	}
-	if len(m.servers) == 0 {
+	if len(m.hosts) == 0 {
 		return nil, ErrNoActiveHost
 	}
-	return m.servers[0], nil
+
+	return m.hosts[0], nil
 }
 
 func (m *mockLoadBalancer) StartHealthCheck(ctx context.Context) {
@@ -52,10 +53,13 @@ func (m *mockLoadBalancer) Close() error {
 
 func TestNewLoadBalancerClient(t *testing.T) {
 	t.Run("creates client with default options", func(t *testing.T) {
+		host, err := NewHost(&http.Client{}, "https://example.com", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		lb := &mockLoadBalancer{
-			servers: []*Server{
-				NewServer(&http.Client{}, "https://example.com", 1),
-			},
+			hosts: []*Host{host},
 		}
 
 		client := NewLoadBalancerClient(lb)
@@ -153,9 +157,13 @@ func TestLoadBalancerClient_R(t *testing.T) {
 
 func TestLoadBalancerClient_HTTPClient(t *testing.T) {
 	t.Run("returns server from load balancer", func(t *testing.T) {
-		expectedServer := NewServer(&http.Client{}, "https://example.com", 1)
+		expectedServer, err := NewHost(&http.Client{}, "https://example.com", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		lb := &mockLoadBalancer{
-			servers: []*Server{expectedServer},
+			hosts: []*Host{expectedServer},
 		}
 		client := NewLoadBalancerClient(lb)
 
@@ -172,7 +180,7 @@ func TestLoadBalancerClient_HTTPClient(t *testing.T) {
 
 	t.Run("returns error when no active host", func(t *testing.T) {
 		lb := &mockLoadBalancer{
-			nextFunc: func() (*Server, error) {
+			nextFunc: func() (*Host, error) {
 				return nil, ErrNoActiveHost
 			},
 		}
@@ -188,7 +196,7 @@ func TestLoadBalancerClient_HTTPClient(t *testing.T) {
 	t.Run("returns custom error from load balancer", func(t *testing.T) {
 		customErr := errors.New("custom load balancer error")
 		lb := &mockLoadBalancer{
-			nextFunc: func() (*Server, error) {
+			nextFunc: func() (*Host, error) {
 				return nil, customErr
 			},
 		}
@@ -326,9 +334,13 @@ func (m *mockServer) Do(req *http.Request) (*http.Response, error) {
 
 func TestLoadBalancerClient_Integration(t *testing.T) {
 	t.Run("full request flow with load balancer", func(t *testing.T) {
-		server := NewServer(&http.Client{}, "https://example.com", 1)
+		server, err := NewHost(&http.Client{}, "https://example.com", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		lb := &mockLoadBalancer{
-			servers: []*Server{server},
+			hosts: []*Host{server},
 		}
 		client := NewLoadBalancerClient(lb)
 
@@ -343,18 +355,29 @@ func TestLoadBalancerClient_Integration(t *testing.T) {
 	})
 
 	t.Run("multiple servers in load balancer", func(t *testing.T) {
-		servers := []*Server{
-			NewServer(&http.Client{}, "https://example1.com", 1),
-			NewServer(&http.Client{}, "https://example2.com", 1),
-			NewServer(&http.Client{}, "https://example3.com", 1),
+		server1, err := NewHost(&http.Client{}, "https://example1.com", 1)
+		if err != nil {
+			t.Fatal(err)
 		}
+
+		server2, err := NewHost(&http.Client{}, "https://example2.com", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		server3, err := NewHost(&http.Client{}, "https://example3.com", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		servers := []*Host{server1, server2, server3}
 		lb := &mockLoadBalancer{
-			servers: servers,
+			hosts: servers,
 		}
 		client := NewLoadBalancerClient(lb)
 
-		if len(lb.Servers()) != 3 {
-			t.Errorf("expected 3 servers, got %d", len(lb.Servers()))
+		if len(lb.Hosts()) != 3 {
+			t.Errorf("expected 3 servers, got %d", len(lb.Hosts()))
 		}
 
 		httpClient, err := client.HTTPClient()
