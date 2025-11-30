@@ -181,7 +181,7 @@ func TestHTTPHealthCheckConfig_ToPolicyBuilder_Headers(t *testing.T) {
 		}
 
 		// Headers should be nil or empty when no headers are configured
-		if builder.headers != nil && len(builder.headers) > 0 {
+		if len(builder.headers) > 0 {
 			t.Errorf("expected no headers, got %v", builder.headers)
 		}
 	})
