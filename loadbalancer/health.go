@@ -290,5 +290,9 @@ func (hb *httpHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthChec
 	policy := *hb.HTTPHealthCheckPolicy
 	policy.CircuitBreaker = builder.Build()
 
+	// change the initial state to half-open,
+	// so the first request will trigger the OnStateChanged event to push metrics.
+	policy.HalfOpen()
+
 	return &policy
 }

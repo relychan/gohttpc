@@ -22,7 +22,7 @@ var tracer = otel.Tracer("gorestly")
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-		// Level: gohttpc.LogLevelTrace,
+		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
 
@@ -50,10 +50,11 @@ func main() {
 		panic(err)
 	}
 
+	gohttpc.SetHTTPClientMetrics(clientMetrics)
+
 	client, err := httpconfig.NewClientFromConfig(
 		httpconfig.HTTPClientConfig{},
 		gohttpc.WithTracer(exporters.Tracer),
-		gohttpc.WithMetrics(clientMetrics),
 		gohttpc.EnableClientTrace(true),
 	)
 	if err != nil {

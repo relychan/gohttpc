@@ -256,8 +256,14 @@ func (s *Host) NewRequest(
 func (s *Host) Do(req *http.Request) (*http.Response, error) {
 	resp, err := s.httpClient.Do(req)
 
-	if s.healthCheckPolicy != nil && resp != nil && resp.StatusCode > http.StatusNotImplemented {
+	if s.healthCheckPolicy == nil {
+		return resp, err
+	}
+
+	if err != nil || (resp != nil && resp.StatusCode > http.StatusNotImplemented) {
 		s.healthCheckPolicy.RecordFailure()
+	} else if resp != nil {
+		s.healthCheckPolicy.RecordSuccess()
 	}
 
 	return resp, err
