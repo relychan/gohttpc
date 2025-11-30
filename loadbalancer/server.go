@@ -28,9 +28,9 @@ type Server struct {
 	httpClient *http.Client
 	// The custom authenticator for the current server.
 	authenticator authscheme.HTTPClientAuthenticator
-	// health check policy.
+	// The health check policy.
 	healthCheckPolicy *HTTPHealthCheckPolicy
-
+	// The current weight of the server.
 	currentWeight int
 }
 
@@ -42,6 +42,9 @@ func NewServer(client *http.Client, baseURL string, weight int) *Server {
 		url:        baseURL,
 		httpClient: client,
 		weight:     weight,
+		healthCheckPolicy: &HTTPHealthCheckPolicy{
+			CircuitBreaker: circuitbreaker.NewWithDefaults[int](),
+		},
 	}
 }
 

@@ -27,13 +27,13 @@ var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
 // load balancer instance with given recovery duration and hosts slice.
 func NewWeightedRoundRobin(
 	healthCheckInterval time.Duration,
-	servers ...*loadbalancer.Server,
+	servers []*loadbalancer.Server,
 ) (*WeightedRoundRobin, error) {
 	wrr := &WeightedRoundRobin{
 		healthCheckInterval: healthCheckInterval,
 	}
 
-	err := wrr.Refresh(servers...)
+	err := wrr.Refresh(servers)
 
 	return wrr, err
 }
@@ -51,7 +51,7 @@ func (wrr *WeightedRoundRobin) Next() (*loadbalancer.Server, error) {
 }
 
 // Refresh resets the existing values with the given [Host] slice to refresh it.
-func (wrr *WeightedRoundRobin) Refresh(servers ...*loadbalancer.Server) error {
+func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Server) error {
 	if servers == nil {
 		return nil
 	}
@@ -102,6 +102,14 @@ func (wrr *WeightedRoundRobin) Close() error {
 	wrr.tick = nil
 
 	return nil
+}
+
+// Servers return the list of server of the load balancer.
+func (wrr *WeightedRoundRobin) Servers() []*loadbalancer.Server {
+	wrr.lock.Lock()
+	defer wrr.lock.Unlock()
+
+	return wrr.servers
 }
 
 // StartHealthCheck starts a ticker to run health checking for servers in the background.

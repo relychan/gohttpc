@@ -14,20 +14,35 @@ type HTTPClientMetrics struct {
 	OpenConnections metric.Int64UpDownCounter
 	// The duration of the successfully established outbound HTTP connections.
 	ConnectionDuration metric.Float64Histogram
+	// The gauge metric to observe the server state.
+	ServerState metric.Int64Gauge
 }
 
 // NewHTTPClientMetrics creates an HTTPClientMetrics instance from the OpenTelemetry meter.
-func NewHTTPClientMetrics(
+func NewHTTPClientMetrics( //nolint:funlen
 	meter metric.Meter,
 	clientTraceEnabled bool,
 ) (*HTTPClientMetrics, error) {
-	if !clientTraceEnabled {
-		return &noopHTTPClientMetrics, nil
+	var err error
+
+	metrics := HTTPClientMetrics{
+		ConnectionDuration: noop.Float64Histogram{},
+		OpenConnections:    noop.Int64UpDownCounter{},
 	}
 
-	metrics := HTTPClientMetrics{}
+	metrics.ServerState, err = meter.Int64Gauge(
+		"http.client.server_state",
+		metric.WithDescription(
+			"Circuit breaker state of a server host with 3 enum values: 0=Close, 1=Open, 2=HalfOpen",
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
 
-	var err error
+	if !clientTraceEnabled {
+		return &metrics, nil
+	}
 
 	metrics.ConnectionDuration, err = meter.Float64Histogram(
 		"http.client.connection.duration",
@@ -214,6 +229,7 @@ func NewHTTPRequestMetrics( //nolint:funlen
 var noopHTTPClientMetrics = HTTPClientMetrics{
 	ConnectionDuration: noop.Float64Histogram{},
 	OpenConnections:    noop.Int64UpDownCounter{},
+	ServerState:        noop.Int64Gauge{},
 }
 
 var noopHTTPRequestMetrics = HTTPRequestMetrics{

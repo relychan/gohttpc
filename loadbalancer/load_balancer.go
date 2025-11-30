@@ -13,6 +13,7 @@ var ErrNoActiveHost = errors.New("no active host")
 // LoadBalancer is the interface that wraps the HTTP client load-balancing
 // algorithm that returns the appropriate host for the request to target.
 type LoadBalancer interface {
+	Servers() []*Server
 	Next() (*Server, error)
 	// StartHealthCheck starts a ticker to run health checking for servers in the background.
 	StartHealthCheck(ctx context.Context)
@@ -28,6 +29,17 @@ type LoadBalancerClient struct {
 
 // NewLoadBalancerClient creates a new [LoadBalancerClient] instance.
 func NewLoadBalancerClient(
+	loadBalancer LoadBalancer,
+	options ...gohttpc.ClientOption,
+) *LoadBalancerClient {
+	return NewLoadBalancerClientWithOptions(
+		loadBalancer,
+		gohttpc.NewClientOptions(options...),
+	)
+}
+
+// NewLoadBalancerClientWithOptions creates a new [LoadBalancerClient] instance with explicit client options.
+func NewLoadBalancerClientWithOptions(
 	loadBalancer LoadBalancer,
 	options *gohttpc.ClientOptions,
 ) *LoadBalancerClient {

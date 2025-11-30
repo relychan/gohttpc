@@ -17,7 +17,7 @@ func TestWeightedRoundRobin(t *testing.T) {
 			loadbalancer.NewServer(nil, "https://example3.com", 1),
 		}
 
-		wrr, err := NewWeightedRoundRobin(200*time.Millisecond, hosts...)
+		wrr, err := NewWeightedRoundRobin(200*time.Millisecond, hosts)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -51,8 +51,10 @@ func TestWeightedRoundRobin(t *testing.T) {
 	t.Run("2 hosts with weight {5,5} and refresh", func(t *testing.T) {
 		wrr, err := NewWeightedRoundRobin(
 			200*time.Millisecond,
-			loadbalancer.NewServer(nil, "https://example1.com", 5),
-			loadbalancer.NewServer(nil, "https://example2.com", 5),
+			[]*loadbalancer.Server{
+				loadbalancer.NewServer(nil, "https://example1.com", 5),
+				loadbalancer.NewServer(nil, "https://example2.com", 5),
+			},
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -60,8 +62,10 @@ func TestWeightedRoundRobin(t *testing.T) {
 		defer wrr.Close()
 
 		err = wrr.Refresh(
-			loadbalancer.NewServer(nil, "https://example3.com", 5),
-			loadbalancer.NewServer(nil, "https://example4.com", 5),
+			[]*loadbalancer.Server{
+				loadbalancer.NewServer(nil, "https://example3.com", 5),
+				loadbalancer.NewServer(nil, "https://example4.com", 5),
+			},
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -93,7 +97,7 @@ func TestWeightedRoundRobin(t *testing.T) {
 	})
 
 	t.Run("no active hosts error", func(t *testing.T) {
-		wrr, err := NewWeightedRoundRobin(200 * time.Millisecond)
+		wrr, err := NewWeightedRoundRobin(200*time.Millisecond, []*loadbalancer.Server{})
 		if err != nil {
 			t.Fatal(err)
 		}
