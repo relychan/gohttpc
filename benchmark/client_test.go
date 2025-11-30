@@ -140,7 +140,7 @@ func BenchmarkRestyPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    3325	    460807 ns/op	   59850 B/op	     220 allocs/op
+// BenchmarkGoHTTPCPost-11    	    4093	    300352 ns/op	   60343 B/op	     226 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,

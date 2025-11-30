@@ -49,6 +49,8 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	gohttpc.SetHTTPClientMetrics(clientMetrics)
+
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -70,7 +72,6 @@ func TestClient(t *testing.T) {
 				gohttpc.WithLogger(logger),
 				gohttpc.WithMetricHighCardinalityPath(true),
 				gohttpc.WithTraceHighCardinalityPath(true),
-				gohttpc.WithMetrics(clientMetrics),
 				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
 			)

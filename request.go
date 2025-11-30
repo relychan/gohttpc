@@ -278,7 +278,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 
 	defer func() {
 		span.End()
-		r.options.Metrics.RequestDuration.Record(
+		GetHTTPClientMetrics().RequestDuration.Record(
 			ctx,
 			time.Since(startTime).Seconds(),
 			metric.WithAttributeSet(attribute.NewSet(requestDurationAttrs...)),
@@ -550,7 +550,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 			parentContext,
 			spanName,
 			r.options.Tracer,
-			r.options.Metrics,
 			logger,
 		)
 	} else {
@@ -558,7 +557,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 			parentContext,
 			spanName,
 			r.options.Tracer,
-			r.options.Metrics,
 		)
 	}
 
@@ -607,7 +605,9 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 
 	activeRequestsAttrSet := metric.WithAttributeSet(attribute.NewSet(commonAttrs...))
 
-	r.options.Metrics.ActiveRequests.Add( //nolint:contextcheck
+	metrics := GetHTTPClientMetrics()
+
+	metrics.ActiveRequests.Add( //nolint:contextcheck
 		ctx,
 		1,
 		activeRequestsAttrSet,
@@ -615,7 +615,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 
 	defer func() {
 		span.End()
-		r.options.Metrics.ActiveRequests.Add(
+		metrics.ActiveRequests.Add(
 			ctx,
 			-1,
 			activeRequestsAttrSet,
@@ -684,7 +684,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	span.SetAttributes(statusCodeAttr)
 
 	if rawResp.Request.ContentLength > 0 {
-		r.options.Metrics.RequestBodySize.Record( //nolint:contextcheck
+		metrics.RequestBodySize.Record( //nolint:contextcheck
 			ctx,
 			rawResp.Request.ContentLength,
 			commonAttrsSet)
@@ -694,7 +694,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	}
 
 	if rawResp.ContentLength > 0 {
-		r.options.Metrics.ResponseBodySize.Record( //nolint:contextcheck
+		metrics.ResponseBodySize.Record( //nolint:contextcheck
 			ctx,
 			rawResp.ContentLength,
 			commonAttrsSet)

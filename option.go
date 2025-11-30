@@ -16,7 +16,6 @@ import (
 type RequestOptions struct {
 	Logger                      *slog.Logger
 	Tracer                      trace.Tracer
-	Metrics                     *HTTPClientMetrics
 	TraceHighCardinalityPath    bool
 	MetricHighCardinalityPath   bool
 	CustomAttributesFunc        CustomAttributesFunc
@@ -54,7 +53,6 @@ func NewClientOptions(options ...ClientOption) *ClientOptions {
 			Tracer:             clientTracer,
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
-			Metrics:            &noopHTTPClientMetrics,
 		},
 	}
 
@@ -105,13 +103,6 @@ func WithLogger(logger *slog.Logger) ClientOption {
 func WithTracer(tracer trace.Tracer) ClientOption {
 	return func(co *ClientOptions) {
 		co.Tracer = tracer
-	}
-}
-
-// WithMetrics creates an option to set client metrics.
-func WithMetrics(metrics *HTTPClientMetrics) ClientOption {
-	return func(co *ClientOptions) {
-		co.Metrics = metrics
 	}
 }
 

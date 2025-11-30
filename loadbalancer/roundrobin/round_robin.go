@@ -26,9 +26,12 @@ var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
 // NewWeightedRoundRobin method creates the new Weighted Round-Robin
 // load balancer instance with given recovery duration and hosts slice.
 func NewWeightedRoundRobin(
+	healthCheckInterval time.Duration,
 	hosts []*loadbalancer.Host,
 ) (*WeightedRoundRobin, error) {
-	wrr := &WeightedRoundRobin{}
+	wrr := &WeightedRoundRobin{
+		healthCheckInterval: healthCheckInterval,
+	}
 
 	err := wrr.Refresh(hosts)
 
@@ -59,7 +62,6 @@ func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Host) error {
 	isSameWeight := true
 	lastWeight := 0
 	newTotalWeight := 0
-	minInterval := time.Duration(0)
 
 	for i, h := range servers {
 		weight := h.Weight()
@@ -75,18 +77,11 @@ func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Host) error {
 		if hcPolicy == nil {
 			continue
 		}
-
-		interval := hcPolicy.Interval()
-
-		if interval > 0 && (minInterval == 0 || minInterval > interval) {
-			minInterval = interval
-		}
 	}
 
 	// after processing, assign the updates
 	wrr.hosts = servers
 	wrr.isSameWeight = isSameWeight
-	wrr.healthCheckInterval = minInterval
 
 	if isSameWeight {
 		// Start the round robin algorithm since all weight are the same.

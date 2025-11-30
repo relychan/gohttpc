@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -37,24 +38,32 @@ type Host struct {
 var _ gohttpc.HTTPClient = (*Host)(nil)
 
 // NewHost creates an [Host] with a client base URL.
-func NewHost(client *http.Client, baseURL string, weight int) (*Host, error) {
-	server := &Host{
+func NewHost(client *http.Client, baseURL string, weight int, healthCheckPolicyBuilder *httpHealthCheckPolicyBuilder) (*Host, error) {
+	host := &Host{
 		httpClient: client,
 		weight:     weight,
-		healthCheckPolicy: &HTTPHealthCheckPolicy{
-			CircuitBreaker: circuitbreaker.NewWithDefaults[int](),
-		},
 	}
 
-	return server, server.SetURL(baseURL)
+	u, err := host.SetURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if healthCheckPolicyBuilder == nil {
+		healthCheckPolicyBuilder = NewHTTPHealthCheckPolicyBuilder()
+	}
+
+	host.healthCheckPolicy = healthCheckPolicyBuilder.Build(u)
+
+	return host, nil
 }
 
 // SetURL sets the base URL of this host.
-// NOTE: the name won't be updated if it is not empty,
-func (s *Host) SetURL(baseURL string) error {
+// NOTE: the name won't be updated if it is not empty.
+func (s *Host) SetURL(baseURL string) (*url.URL, error) {
 	u, err := goutils.ParseHTTPURL(baseURL)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	s.url = strings.TrimRight(baseURL, "/")
@@ -63,7 +72,7 @@ func (s *Host) SetURL(baseURL string) error {
 		s.name = u.Host
 	}
 
-	return nil
+	return u, nil
 }
 
 // URL returns the base URL of this host.
@@ -157,15 +166,15 @@ func (s *Host) State() circuitbreaker.State {
 
 // CheckHealth runs an HTTP request to checking the health of the host.
 func (s *Host) CheckHealth(ctx context.Context) {
-	if s.healthCheckPolicy == nil || s.healthCheckPolicy.interval <= 0 {
+	if s.healthCheckPolicy == nil {
 		return
 	}
 
 	healthURL := s.url + s.healthCheckPolicy.path
 
-	timeout := s.healthCheckPolicy.interval - time.Second
+	timeout := s.healthCheckPolicy.timeout
 	if timeout <= 0 {
-		timeout = 3 * time.Second
+		timeout = 5 * time.Second
 	}
 
 	var body io.Reader
