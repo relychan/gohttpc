@@ -55,7 +55,7 @@ type HTTPHealthCheckConfig struct {
 }
 
 // ToPolicyBuilder validates the health check config and create the policy builder.
-func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder, error) { //nolint:funlen
+func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder, error) {
 	builder := NewHTTPHealthCheckPolicyBuilder()
 
 	if hc.SuccessStatus != nil {
@@ -224,29 +224,37 @@ func NewHTTPHealthCheckPolicyBuilder() *httpHealthCheckPolicyBuilder {
 	}
 }
 
-// SetInterval sets the health check interval.
-func (hb *httpHealthCheckPolicyBuilder) WithInterval(value time.Duration) *httpHealthCheckPolicyBuilder {
+// WithInterval sets the health check interval.
+func (hb *httpHealthCheckPolicyBuilder) WithInterval(
+	value time.Duration,
+) *httpHealthCheckPolicyBuilder {
 	hb.interval = value
 
 	return hb
 }
 
 // WithSuccessStatus sets the expected success status of the health check.
-func (hb *httpHealthCheckPolicyBuilder) WithSuccessStatus(status int) *httpHealthCheckPolicyBuilder {
+func (hb *httpHealthCheckPolicyBuilder) WithSuccessStatus(
+	status int,
+) *httpHealthCheckPolicyBuilder {
 	hb.successStatus = status
 
 	return hb
 }
 
 // WithSuccessThreshold sets the success threshold of the health check.
-func (hb *httpHealthCheckPolicyBuilder) WithSuccessThreshold(value uint) *httpHealthCheckPolicyBuilder {
+func (hb *httpHealthCheckPolicyBuilder) WithSuccessThreshold(
+	value uint,
+) *httpHealthCheckPolicyBuilder {
 	hb.successThreshold = value
 
 	return hb
 }
 
 // WithFailureThreshold sets the failure threshold of the health check.
-func (hb *httpHealthCheckPolicyBuilder) WithFailureThreshold(value uint) *httpHealthCheckPolicyBuilder {
+func (hb *httpHealthCheckPolicyBuilder) WithFailureThreshold(
+	value uint,
+) *httpHealthCheckPolicyBuilder {
 	hb.failureThreshold = value
 
 	return hb

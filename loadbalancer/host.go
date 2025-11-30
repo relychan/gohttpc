@@ -38,7 +38,12 @@ type Host struct {
 var _ gohttpc.HTTPClient = (*Host)(nil)
 
 // NewHost creates an [Host] with a client base URL.
-func NewHost(client *http.Client, baseURL string, weight int, healthCheckPolicyBuilder *httpHealthCheckPolicyBuilder) (*Host, error) {
+func NewHost(
+	client *http.Client,
+	baseURL string,
+	weight int,
+	healthCheckPolicyBuilder *httpHealthCheckPolicyBuilder,
+) (*Host, error) {
 	host := &Host{
 		httpClient: client,
 		weight:     weight,
