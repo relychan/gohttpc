@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/relychan/gohttpc"
@@ -44,10 +44,14 @@ func TestClient(t *testing.T) {
 		},
 	}
 
-	metrics, err := gohttpc.NewHTTPClientMetrics(otel.Meter("test"), false)
+	clientMetrics, err := gohttpc.NewHTTPClientMetrics(otel.Meter("test"), false)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
 
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
@@ -59,31 +63,31 @@ func TestClient(t *testing.T) {
 			client, err := httpconfig.NewClientFromConfig(
 				*config,
 				gohttpc.WithAuthenticator(nil),
-				gohttpc.WithCustomAttributesFunc(func(r *http.Request) []attribute.KeyValue {
+				gohttpc.WithCustomAttributesFunc(func(r *gohttpc.Request) []attribute.KeyValue {
 					return nil
 				}),
 				gohttpc.WithHTTPClient(http.DefaultClient),
-				gohttpc.WithLogger(slog.Default()),
+				gohttpc.WithLogger(logger),
 				gohttpc.WithMetricHighCardinalityPath(true),
 				gohttpc.WithTraceHighCardinalityPath(true),
-				gohttpc.WithMetrics(metrics),
+				gohttpc.WithMetrics(clientMetrics),
 				gohttpc.WithTracer(otel.Tracer("test")),
-				gohttpc.WithRetry(nil),
+				gohttpc.EnableClientTrace(true),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
 			defer goutils.CatchWarnErrorFunc(client.Close)
 
-			resp, err := client.NewRequest(http.MethodGet, mockState.Server.URL+tc.Endpoint).
+			resp, err := client.Clone().R(http.MethodGet, mockState.Server.URL+tc.Endpoint).
 				Execute(context.TODO())
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
 			}
-			defer goutils.CatchWarnErrorFunc(resp.Close)
+			defer goutils.CatchWarnErrorFunc(resp.Body.Close)
 
-			if resp.StatusCode() != http.StatusOK {
-				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode())
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode)
 			}
 		})
 	}
@@ -96,24 +100,15 @@ type mockServerState struct {
 	Username   string
 	Password   string
 
-	counter int
-	mu      sync.Mutex
+	counter atomic.Int32
 }
 
-func (mss *mockServerState) Increase() int {
-	mss.mu.Lock()
-	defer mss.mu.Unlock()
-
-	mss.counter++
-
-	return mss.counter
+func (mss *mockServerState) Increase() int32 {
+	return mss.counter.Add(1)
 }
 
-func (mss *mockServerState) GetCounter() int {
-	mss.mu.Lock()
-	defer mss.mu.Unlock()
-
-	return mss.counter
+func (mss *mockServerState) GetCounter() int32 {
+	return mss.counter.Load()
 }
 
 func createMockServer(t *testing.T) *mockServerState {
@@ -219,14 +214,15 @@ func TestTLS(t *testing.T) {
 			}
 			defer client.Close()
 
-			resp, err := client.NewRequest(http.MethodGet, server.URL+tc.Endpoint).Execute(context.Background())
+			resp, err := client.R(http.MethodGet, server.URL+tc.Endpoint).
+				Execute(context.Background())
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
 			}
-			defer resp.Close()
+			defer resp.Body.Close()
 
-			if resp.StatusCode() != http.StatusOK {
-				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode())
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode)
 			}
 		})
 	}
@@ -261,14 +257,15 @@ func TestTLSInsecure(t *testing.T) {
 			}
 			defer client.Close()
 
-			resp, err := client.NewRequest(http.MethodGet, server.URL+tc.Endpoint).Execute(context.Background())
+			resp, err := client.R(http.MethodGet, server.URL+tc.Endpoint).
+				Execute(context.Background())
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
 			}
-			defer resp.Close()
+			defer resp.Body.Close()
 
-			if resp.StatusCode() != http.StatusOK {
-				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode())
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode)
 			}
 		})
 	}

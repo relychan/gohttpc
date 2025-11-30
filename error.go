@@ -1,7 +1,9 @@
 package gohttpc
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/relychan/goutils"
@@ -20,35 +22,37 @@ var (
 )
 
 // httpErrorFromResponse creates an error from the HTTP response.
-func httpErrorFromResponse(resp *Response) goutils.RFC9457ErrorWithExtensions {
-	if resp.body == nil {
-		return httpErrorFromNoContentResponse(resp.RawResponse)
+func httpErrorFromResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensions {
+	if resp.Body == nil {
+		return httpErrorFromNoContentResponse(resp)
 	}
 
-	if resp.RawResponse.Header.Get(httpheader.ContentType) == httpheader.ContentTypeJSON {
+	defer goutils.CatchWarnErrorFunc(resp.Body.Close)
+
+	if resp.Header.Get(httpheader.ContentType) == httpheader.ContentTypeJSON {
 		var httpError goutils.RFC9457ErrorWithExtensions
 
-		err := resp.ReadJSON(&httpError)
+		err := json.NewDecoder(resp.Body).Decode(&httpError)
 		if err != nil {
-			return httpErrorFromNoContentResponse(resp.RawResponse)
+			return httpErrorFromNoContentResponse(resp)
 		}
 
 		if httpError.Status == 0 {
-			httpError.Status = resp.RawResponse.StatusCode
+			httpError.Status = resp.StatusCode
 		}
 
 		if httpError.Title == "" {
-			httpError.Title = resp.RawResponse.Status
+			httpError.Title = resp.Status
 		}
 
-		httpError.Extensions["headers"] = goutils.ExtractHeaders(resp.RawResponse.Header)
+		httpError.Extensions["headers"] = goutils.ExtractHeaders(resp.Header)
 
 		return httpError
 	}
 
-	result := httpErrorFromNoContentResponse(resp.RawResponse)
+	result := httpErrorFromNoContentResponse(resp)
 
-	rawBody, readErr := resp.ReadBytes()
+	rawBody, readErr := io.ReadAll(resp.Body)
 	if readErr == nil {
 		result.Detail = string(rawBody)
 	} else {

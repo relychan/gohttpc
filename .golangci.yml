@@ -10,6 +10,8 @@ linters:
     - mnd
     - gochecknoglobals
     - ireturn
+    - tagalign
+    - tagliatelle
   settings:
     depguard:
       rules:
@@ -37,14 +39,6 @@ linters:
       # Tab width in spaces.
       # Default: 1
       tab-width: 1
-    tagliatelle:
-      # Checks the struct tag name case.
-      case:
-        rules:
-          json: camel
-          yaml: camel
-          mapstructure: camel
-          whatever: camel
     cyclop:
       max-complexity: 25
     wsl_v5:
@@ -83,9 +77,9 @@ linters:
     # Log a warning if an exclusion rule is unused.
     warn-unused: false
     rules:
-      - path: tls.go
+      - path: httpconfig/retry.go
         linters:
-          - tagliatelle
+          - bodyclose
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

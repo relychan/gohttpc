@@ -3,19 +3,19 @@ package gohttpc
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
 	"net/http"
 	"net/url"
-	"slices"
 	"time"
 
-	backoff "github.com/cenkalti/backoff/v5"
+	"github.com/failsafe-go/failsafe-go"
+	"github.com/failsafe-go/failsafe-go/retrypolicy"
 	"github.com/google/uuid"
 	"github.com/hasura/gotel/otelutils"
+	"github.com/relychan/gocompress"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/goutils"
 	"github.com/relychan/goutils/httpheader"
@@ -35,7 +35,7 @@ import (
 type Request struct {
 	// Method specifies the HTTP method (GET, POST, PUT, etc.).
 	// For client requests, an empty string means GET.
-	Method string
+	method string
 
 	// URL specifies either the URI being requested (for server
 	// requests) or the URL to access (for client requests).
@@ -49,7 +49,7 @@ type Request struct {
 	// connect to, while the Request's Host field optionally
 	// specifies the Host header value to send in the HTTP
 	// request.
-	URL string
+	url string
 
 	// Body is the request's body.
 	//
@@ -63,13 +63,23 @@ type Request struct {
 	body io.Reader
 
 	// Timeout is the maximum timeout for the request.
-	Timeout time.Duration
+	timeout time.Duration
 
 	// RetryPolicy is the retry policy for the request.
-	retry         *RetryPolicy
-	client        *Client
+	retry         retrypolicy.RetryPolicy[*http.Response]
 	authenticator authscheme.HTTPClientAuthenticator
 	header        http.Header
+	retryAttempts int
+	options       *RequestOptions
+}
+
+// NewRequest creates a raw request without client options.
+func NewRequest(method string, url string, options *RequestOptions) *Request {
+	return &Request{
+		method:  method,
+		url:     url,
+		options: options,
+	}
 }
 
 // Header returns the request header fields to be sent by the client.
@@ -102,6 +112,42 @@ func (r *Request) Clone() *Request {
 	return &newRequest
 }
 
+// URL returns the request URL.
+func (r *Request) URL() string {
+	return r.url
+}
+
+// SetURL sets the request URL.
+func (r *Request) SetURL(value string) *Request {
+	r.url = value
+
+	return r
+}
+
+// Method returns the request method.
+func (r *Request) Method() string {
+	return r.method
+}
+
+// SetMethod sets the request method.
+func (r *Request) SetMethod(method string) *Request {
+	r.method = method
+
+	return r
+}
+
+// Timeout returns the request timeout.
+func (r *Request) Timeout() time.Duration {
+	return r.timeout
+}
+
+// SetTimeout sets the request timeout.
+func (r *Request) SetTimeout(timeout time.Duration) *Request {
+	r.timeout = timeout
+
+	return r
+}
+
 // Body returns the request body.
 func (r *Request) Body() io.Reader {
 	return r.body
@@ -115,18 +161,12 @@ func (r *Request) SetBody(body io.Reader) *Request {
 }
 
 // Retry returns the retry policy.
-func (r *Request) Retry() *RetryPolicy {
-	if r.retry == nil {
-		return nil
-	}
-
-	retry := *r.retry
-
-	return &retry
+func (r *Request) Retry() retrypolicy.RetryPolicy[*http.Response] {
+	return r.retry
 }
 
 // SetRetry sets the retry policy.
-func (r *Request) SetRetry(retry *RetryPolicy) *Request {
+func (r *Request) SetRetry(retry retrypolicy.RetryPolicy[*http.Response]) *Request {
 	r.retry = retry
 
 	return r
@@ -145,19 +185,21 @@ func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthentica
 }
 
 // Execute handles the HTTP request to the remote server.
-func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
+func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 	ctx context.Context,
-) (*Response, error) {
-	if r.Method == "" {
+	client HTTPClientGetter,
+) (*http.Response, error) {
+	if r.method == "" {
 		return nil, ErrRequestMethodRequired
 	}
 
+	r.retryAttempts = 0
 	startTime := time.Now()
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)
 
 	requestLogAttrs := make([]slog.Attr, 2, 5)
-	requestLogAttrs = append(requestLogAttrs, slog.String("method", r.Method))
+	requestLogAttrs = append(requestLogAttrs, slog.String("method", r.method))
 
 	var requestBodyStr string
 
@@ -184,9 +226,9 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 		r.body = bytes.NewReader(body)
 	}
 
-	endpoint, err := goutils.ParseRelativeOrHTTPURL(r.URL)
+	endpoint, err := goutils.ParseRelativeOrHTTPURL(r.URL())
 	if err != nil {
-		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.URL))
+		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.url))
 		logger.Error(
 			"invalid request url",
 			slog.GroupAttrs("request", requestLogAttrs...),
@@ -197,43 +239,46 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 		return nil, err
 	}
 
-	spanContext, span := r.client.options.Tracer.Start(
+	spanContext, span := r.options.Tracer.Start(
 		ctx,
 		"request",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 
-	span.SetAttributes(httpRequestMethodAttr(r.Method))
-
-	if r.Timeout > 0 {
-		span.SetAttributes(attribute.String("http.request.timeout", r.Timeout.String()))
-	}
+	span.SetAttributes(httpRequestMethodAttr(r.method))
 
 	if requestBodyStr != "" {
 		span.SetAttributes(attribute.String("http.request.body", requestBodyStr))
 	}
 
 	commonAttrs := []attribute.KeyValue{
-		httpRequestMethodAttr(r.Method),
+		httpRequestMethodAttr(r.method),
+	}
+
+	if r.options.CustomAttributesFunc != nil {
+		commonAttrs = append(
+			commonAttrs,
+			r.options.CustomAttributesFunc(r)...,
+		)
 	}
 
 	// the request URL may not be a full URI.
 	if endpoint.Host != "" {
 		_, port, _ := otelutils.SplitHostPort(endpoint.Host, endpoint.Scheme)
-		commonAttrs = newMetricAttributes(r.Method, endpoint, port)
+		commonAttrs = newMetricAttributes(r.method, endpoint, port)
 		span.SetAttributes(commonAttrs...)
-		span.SetAttributes(semconv.URLFull(r.URL))
-		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.URL))
+		span.SetAttributes(semconv.URLFull(r.url))
+		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.url))
 	} else {
-		requestLogAttrs = append(requestLogAttrs, slog.String("request_path", r.URL))
-		span.SetAttributes(semconv.URLPath(r.URL))
+		requestLogAttrs = append(requestLogAttrs, slog.String("request_path", r.url))
+		span.SetAttributes(semconv.URLPath(r.url))
 	}
 
 	requestDurationAttrs := commonAttrs
 
 	defer func() {
 		span.End()
-		r.client.options.Metrics.RequestDuration.Record(
+		r.options.Metrics.RequestDuration.Record(
 			ctx,
 			time.Since(startTime).Seconds(),
 			metric.WithAttributeSet(attribute.NewSet(requestDurationAttrs...)),
@@ -256,34 +301,37 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 		return nil, err
 	}
 
-	var resp *Response
+	var resp *http.Response
 
-	if r.retry == nil || r.retry.Times == 0 {
-		if r.Timeout > 0 {
-			contextTimeout, cancel := context.WithTimeout(spanContext, r.Timeout)
-			defer cancel()
+	timeout := r.getTimeout()
+	if timeout > 0 {
+		span.SetAttributes(attribute.String("http.request.timeout", timeout.String()))
 
-			spanContext = contextTimeout
-		}
+		contextTimeout, cancel := context.WithTimeout(spanContext, timeout)
+		defer cancel()
 
-		resp, err = r.do(spanContext, endpoint, body, 0, logger)
+		spanContext = contextTimeout
+	}
+
+	if r.getRetryPolicy() == nil {
+		resp, err = r.doRequest(spanContext, client, endpoint, body, logger)
 	} else {
-		resp, err = r.executeWithRetries(spanContext, endpoint, body, logger)
+		resp, err = r.executeWithRetries(spanContext, client, endpoint, body, logger)
 	}
 
 	responseLogAttrs := make([]slog.Attr, 0, 4)
 
 	if resp != nil {
 		if endpoint.Host == "" {
-			requestURL := resp.RawResponse.Request.URL.String()
+			requestURL := resp.Request.URL.String()
 			requestLogAttrs = append(requestLogAttrs, slog.String("url", requestURL))
 			span.SetAttributes(semconv.URLFull(requestURL))
 		}
 
-		if r.client.options.IsTraceRequestHeadersEnabled() {
+		if r.options.IsTraceRequestHeadersEnabled() {
 			requestHeaders := otelutils.NewTelemetryHeaders(
-				resp.RawResponse.Request.Header,
-				r.client.options.AllowedTraceRequestHeaders...,
+				resp.Request.Header,
+				r.options.AllowedTraceRequestHeaders...,
 			)
 			otelutils.SetSpanHeaderAttributes(span, "http.request.header", requestHeaders)
 			requestLogAttrs = append(
@@ -292,21 +340,21 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 			)
 		}
 
-		if r.client.options.IsTraceResponseHeadersEnabled() {
+		if r.options.IsTraceResponseHeadersEnabled() {
 			responseHeaders := otelutils.NewTelemetryHeaders(
-				resp.Header(),
-				r.client.options.AllowedTraceResponseHeaders...,
+				resp.Header,
+				r.options.AllowedTraceResponseHeaders...,
 			)
 			otelutils.SetSpanHeaderAttributes(span, "http.response.header", responseHeaders)
 			responseLogAttrs = append(
 				responseLogAttrs,
-				slog.Int("status", resp.RawResponse.StatusCode),
+				slog.Int("status", resp.StatusCode),
 				otelutils.NewHeaderLogGroupAttrs("headers", responseHeaders),
 			)
 		}
 
-		responseSize := resp.RawResponse.ContentLength
-		statusCodeAttr := semconv.HTTPResponseStatusCode(resp.RawResponse.StatusCode)
+		responseSize := resp.ContentLength
+		statusCodeAttr := semconv.HTTPResponseStatusCode(resp.StatusCode)
 
 		span.SetAttributes(statusCodeAttr)
 
@@ -316,31 +364,31 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 			semconv.NetworkProtocolVersion(
 				fmt.Sprintf(
 					"%d.%d",
-					resp.RawResponse.ProtoMajor,
-					resp.RawResponse.ProtoMinor,
+					resp.ProtoMajor,
+					resp.ProtoMinor,
 				),
 			),
 		)
 
 		if endpoint.Host == "" {
 			_, port, _ := otelutils.SplitHostPort(
-				resp.RawResponse.Request.URL.Host,
-				resp.RawResponse.Request.URL.Scheme,
+				resp.Request.URL.Host,
+				resp.Request.URL.Scheme,
 			)
 
 			attrs := []attribute.KeyValue{
-				semconv.ServerAddress(resp.RawResponse.Request.URL.Host),
+				semconv.ServerAddress(resp.Request.URL.Host),
 				semconv.ServerPort(port),
-				semconv.URLScheme(resp.RawResponse.Request.URL.Scheme),
+				semconv.URLScheme(resp.Request.URL.Scheme),
 			}
 
 			requestDurationAttrs = append(requestDurationAttrs, attrs...)
 			span.SetAttributes(attrs...)
 		}
 
-		if isDebug && !resp.IsBodyRead() && resp.body != nil &&
-			isContentTypeDebuggable(resp.Header().Get(httpheader.ContentType)) {
-			body, err := resp.ReadBytes()
+		if isDebug && resp.Body != nil &&
+			isContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				logger.Error(
 					"failed to read response body",
@@ -361,8 +409,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 			responseSize = int64(len(respBodyString))
 			span.SetAttributes(attribute.String("http.response.body", respBodyString))
 
-			resp.body = io.NopCloser(bytes.NewReader(body))
-			resp.isBodyRead = false
+			resp.Body = io.NopCloser(bytes.NewReader(body))
 		}
 
 		responseLogAttrs = append(
@@ -374,7 +421,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 	if err != nil {
 		errMessage := "http request failed"
 		if resp != nil {
-			errMessage = resp.RawResponse.Status
+			errMessage = resp.Status
 		}
 
 		logger.Error(
@@ -392,7 +439,7 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 	}
 
 	logger.Info(
-		resp.RawResponse.Status,
+		resp.Status,
 		slog.GroupAttrs("request", requestLogAttrs...),
 		slog.GroupAttrs("response", responseLogAttrs...),
 		slog.Float64("latency", time.Since(startTime).Seconds()),
@@ -402,12 +449,13 @@ func (r *Request) Execute( //nolint:funlen,maintidx,gocognit,cyclop
 	return resp, nil
 }
 
-func (r *Request) executeWithRetries( //nolint:funlen
+func (r *Request) executeWithRetries(
 	ctx context.Context,
+	client HTTPClientGetter,
 	endpoint *url.URL,
 	body io.Reader,
 	logger *slog.Logger,
-) (*Response, error) {
+) (*http.Response, error) {
 	var bodySeeker io.ReadSeeker
 
 	if body != nil {
@@ -424,83 +472,26 @@ func (r *Request) executeWithRetries( //nolint:funlen
 		}
 	}
 
-	var httpErr *goutils.RFC9457ErrorWithExtensions
-
-	retryCount := 0
-
-	operation := func() (*Response, error) {
+	operation := func() (*http.Response, error) {
 		if bodySeeker != nil {
 			_, _ = bodySeeker.Seek(0, io.SeekStart)
 		}
 
-		resp, err := r.do(
+		resp, err := r.doRequest(
 			ctx,
+			client,
 			endpoint,
 			bodySeeker,
-			retryCount,
-			logger.With("attempt", retryCount),
+			logger.With("attempt", r.retryAttempts),
 		)
-		if err == nil {
-			return resp, nil
+		if err != nil {
+			r.retryAttempts++
 		}
 
-		if resp == nil {
-			return nil, backoff.Permanent(err)
-		}
-
-		var he goutils.RFC9457ErrorWithExtensions
-
-		ok := errors.As(err, &he)
-		if !ok {
-			return nil, backoff.Permanent(err)
-		}
-
-		httpErr = &he
-
-		if !slices.Contains(r.retry.GetRetryHTTPStatus(), resp.RawResponse.StatusCode) {
-			return resp, backoff.Permanent(err)
-		}
-
-		retryCount++
-
-		retryAfter := getRetryAfter(resp.RawResponse)
-		if retryAfter > 0 {
-			return resp, backoff.RetryAfter(retryAfter)
-		}
-
-		return resp, httpErr
+		return resp, err
 	}
 
-	backoffConfig := r.retry.GetExponentialBackoff()
-
-	retryOptions := []backoff.RetryOption{
-		backoff.WithBackOff(backoffConfig),
-		backoff.WithMaxTries(r.retry.Times + 1),
-	}
-
-	if r.Timeout > 0 {
-		retryOptions = append(retryOptions, backoff.WithMaxElapsedTime(r.Timeout))
-	}
-
-	resp, err := backoff.Retry(
-		ctx,
-		operation,
-		retryOptions...,
-	)
-	if err == nil {
-		return resp, nil
-	}
-
-	var permanentErr *backoff.PermanentError
-	if errors.As(err, &permanentErr) {
-		return resp, permanentErr.Err
-	}
-
-	if httpErr != nil {
-		return resp, httpErr
-	}
-
-	return resp, err
+	return failsafe.With(r.getRetryPolicy()).Get(operation)
 }
 
 func (r *Request) compressBody() (io.Reader, error) {
@@ -518,7 +509,7 @@ func (r *Request) compressBody() (io.Reader, error) {
 	}
 
 	// should ignore the compression if the encoding isn't supported.
-	if !r.client.compressors.IsEncodingSupported(encoding) {
+	if !gocompress.DefaultCompressor.IsEncodingSupported(encoding) {
 		r.Header().Del(httpheader.ContentEncoding)
 
 		return body, nil
@@ -526,7 +517,7 @@ func (r *Request) compressBody() (io.Reader, error) {
 
 	var buf bytes.Buffer
 
-	_, err := r.client.compressors.Compress(&buf, encoding, body)
+	_, err := gocompress.DefaultCompressor.Compress(&buf, encoding, body)
 	if err != nil {
 		return nil, err
 	}
@@ -534,48 +525,55 @@ func (r *Request) compressBody() (io.Reader, error) {
 	return &buf, nil
 }
 
-func (r *Request) do( //nolint:funlen,maintidx,contextcheck
+func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	parentContext context.Context,
+	clientGetter HTTPClientGetter,
 	endpoint *url.URL,
 	body io.Reader,
-	retryCount int,
 	logger *slog.Logger,
-) (*Response, error) {
+) (*http.Response, error) {
+	client, err := clientGetter.HTTPClient()
+	if err != nil {
+		return nil, err
+	}
+
 	var span HTTPClientTracer
 
-	spanName := r.Method
+	spanName := r.method
 
-	if r.client.options.TraceHighCardinalityPath {
+	if r.options.TraceHighCardinalityPath {
 		spanName += " " + endpoint.Path
 	}
 
-	if r.client.options.ClientTraceEnabled {
+	if r.options.ClientTraceEnabled {
 		span = startClientTrace(
 			parentContext,
 			spanName,
-			r.client,
+			r.options.Tracer,
+			r.options.Metrics,
 			logger,
 		)
 	} else {
 		span = startSimpleClientTrace(
 			parentContext,
 			spanName,
-			r.client,
+			r.options.Tracer,
+			r.options.Metrics,
 		)
 	}
 
-	if retryCount > 0 {
-		span.SetAttributes(semconv.HTTPRequestResendCount(retryCount))
+	if r.retryAttempts > 0 {
+		span.SetAttributes(semconv.HTTPRequestResendCount(r.retryAttempts))
 	}
 
 	ctx := span.Context()
 
-	req, err := r.client.options.CreateRequest(ctx, r, body) //nolint:contextcheck
+	req, err := client.NewRequest(ctx, r.method, r.url, body) //nolint:contextcheck
 	if err != nil {
 		msg := "failed to create request"
 
 		span.SetAttributes(
-			httpRequestMethodAttr(r.Method),
+			httpRequestMethodAttr(r.method),
 			semconv.URLFull(req.URL.String()),
 		)
 		span.SetStatus(codes.Error, msg)
@@ -595,13 +593,21 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 
 	_, port, _ := otelutils.SplitHostPort(req.URL.Host, req.URL.Scheme)
 
-	commonAttrs := newMetricAttributes(r.Method, req.URL, port)
+	commonAttrs := newMetricAttributes(r.method, req.URL, port)
+
+	if r.options.CustomAttributesFunc != nil {
+		commonAttrs = append(
+			commonAttrs,
+			r.options.CustomAttributesFunc(r)...,
+		)
+	}
+
 	span.SetAttributes(commonAttrs...)
 	span.SetAttributes(semconv.URLFull(req.URL.String()))
 
 	activeRequestsAttrSet := metric.WithAttributeSet(attribute.NewSet(commonAttrs...))
 
-	r.client.options.Metrics.ActiveRequests.Add( //nolint:contextcheck
+	r.options.Metrics.ActiveRequests.Add( //nolint:contextcheck
 		ctx,
 		1,
 		activeRequestsAttrSet,
@@ -609,14 +615,14 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 
 	defer func() {
 		span.End()
-		r.client.options.Metrics.ActiveRequests.Add(
+		r.options.Metrics.ActiveRequests.Add(
 			ctx,
 			-1,
 			activeRequestsAttrSet,
 		)
 	}()
 
-	if r.client.options.MetricHighCardinalityPath {
+	if r.options.MetricHighCardinalityPath {
 		commonAttrs = append(
 			commonAttrs,
 			semconv.URLPath(req.URL.Path),
@@ -658,9 +664,9 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 
 	propagator := otel.GetTextMapPropagator()
 	propagator.Inject(ctx, propagation.HeaderCarrier(req.Header)) //nolint:contextcheck
-	req.Header.Set(httpheader.UserAgent, r.client.options.UserAgent)
+	req.Header.Set(httpheader.UserAgent, r.options.UserAgent)
 
-	rawResp, err := r.client.options.HTTPClient.Do(req) //nolint:bodyclose
+	rawResp, err := client.Do(req)
 	if err != nil {
 		msg := "failed to execute request"
 		span.SetStatus(codes.Error, msg)
@@ -678,7 +684,7 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 	span.SetAttributes(statusCodeAttr)
 
 	if rawResp.Request.ContentLength > 0 {
-		r.client.options.Metrics.RequestBodySize.Record( //nolint:contextcheck
+		r.options.Metrics.RequestBodySize.Record( //nolint:contextcheck
 			ctx,
 			rawResp.Request.ContentLength,
 			commonAttrsSet)
@@ -688,7 +694,7 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 	}
 
 	if rawResp.ContentLength > 0 {
-		r.client.options.Metrics.ResponseBodySize.Record( //nolint:contextcheck
+		r.options.Metrics.ResponseBodySize.Record( //nolint:contextcheck
 			ctx,
 			rawResp.ContentLength,
 			commonAttrsSet)
@@ -700,7 +706,7 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 	if remoteAddr != "" {
 		peerAddress, peerPort, err := otelutils.SplitHostPort(remoteAddr, endpoint.Scheme)
 		if err != nil {
-			r.client.options.Logger.
+			r.options.Logger.
 				Warn(
 					"failed to split hostname and port from remote address",
 					slog.String("remote_addr", remoteAddr),
@@ -717,34 +723,32 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 		}
 	}
 
-	resp := &Response{
-		RawResponse: rawResp,
-		body:        rawResp.Body,
-	}
-
-	if resp.body == nil {
-		resp.closed = true
-
+	if rawResp.Body == nil || rawResp.Body == http.NoBody {
 		if rawResp.StatusCode >= http.StatusBadRequest {
 			span.SetStatus(codes.Error, rawResp.Status)
 
 			r.logRequestAttempt(span, logger, req, rawResp, nil, rawResp.Status)
 
-			return resp, httpErrorFromNoContentResponse(rawResp)
+			return rawResp, httpErrorFromNoContentResponse(rawResp)
 		}
 
 		span.SetStatus(codes.Ok, "")
 
 		r.logRequestAttempt(span, logger, req, rawResp, nil, rawResp.Status)
 
-		return resp, nil
+		return rawResp, nil
 	}
 
-	responseEncoding := resp.RawResponse.Header.Get(httpheader.ContentEncoding)
+	responseEncoding := rawResp.Header.Get(httpheader.ContentEncoding)
 
-	if resp.body != nil && responseEncoding != "" {
-		decompressedBody, err := r.client.compressors.Decompress(resp.body, responseEncoding)
+	if rawResp.Body != nil && responseEncoding != "" {
+		decompressedBody, err := gocompress.DefaultCompressor.Decompress(
+			rawResp.Body,
+			responseEncoding,
+		)
 		if err != nil {
+			goutils.CatchWarnErrorFunc(rawResp.Body.Close)
+
 			msg := "failed to decompress response body"
 			span.SetStatus(codes.Error, msg)
 			span.RecordError(err)
@@ -758,19 +762,19 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 				rawResp.Status,
 			)
 
-			return resp, err
+			return rawResp, err
 		}
 
-		resp.body = decompressedBody
+		rawResp.Body = decompressedBody
 	}
 
 	if rawResp.StatusCode >= http.StatusBadRequest {
 		span.SetStatus(codes.Error, rawResp.Status)
 
-		err := httpErrorFromResponse(resp)
+		err := httpErrorFromResponse(rawResp)
 		r.logRequestAttempt(span, logger, req, rawResp, err, rawResp.Status)
 
-		return resp, err
+		return rawResp, err
 	}
 
 	span.SetStatus(codes.Ok, "")
@@ -784,7 +788,7 @@ func (r *Request) do( //nolint:funlen,maintidx,contextcheck
 		rawResp.Status,
 	)
 
-	return resp, nil
+	return rawResp, nil
 }
 
 func (r *Request) logRequestAttempt(
@@ -807,8 +811,8 @@ func (r *Request) logRequestAttempt(
 	totalTime := span.TotalTime()
 
 	requestLogAttrs := []slog.Attr{
-		slog.String("url", r.URL),
-		slog.String("method", r.Method),
+		slog.String("url", r.url),
+		slog.String("method", r.method),
 		otelutils.NewHeaderLogGroupAttrs("headers", requestHeaders),
 	}
 
@@ -842,7 +846,7 @@ func (r *Request) applyAuth(req *http.Request) error {
 	authenticator := r.authenticator
 
 	if authenticator == nil {
-		authenticator = r.client.options.Authenticator
+		authenticator = r.options.Authenticator
 	}
 
 	if authenticator == nil {
@@ -850,6 +854,22 @@ func (r *Request) applyAuth(req *http.Request) error {
 	}
 
 	return authenticator.Authenticate(req)
+}
+
+func (r *Request) getRetryPolicy() retrypolicy.RetryPolicy[*http.Response] {
+	if r.retry != nil {
+		return r.retry
+	}
+
+	return r.options.Retry
+}
+
+func (r *Request) getTimeout() time.Duration {
+	if r.timeout > 0 {
+		return r.timeout
+	}
+
+	return r.options.Timeout
 }
 
 func (r *Request) getLogger(ctx context.Context) *slog.Logger {
@@ -871,6 +891,26 @@ func (r *Request) getLogger(ctx context.Context) *slog.Logger {
 		requestID = uuid.NewString()
 	}
 
-	return r.client.options.Logger.
+	return r.options.Logger.
 		With(typeAttr, slog.String("request_id", requestID))
+}
+
+// RequestWithClient embeds the [Request] with an [HTTPClient] to make the Execute method shorter.
+type RequestWithClient struct {
+	*Request
+
+	client HTTPClientGetter
+}
+
+// NewRequestWithClient creates a new [RequestWithClient] instance.
+func NewRequestWithClient(req *Request, client HTTPClientGetter) *RequestWithClient {
+	return &RequestWithClient{
+		Request: req,
+		client:  client,
+	}
+}
+
+// Execute handles the HTTP request to the remote server.
+func (rwc *RequestWithClient) Execute(ctx context.Context) (*http.Response, error) {
+	return rwc.Request.Execute(ctx, rwc.client)
 }

@@ -41,7 +41,7 @@ func BenchmarkHTTPClientGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkRestyGet-11    	   29535	     38122 ns/op	    5365 B/op	      58 allocs/op
+// BenchmarkRestyGet-11    	   26830	     44337 ns/op	    5374 B/op	      58 allocs/op
 func BenchmarkRestyGet(b *testing.B) {
 	client := resty.New()
 
@@ -66,7 +66,7 @@ func BenchmarkRestyGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   27986	     40413 ns/op	   10564 B/op	     121 allocs/op
+// BenchmarkGoHTTPCGet-11    	   26426	     42746 ns/op	   10573 B/op	     121 allocs/
 func BenchmarkGoHTTPCGet(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -75,16 +75,16 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 	defer client.Close()
 
 	for b.Loop() {
-		resp, err := client.NewRequest(http.MethodGet, serverURL).
+		resp, err := client.R(http.MethodGet, serverURL).
 			Execute(context.TODO())
 		if err != nil {
 			continue
 		}
 
-		_ = resp.Close()
+		_ = resp.Body.Close()
 
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
+		if resp.StatusCode != 200 {
+			slog.Error(resp.Status)
 		}
 	}
 }
@@ -140,7 +140,7 @@ func BenchmarkRestyPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    4188	    283372 ns/op	   60114 B/op	     220 allocs/op
+// BenchmarkGoHTTPCPost-11    	    3325	    460807 ns/op	   59850 B/op	     220 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -149,18 +149,18 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 	defer client.Close()
 
 	for b.Loop() {
-		resp, err := client.NewRequest(http.MethodPost, serverURL).
+		resp, err := client.R(http.MethodPost, serverURL).
 			SetBody(strings.NewReader(randomData)).
-			Execute(context.TODO())
+			Execute(context.TODO(), client)
 		if err != nil {
 			continue
 		}
 
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
+		if resp.StatusCode != 200 {
+			slog.Error(resp.Status)
 		}
 
-		_ = resp.Close()
+		_ = resp.Body.Close()
 	}
 }
 
@@ -178,16 +178,17 @@ func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 	defer client.Close()
 
 	for b.Loop() {
-		resp, err := client.NewRequest(http.MethodPost, serverURL).
-			SetBody(strings.NewReader(randomData)).
-			Execute(context.TODO())
+		req := client.R(http.MethodPost, serverURL)
+		req.SetBody(strings.NewReader(randomData))
+
+		resp, err := req.Execute(context.Background())
 		if err != nil {
 			continue
 		}
 
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
+		if resp.StatusCode != 200 {
+			slog.Error(resp.Status)
 		}
-		_ = resp.Close()
+		_ = resp.Body.Close()
 	}
 }

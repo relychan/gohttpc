@@ -21,7 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("gohttpc")
+var clientTracer = otel.Tracer("gohttpc")
 
 // LogLevelTrace is the constant enum for the TRACE log level.
 const LogLevelTrace = slog.Level(-8)
@@ -58,12 +58,13 @@ var _ HTTPClientTracer = (*simpleClientTrace)(nil)
 func startSimpleClientTrace(
 	parentContext context.Context,
 	name string,
-	client *Client,
+	tracer trace.Tracer,
+	metrics *HTTPClientMetrics,
 ) *simpleClientTrace {
 	t := &simpleClientTrace{
 		startTime: time.Now(),
 		tracer:    tracer,
-		metrics:   client.options.Metrics,
+		metrics:   metrics,
 	}
 
 	spanContext, span := t.tracer.Start( //nolint:spancheck
@@ -142,15 +143,16 @@ var _ HTTPClientTracer = (*clientTrace)(nil)
 func startClientTrace(
 	ctx context.Context,
 	name string,
-	client *Client,
+	tracer trace.Tracer,
+	metrics *HTTPClientMetrics,
 	logger *slog.Logger,
 ) *clientTrace {
 	ct := &clientTrace{
-		metrics: client.options.Metrics,
+		metrics: metrics,
 		logger:  logger,
 	}
 
-	spanContext, span := client.options.Tracer.Start( //nolint:spancheck
+	spanContext, span := tracer.Start( //nolint:spancheck
 		ctx,
 		name,
 		trace.WithSpanKind(trace.SpanKindClient),
