@@ -79,7 +79,7 @@ func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder
 		builder.failureThreshold = uint(*hc.FailureThreshold)
 	}
 
-	// If the health check internal, the circuit breaking still runs with runtime HTTP requests.
+	// If the health check interval, the circuit breaking still runs with runtime HTTP requests.
 	if hc.Interval != nil && *hc.Interval > 0 {
 		builder.interval = time.Duration(*hc.Interval) * time.Second
 	}
@@ -276,7 +276,7 @@ func (hb *httpHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthChec
 
 	builder := circuitbreaker.NewBuilder[int]().
 		HandleIf(func(i int, err error) bool {
-			return i != hb.successStatus
+			return err != nil || i != hb.successStatus
 		}).WithSuccessThreshold(hb.successThreshold).
 		WithFailureThreshold(hb.failureThreshold).
 		OnStateChanged(func(sce circuitbreaker.StateChangedEvent) {
