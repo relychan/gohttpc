@@ -44,7 +44,7 @@ type HTTPHealthCheckConfig struct {
 	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// Health check interval in seconds. Disabled if the interval is negative or equals 0. Default to 60 seconds
 	Interval *int `json:"interval,omitempty" yaml:"interval,omitempty" jsonschema:"default=60,min=0"`
-	// Timeout in seconds. Disabled if the interval is negative or equals 0. Default to 5 seconds
+	// Timeout in seconds. Disabled if the timeout is negative or equals 0. Default to 5 seconds
 	Timeout *int `json:"timeout,omitempty" yaml:"timeout,omitempty" jsonschema:"default=5,min=0"`
 	// SuccessStatus is expected successful HTTP status. Default to HTTP 200 OK.
 	SuccessStatus *int `json:"successStatus,omitempty" yaml:"successStatus,omitempty" jsonschema:"default=200,enum=200,enum=201,enum=204"`
@@ -79,7 +79,7 @@ func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder
 		builder.failureThreshold = uint(*hc.FailureThreshold)
 	}
 
-	// If the health check interval, the circuit breaking still runs with runtime HTTP requests.
+	// If no health check interval is set, the circuit breaker still runs with runtime HTTP requests.
 	if hc.Interval != nil && *hc.Interval > 0 {
 		builder.interval = time.Duration(*hc.Interval) * time.Second
 	}

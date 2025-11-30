@@ -211,6 +211,9 @@ func GetHTTPClientMetrics() *HTTPClientMetrics {
 
 // SetHTTPClientMetrics sets the global [HTTPClientMetrics] instance.
 func SetHTTPClientMetrics(metrics *HTTPClientMetrics) {
+	if metrics == nil {
+		metrics = &noopHTTPClientMetrics
+	}
 	globalClientMetrics.Store(metrics)
 }
 
