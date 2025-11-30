@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
+	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -41,7 +42,7 @@ type HTTPHealthCheckConfig struct {
 	// Request body is used if the method is POST.
 	Body any `json:"body,omitempty" yaml:"body,omitempty"`
 	// Request headers to be sent to health check requests.
-	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Headers map[string]goenvconf.EnvString `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// Health check interval in seconds. Disabled if the interval is negative or equals 0. Default to 60 seconds
 	Interval *int `json:"interval,omitempty" yaml:"interval,omitempty" jsonschema:"default=60,min=0"`
 	// Timeout in seconds. Disabled if the timeout is negative or equals 0. Default to 5 seconds
@@ -55,7 +56,7 @@ type HTTPHealthCheckConfig struct {
 }
 
 // ToPolicyBuilder validates the health check config and create the policy builder.
-func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder, error) {
+func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder, error) { //nolint:funlen
 	builder := NewHTTPHealthCheckPolicyBuilder()
 
 	if hc.SuccessStatus != nil {
@@ -84,7 +85,20 @@ func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder
 		builder.interval = time.Duration(*hc.Interval) * time.Second
 	}
 
-	builder.headers = hc.Headers
+	if len(hc.Headers) > 0 {
+		builder.headers = map[string]string{}
+
+		for key, headerEnv := range hc.Headers {
+			header, err := headerEnv.GetOrDefault("")
+			if err != nil {
+				return nil, fmt.Errorf("failed to get header %s: %w", key, err)
+			}
+
+			if header != "" {
+				builder.headers[key] = header
+			}
+		}
+	}
 
 	if hc.Path != "" {
 		builder.path = hc.Path
