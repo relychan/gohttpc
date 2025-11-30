@@ -256,7 +256,6 @@ func TestRoundRobinIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 	lb := loadbalancer.NewLoadBalancerClient(wrr)
 	go lb.StartHealthCheck(ctx)
-	defer lb.Close()
 
 	for range 10 {
 		lb.R(http.MethodGet, "/").Execute(context.TODO())
