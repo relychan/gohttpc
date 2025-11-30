@@ -491,16 +491,6 @@
     },
     "TLSConfig": {
       "properties": {
-        "reloadInterval": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/Duration"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "rootCAFile": {
           "items": {
             "$ref": "#/$defs/EnvString"
