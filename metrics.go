@@ -214,6 +214,7 @@ func SetHTTPClientMetrics(metrics *HTTPClientMetrics) {
 	if metrics == nil {
 		metrics = &noopHTTPClientMetrics
 	}
+
 	globalClientMetrics.Store(metrics)
 }
 
