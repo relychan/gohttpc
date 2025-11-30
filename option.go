@@ -16,7 +16,7 @@ import (
 type RequestOptions struct {
 	Logger                      *slog.Logger
 	Tracer                      trace.Tracer
-	RequestMetrics              *HTTPRequestMetrics
+	Metrics                     *HTTPClientMetrics
 	TraceHighCardinalityPath    bool
 	MetricHighCardinalityPath   bool
 	CustomAttributesFunc        CustomAttributesFunc
@@ -43,20 +43,18 @@ func (ro *RequestOptions) IsTraceResponseHeadersEnabled() bool {
 type ClientOptions struct {
 	RequestOptions
 
-	HTTPClient    *http.Client
-	ClientMetrics *HTTPClientMetrics
+	HTTPClient *http.Client
 }
 
 // NewClientOptions create a new ClientOptions instance.
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	opts := ClientOptions{
-		ClientMetrics: &noopHTTPClientMetrics,
 		RequestOptions: RequestOptions{
 			Logger:             slog.Default(),
 			Tracer:             clientTracer,
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
-			RequestMetrics:     &noopHTTPRequestMetrics,
+			Metrics:            &noopHTTPClientMetrics,
 		},
 	}
 
@@ -110,17 +108,10 @@ func WithTracer(tracer trace.Tracer) ClientOption {
 	}
 }
 
-// WithClientMetrics creates an option to set client metrics.
-func WithClientMetrics(metrics *HTTPClientMetrics) ClientOption {
+// WithMetrics creates an option to set client metrics.
+func WithMetrics(metrics *HTTPClientMetrics) ClientOption {
 	return func(co *ClientOptions) {
-		co.ClientMetrics = metrics
-	}
-}
-
-// WithRequestMetrics creates an option to set request metrics.
-func WithRequestMetrics(metrics *HTTPRequestMetrics) ClientOption {
-	return func(co *ClientOptions) {
-		co.RequestMetrics = metrics
+		co.Metrics = metrics
 	}
 }
 

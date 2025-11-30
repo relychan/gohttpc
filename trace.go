@@ -47,7 +47,7 @@ type simpleClientTrace struct {
 
 	context     context.Context //nolint:containedctx
 	tracer      trace.Tracer
-	metrics     *HTTPRequestMetrics
+	metrics     *HTTPClientMetrics
 	metricAttrs []attribute.KeyValue
 	startTime   time.Time
 	totalTime   time.Duration
@@ -59,7 +59,7 @@ func startSimpleClientTrace(
 	parentContext context.Context,
 	name string,
 	tracer trace.Tracer,
-	metrics *HTTPRequestMetrics,
+	metrics *HTTPClientMetrics,
 ) *simpleClientTrace {
 	t := &simpleClientTrace{
 		startTime: time.Now(),
@@ -121,7 +121,7 @@ type clientTrace struct {
 	trace.Span
 
 	context              context.Context //nolint:containedctx
-	metrics              *HTTPRequestMetrics
+	metrics              *HTTPClientMetrics
 	metricAttrs          []attribute.KeyValue
 	logger               *slog.Logger
 	startTime            time.Time
@@ -144,7 +144,7 @@ func startClientTrace(
 	ctx context.Context,
 	name string,
 	tracer trace.Tracer,
-	metrics *HTTPRequestMetrics,
+	metrics *HTTPClientMetrics,
 	logger *slog.Logger,
 ) *clientTrace {
 	ct := &clientTrace{

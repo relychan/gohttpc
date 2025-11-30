@@ -49,11 +49,6 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	requestMetrics, err := gohttpc.NewHTTPRequestMetrics(otel.Meter("test"), false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
 			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](tc.ConfigPath)
@@ -71,8 +66,7 @@ func TestClient(t *testing.T) {
 				gohttpc.WithLogger(slog.Default()),
 				gohttpc.WithMetricHighCardinalityPath(true),
 				gohttpc.WithTraceHighCardinalityPath(true),
-				gohttpc.WithClientMetrics(clientMetrics),
-				gohttpc.WithRequestMetrics(requestMetrics),
+				gohttpc.WithMetrics(clientMetrics),
 				gohttpc.WithTracer(otel.Tracer("test")),
 			)
 			if err != nil {

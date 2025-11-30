@@ -16,18 +16,29 @@ type HTTPClientMetrics struct {
 	ConnectionDuration metric.Float64Histogram
 	// The gauge metric to observe the server state.
 	ServerState metric.Int64Gauge
+	// The duration of how long the connection was previously idle.
+	IdleConnectionDuration metric.Float64Histogram
+	// The duration of the server for responding to the first byte.
+	ServerDuration metric.Float64Histogram
+	// Number of active HTTP requests.
+	ActiveRequests metric.Int64UpDownCounter
+	// Histogram metrics of the request body size.
+	RequestBodySize metric.Int64Histogram
+	// Histogram metrics of the response body size.
+	ResponseBodySize metric.Int64Histogram
+	// Duration of HTTP client requests.
+	RequestDuration metric.Float64Histogram
+	// The duration of DNS lookup operations performed by the HTTP client.
+	DNSLookupDuration metric.Float64Histogram
 }
 
 // NewHTTPClientMetrics creates an HTTPClientMetrics instance from the OpenTelemetry meter.
-func NewHTTPClientMetrics( //nolint:funlen
-	meter metric.Meter,
-	clientTraceEnabled bool,
-) (*HTTPClientMetrics, error) {
+func NewHTTPClientMetrics(meter metric.Meter, clientTraceEnabled bool) (*HTTPClientMetrics, error) {
 	var err error
 
 	metrics := HTTPClientMetrics{
-		ConnectionDuration: noop.Float64Histogram{},
-		OpenConnections:    noop.Int64UpDownCounter{},
+		IdleConnectionDuration: noop.Float64Histogram{},
+		DNSLookupDuration:      noop.Float64Histogram{},
 	}
 
 	metrics.ServerState, err = meter.Int64Gauge(
@@ -38,10 +49,6 @@ func NewHTTPClientMetrics( //nolint:funlen
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	if !clientTraceEnabled {
-		return &metrics, nil
 	}
 
 	metrics.ConnectionDuration, err = meter.Float64Histogram(
@@ -67,9 +74,6 @@ func NewHTTPClientMetrics( //nolint:funlen
 			300,
 		),
 	)
-	if err != nil {
-		return nil, err
-	}
 
 	metrics.OpenConnections, err = meter.Int64UpDownCounter(
 		"http.client.open_connections",
@@ -81,42 +85,6 @@ func NewHTTPClientMetrics( //nolint:funlen
 	if err != nil {
 		return nil, err
 	}
-
-	return &metrics, nil
-}
-
-// HTTPRequestMetrics hold semantic metrics of HTTP requests.
-// These metrics are inspired by OpenTelemetry semantic specifications and [built-in .NET system metrics].
-//
-// [built-in .NET system metrics]: https://learn.microsoft.com/en-us/dotnet/core/diagnostics/built-in-metrics-system-net#instrument-httpclientconnectionduration
-type HTTPRequestMetrics struct {
-	// The duration of how long the connection was previously idle.
-	IdleConnectionDuration metric.Float64Histogram
-	// The duration of the server for responding to the first byte.
-	ServerDuration metric.Float64Histogram
-	// Number of active HTTP requests.
-	ActiveRequests metric.Int64UpDownCounter
-	// Histogram metrics of the request body size.
-	RequestBodySize metric.Int64Histogram
-	// Histogram metrics of the response body size.
-	ResponseBodySize metric.Int64Histogram
-	// Duration of HTTP client requests.
-	RequestDuration metric.Float64Histogram
-	// The duration of DNS lookup operations performed by the HTTP client.
-	DNSLookupDuration metric.Float64Histogram
-}
-
-// NewHTTPRequestMetrics creates an HTTPRequestMetrics instance from the OpenTelemetry meter.
-func NewHTTPRequestMetrics( //nolint:funlen
-	meter metric.Meter,
-	clientTraceEnabled bool,
-) (*HTTPRequestMetrics, error) {
-	metrics := HTTPRequestMetrics{
-		IdleConnectionDuration: noop.Float64Histogram{},
-		DNSLookupDuration:      noop.Float64Histogram{},
-	}
-
-	var err error
 
 	metrics.ActiveRequests, err = meter.Int64UpDownCounter(
 		"http.client.active_requests",
@@ -227,12 +195,9 @@ func NewHTTPRequestMetrics( //nolint:funlen
 }
 
 var noopHTTPClientMetrics = HTTPClientMetrics{
-	ConnectionDuration: noop.Float64Histogram{},
-	OpenConnections:    noop.Int64UpDownCounter{},
-	ServerState:        noop.Int64Gauge{},
-}
-
-var noopHTTPRequestMetrics = HTTPRequestMetrics{
+	ConnectionDuration:     noop.Float64Histogram{},
+	OpenConnections:        noop.Int64UpDownCounter{},
+	ServerState:            noop.Int64Gauge{},
 	IdleConnectionDuration: noop.Float64Histogram{},
 	ServerDuration:         noop.Float64Histogram{},
 	ActiveRequests:         noop.Int64UpDownCounter{},

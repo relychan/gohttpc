@@ -45,7 +45,7 @@ func main() {
 		_ = exporters.Shutdown(context.Background())
 	}()
 
-	metrics, err := gohttpc.NewHTTPClientMetrics(exporters.Meter, true)
+	clientMetrics, err := gohttpc.NewHTTPClientMetrics(exporters.Meter, true)
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +53,7 @@ func main() {
 	client, err := httpconfig.NewClientFromConfig(
 		httpconfig.HTTPClientConfig{},
 		gohttpc.WithTracer(exporters.Tracer),
-		gohttpc.WithMetrics(metrics),
+		gohttpc.WithMetrics(clientMetrics),
 		gohttpc.EnableClientTrace(true),
 	)
 	if err != nil {
@@ -75,12 +75,12 @@ func getTodo(client *gohttpc.Client, id int) {
 
 	endpoint := "https://jsonplaceholder.typicode.com/todos/" + strconv.Itoa(id)
 
-	resp, err := client.NewRequest(http.MethodGet, endpoint).Execute(ctx)
+	resp, err := client.R(http.MethodGet, endpoint).Execute(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	_ = resp.Close()
+	_ = resp.Body.Close()
 }
 
 func createPost(client *gohttpc.Client, id int) {
@@ -89,7 +89,7 @@ func createPost(client *gohttpc.Client, id int) {
 
 	endpoint := "https://jsonplaceholder.typicode.com/posts"
 
-	req := client.NewRequest(http.MethodPost, endpoint)
+	req := client.R(http.MethodPost, endpoint)
 
 	body, err := json.Marshal(map[string]any{
 		"id":   id + 1,
@@ -106,5 +106,5 @@ func createPost(client *gohttpc.Client, id int) {
 		panic(err)
 	}
 
-	_ = resp.Close()
+	_ = resp.Body.Close()
 }

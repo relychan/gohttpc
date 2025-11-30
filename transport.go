@@ -90,10 +90,10 @@ func TransportFromConfig(
 		DisableCompression:    true,
 	}
 
-	if clientOptions.ClientTraceEnabled {
+	if clientOptions.Metrics != nil && *clientOptions.Metrics != noopHTTPClientMetrics {
 		defaultTransport.DialContext = transportDialContext(
 			dialer,
-			clientOptions.ClientMetrics,
+			clientOptions.Metrics,
 		)
 	}
 
