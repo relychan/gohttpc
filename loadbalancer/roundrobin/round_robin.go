@@ -101,6 +101,10 @@ func (wrr *WeightedRoundRobin) Close() error {
 	wrr.tick.Stop()
 	wrr.tick = nil
 
+	for _, server := range wrr.servers {
+		server.Close()
+	}
+
 	return nil
 }
 

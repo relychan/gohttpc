@@ -71,6 +71,29 @@ func (lbc *LoadBalancerClient) StartHealthCheck(ctx context.Context) {
 	lbc.loadBalancer.StartHealthCheck(ctx)
 }
 
+// ServerMetrics returns summary metrics of server hosts.
+func (lbc *LoadBalancerClient) ServerMetrics() map[string]ServerMetrics {
+	result := make(map[string]ServerMetrics)
+
+	for _, server := range lbc.loadBalancer.Servers() {
+		if server.healthCheckPolicy == nil {
+			continue
+		}
+
+		metrics := server.healthCheckPolicy.Metrics()
+
+		result[server.url] = ServerMetrics{
+			Executions:  metrics.Executions(),
+			Failures:    metrics.Failures(),
+			FailureRate: metrics.FailureRate(),
+			Successes:   metrics.Successes(),
+			SuccessRate: metrics.SuccessRate(),
+		}
+	}
+
+	return result
+}
+
 // Close terminates the client and clean up internal processes.
 func (lbc *LoadBalancerClient) Close() error {
 	if lbc.loadBalancer == nil {

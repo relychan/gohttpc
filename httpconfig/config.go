@@ -28,7 +28,7 @@ func (c *HTTPClientConfig) IsZero() bool {
 		c.Transport == nil && c.TLS == nil && c.Retry == nil && c.Authentication == nil
 }
 
-// NewClientFromConfig creates a HTTP client with configuration.
+// NewClientFromConfig creates a HTTP client wrapper with configuration.
 func NewClientFromConfig(
 	config HTTPClientConfig,
 	options ...gohttpc.ClientOption,
@@ -48,31 +48,26 @@ func NewClientFromConfig(
 
 	opts := gohttpc.NewClientOptions(options...)
 
-	if config.Authentication != nil {
-		authenticator, err := authc.NewAuthenticatorFromConfig(config.Authentication)
-		if err != nil {
-			return nil, err
-		}
-
-		opts.Authenticator = authenticator
-	}
-
-	if config.Transport == nil && config.TLS == nil && opts.HTTPClient != nil {
-		return gohttpc.NewClientWithOptions(opts), nil
-	}
-
-	newTransport := gohttpc.TransportFromConfig(config.Transport, opts)
-	httpClient := &http.Client{
-		Transport: newTransport,
-	}
-
-	if opts.HTTPClient != nil {
-		httpClient.CheckRedirect = opts.HTTPClient.CheckRedirect
-		httpClient.Jar = opts.HTTPClient.Jar
-		httpClient.Timeout = opts.HTTPClient.Timeout
+	httpClient, err := NewHTTPClientFromConfig(config, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	opts.HTTPClient = httpClient
+
+	return gohttpc.NewClientWithOptions(opts), nil
+}
+
+// NewHTTPClientFromConfig creates a HTTP client with configuration.
+func NewHTTPClientFromConfig(
+	config HTTPClientConfig,
+	options *gohttpc.ClientOptions,
+) (*http.Client, error) {
+	if config.Transport == nil && config.TLS == nil && options.HTTPClient != nil {
+		return options.HTTPClient, nil
+	}
+
+	newTransport := gohttpc.TransportFromConfig(config.Transport, options)
 
 	if config.TLS != nil {
 		tlsConfig, err := loadTLSConfig(config.TLS)
@@ -83,5 +78,14 @@ func NewClientFromConfig(
 		newTransport.TLSClientConfig = tlsConfig
 	}
 
-	return gohttpc.NewClientWithOptions(opts), nil
+	httpClient := &http.Client{
+		Transport: newTransport,
+	}
+
+	if options.HTTPClient != nil {
+		httpClient.CheckRedirect = options.HTTPClient.CheckRedirect
+		httpClient.Jar = options.HTTPClient.Jar
+	}
+
+	return httpClient, nil
 }

@@ -232,3 +232,49 @@ func (s *Server) Do(req *http.Request) (*http.Response, error) {
 
 	return resp, err
 }
+
+// Close terminates internal processes.
+func (s *Server) Close() {
+	if s.httpClient != nil {
+		s.httpClient.CloseIdleConnections()
+	}
+
+	if s.healthCheckPolicy != nil {
+		s.healthCheckPolicy.Close()
+	}
+}
+
+// ServerMetrics represents the metrics data of a server.
+type ServerMetrics struct {
+	// Executions returns the number of executions recorded in the current state when the state is ClosedState or
+	// HalfOpenState. When the state is OpenState, this returns the executions recorded during the previous ClosedState.
+	//
+	// For count based thresholding, the max number of executions is limited to the execution threshold. For time based
+	// thresholds, the number of executions may vary within the thresholding period.
+	Executions uint `json:"executions"`
+
+	// Failures returns the number of failures recorded in the current state when in a ClosedState or HalfOpenState. When
+	// in OpenState, this returns the failures recorded during the previous ClosedState.
+	//
+	// For count based thresholds, the max number of failures is based on the failure threshold. For time based thresholds,
+	// the number of failures may vary within the failure thresholding period.
+	Failures uint `json:"failures"`
+
+	// FailureRate returns the rate of failed executions in the current state when in a ClosedState or HalfOpenState. When
+	// in OpenState, this returns the rate recorded during the previous ClosedState.
+	//
+	// The rate is based on the configured failure thresholding capacity.
+	FailureRate float64 `json:"failure_rate"`
+
+	// Successes returns the number of successes recorded in the current state when in a ClosedState or HalfOpenState.
+	// When in OpenState, this returns the successes recorded during the previous ClosedState.
+	//
+	// The max number of successes is based on the success threshold.
+	Successes uint `json:"successes"`
+
+	// SuccessRate returns rate of successful executions in the current state when in a ClosedState or HalfOpenState. When
+	// in OpenState, this returns the successes recorded during the previous ClosedState.
+	//
+	// The rate is based on the configured success thresholding capacity.
+	SuccessRate float64 `json:"success_rate"`
+}

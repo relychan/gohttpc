@@ -11,6 +11,7 @@ linters:
     - gochecknoglobals
     - ireturn
     - tagalign
+    - tagliatelle
   settings:
     depguard:
       rules:
@@ -38,14 +39,6 @@ linters:
       # Tab width in spaces.
       # Default: 1
       tab-width: 1
-    tagliatelle:
-      # Checks the struct tag name case.
-      case:
-        rules:
-          json: camel
-          yaml: camel
-          mapstructure: camel
-          whatever: camel
     cyclop:
       max-complexity: 25
     wsl_v5:
@@ -84,9 +77,6 @@ linters:
     # Log a warning if an exclusion rule is unused.
     warn-unused: false
     rules:
-      - path: httpconfig/tls.go
-        linters:
-          - tagliatelle
       - path: httpconfig/retry.go
         linters:
           - bodyclose

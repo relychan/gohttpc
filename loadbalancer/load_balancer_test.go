@@ -71,6 +71,11 @@ func TestNewLoadBalancerClient(t *testing.T) {
 		if client.options == nil {
 			t.Error("expected options to be initialized")
 		}
+
+		sm := client.ServerMetrics()
+		if len(sm) != 1 {
+			t.Error("expected server metrics to have 1 item")
+		}
 	})
 
 	t.Run("creates client with custom options", func(t *testing.T) {
