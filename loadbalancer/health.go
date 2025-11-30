@@ -94,7 +94,9 @@ func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder
 				return nil, fmt.Errorf("failed to get header %s: %w", key, err)
 			}
 
-			builder.headers[key] = header
+			if header != "" {
+				builder.headers[key] = header
+			}
 		}
 	}
 
