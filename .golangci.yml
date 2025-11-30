@@ -10,6 +10,7 @@ linters:
     - mnd
     - gochecknoglobals
     - ireturn
+    - tagalign
   settings:
     depguard:
       rules:
@@ -83,9 +84,12 @@ linters:
     # Log a warning if an exclusion rule is unused.
     warn-unused: false
     rules:
-      - path: tls.go
+      - path: httpconfig/tls.go
         linters:
           - tagliatelle
+      - path: httpconfig/retry.go
+        linters:
+          - bodyclose
 
     # Which file paths to exclude: they will be analyzed, but issues from them won't be reported.
     # "/" will be replaced by the current OS file path separator to properly work on Windows.

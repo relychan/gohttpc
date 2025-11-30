@@ -31,14 +31,14 @@ func (c *HTTPClientConfig) IsZero() bool {
 // NewClientFromConfig creates a HTTP client with configuration.
 func NewClientFromConfig(
 	config HTTPClientConfig,
-	options ...gohttpc.Option,
+	options ...gohttpc.ClientOption,
 ) (*gohttpc.Client, error) {
 	if config.Timeout != nil && *config.Timeout > 0 {
 		options = append(options, gohttpc.WithTimeout(time.Duration(*config.Timeout)))
 	}
 
 	if config.Retry != nil {
-		retry, err := config.Retry.Validate()
+		retry, err := config.Retry.ToRetryPolicy() //nolint:bodyclose
 		if err != nil {
 			return nil, err
 		}

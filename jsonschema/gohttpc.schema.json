@@ -294,11 +294,14 @@
     },
     "HTTPRetryConfig": {
       "properties": {
-        "times": {
+        "maxAttempts": {
           "$ref": "#/$defs/EnvInt"
         },
         "delay": {
-          "$ref": "#/$defs/EnvInt"
+          "type": "integer"
+        },
+        "maxDelay": {
+          "type": "integer"
         },
         "httpStatus": {
           "items": {
@@ -306,17 +309,13 @@
           },
           "type": "array"
         },
-        "jitter": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
         "multiplier": {
+          "type": "number"
+        },
+        "jitter": {
+          "type": "integer"
+        },
+        "jitterFactor": {
           "type": "number"
         }
       },
