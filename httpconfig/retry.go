@@ -79,9 +79,9 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 	if rs.Delay != nil {
 		if *rs.Delay < 0 {
 			errs = append(errs, errRetryPolicyDelayPositive)
+		} else {
+			delay = *rs.Delay
 		}
-
-		delay = *rs.Delay
 	}
 
 	if rs.MaxDelay != nil {
@@ -90,10 +90,10 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 
 	if rs.Multiplier != nil {
 		if *rs.Multiplier < 1 {
-			return nil, errRetryPolicyInvalidMultiplier
+			errs = append(errs, errRetryPolicyInvalidMultiplier)
+		} else {
+			multiplier = *rs.Multiplier
 		}
-
-		multiplier = *rs.Multiplier
 	}
 
 	if rs.Jitter != nil && *rs.Jitter != 0 {

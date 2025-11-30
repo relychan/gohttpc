@@ -193,6 +193,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		return nil, ErrRequestMethodRequired
 	}
 
+	r.retryAttempts = 0
 	startTime := time.Now()
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)

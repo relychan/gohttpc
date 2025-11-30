@@ -43,7 +43,7 @@ type HTTPHealthCheckConfig struct {
 	// SuccessThreshold is the minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Minimum value is 1.
 	SuccessThreshold *int `json:"successThreshold,omitempty" yaml:"successThreshold,omitempty" jsonschema:"default=1,min=1"`
 	// Failure threshold. After a probe fails threshold times in a row, the HTTP client considers that the overall check has failed. Default to 5. Minimum value is 1
-	FailureThreshold *int `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty" jsonschema:"default=1,min=5"`
+	FailureThreshold *int `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty" jsonschema:"default=3,min=1"`
 }
 
 // ToPolicy validates the health check config and create the policy.

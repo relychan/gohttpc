@@ -102,8 +102,8 @@ func (s *Server) AddCurrentWeight() {
 }
 
 // ResetCurrentWeight resets the current weight.
-func (h *Server) ResetCurrentWeight(totalWeight int) {
-	h.currentWeight -= totalWeight
+func (s *Server) ResetCurrentWeight(totalWeight int) {
+	s.currentWeight -= totalWeight
 }
 
 // CurrentWeight adds the weight to the current weight.
@@ -230,7 +230,8 @@ func (s *Server) NewRequest(
 // (such as redirects, cookies, auth) as configured on the client.
 func (s *Server) Do(req *http.Request) (*http.Response, error) {
 	resp, err := s.httpClient.Do(req)
-	if resp != nil && resp.StatusCode > http.StatusNotImplemented {
+
+	if s.healthCheckPolicy != nil && resp != nil && resp.StatusCode > http.StatusNotImplemented {
 		s.healthCheckPolicy.RecordFailure()
 	}
 
