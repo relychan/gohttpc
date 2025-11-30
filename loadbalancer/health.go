@@ -2,13 +2,19 @@ package loadbalancer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
+	"github.com/relychan/gohttpc"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 )
 
 var (
@@ -38,6 +44,8 @@ type HTTPHealthCheckConfig struct {
 	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// Health check interval in seconds. Disabled if the interval is negative or equals 0. Default to 60 seconds
 	Interval *int `json:"interval,omitempty" yaml:"interval,omitempty" jsonschema:"default=60,min=0"`
+	// Timeout in seconds. Disabled if the timeout is negative or equals 0. Default to 5 seconds
+	Timeout *int `json:"timeout,omitempty" yaml:"timeout,omitempty" jsonschema:"default=5,min=0"`
 	// SuccessStatus is expected successful HTTP status. Default to HTTP 200 OK.
 	SuccessStatus *int `json:"successStatus,omitempty" yaml:"successStatus,omitempty" jsonschema:"default=200,enum=200,enum=201,enum=204"`
 	// SuccessThreshold is the minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Minimum value is 1.
@@ -46,26 +54,21 @@ type HTTPHealthCheckConfig struct {
 	FailureThreshold *int `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty" jsonschema:"default=3,min=1"`
 }
 
-// ToPolicy validates the health check config and create the policy.
-func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //nolint:funlen
-	successStatus := http.StatusOK
+// ToPolicyBuilder validates the health check config and create the policy builder.
+func (hc HTTPHealthCheckConfig) ToPolicyBuilder() (*httpHealthCheckPolicyBuilder, error) {
+	builder := NewHTTPHealthCheckPolicyBuilder()
 
 	if hc.SuccessStatus != nil {
-		successStatus = *hc.SuccessStatus
+		builder.successStatus = *hc.SuccessStatus
 
-		if successStatus != http.StatusOK && successStatus != http.StatusCreated &&
-			successStatus != http.StatusNoContent {
+		if builder.successStatus != http.StatusOK && builder.successStatus != http.StatusCreated &&
+			builder.successStatus != http.StatusNoContent {
 			return nil, ErrInvalidHealthCheckSuccessStatus
 		}
 	}
 
-	builder := circuitbreaker.NewBuilder[int]().
-		HandleIf(func(i int, err error) bool {
-			return err != nil || i != successStatus
-		})
-
 	if hc.SuccessThreshold != nil && *hc.SuccessThreshold > 1 {
-		builder = builder.WithSuccessThreshold(uint(*hc.SuccessThreshold))
+		builder.successThreshold = uint(*hc.SuccessThreshold)
 	}
 
 	if hc.FailureThreshold != nil {
@@ -73,22 +76,18 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 			return nil, ErrInvalidHealthCheckFailureThreshold
 		}
 
-		builder = builder.WithFailureThreshold(uint(*hc.FailureThreshold))
+		builder.failureThreshold = uint(*hc.FailureThreshold)
 	}
 
-	// If the health check internal, the circuit breaking still runs with runtime HTTP requests.
-	if hc.Interval != nil && *hc.Interval <= 0 {
-		return &HTTPHealthCheckPolicy{
-			interval:       -1,
-			CircuitBreaker: builder.Build(),
-		}, nil
+	// If no health check interval is set, the circuit breaker still runs with runtime HTTP requests.
+	if hc.Interval != nil && *hc.Interval > 0 {
+		builder.interval = time.Duration(*hc.Interval) * time.Second
 	}
 
-	policy := NewHTTPHealthCheckPolicy(http.MethodGet, "/", time.Minute, nil)
-	policy.headers = hc.Headers
+	builder.headers = hc.Headers
 
 	if hc.Path != "" {
-		policy.path = hc.Path
+		builder.path = hc.Path
 	}
 
 	if hc.Method != "" {
@@ -96,7 +95,7 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 			return nil, ErrInvalidHealthCheckMethod
 		}
 
-		policy.method = hc.Method
+		builder.method = hc.Method
 	}
 
 	if hc.Body != nil {
@@ -110,48 +109,35 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 			return nil, fmt.Errorf("failed to encode health check request body: %w", err)
 		}
 
-		policy.body = buffer.Bytes()
+		builder.body = buffer.Bytes()
 	}
 
-	if hc.Interval != nil {
-		policy.interval = time.Duration(*hc.Interval) * time.Second
-		builder = builder.WithDelay(policy.interval - time.Millisecond)
+	if hc.Timeout != nil && *hc.Timeout > 0 {
+		builder.timeout = time.Duration(*hc.Timeout) * time.Second
 	}
 
-	policy.CircuitBreaker = builder.Build()
+	return builder, nil
+}
 
-	return policy, nil
+// ToPolicy validates the health check config and create the policy.
+func (hc HTTPHealthCheckConfig) ToPolicy(endpoint *url.URL) (*HTTPHealthCheckPolicy, error) {
+	builder, err := hc.ToPolicyBuilder()
+	if err != nil {
+		return nil, err
+	}
+
+	return builder.Build(endpoint), nil
 }
 
 // HTTPHealthCheckPolicy represents an HTTP health check policy state.
 type HTTPHealthCheckPolicy struct {
 	circuitbreaker.CircuitBreaker[int]
 
-	path     string
-	method   string
-	headers  map[string]string
-	body     []byte
-	interval time.Duration
-}
-
-// NewHTTPHealthCheckPolicy creates a new [HTTPHealthCheckPolicy] instance.
-func NewHTTPHealthCheckPolicy(
-	method string,
-	healthPath string,
-	interval time.Duration,
-	circuitBreaker circuitbreaker.CircuitBreaker[int],
-) *HTTPHealthCheckPolicy {
-	if circuitBreaker == nil {
-		circuitBreaker = circuitbreaker.NewBuilder[int]().
-			WithDelay(interval).Build()
-	}
-
-	return &HTTPHealthCheckPolicy{
-		CircuitBreaker: circuitBreaker,
-		path:           healthPath,
-		method:         method,
-		interval:       interval,
-	}
+	path    string
+	method  string
+	headers map[string]string
+	body    []byte
+	timeout time.Duration
 }
 
 // Path returns the health check path.
@@ -178,18 +164,6 @@ func (hcp *HTTPHealthCheckPolicy) SetMethod(value string) *HTTPHealthCheckPolicy
 	return hcp
 }
 
-// Interval returns the health check interval.
-func (hcp *HTTPHealthCheckPolicy) Interval() time.Duration {
-	return hcp.interval
-}
-
-// SetInterval sets the health check interval.
-func (hcp *HTTPHealthCheckPolicy) SetInterval(value time.Duration) *HTTPHealthCheckPolicy {
-	hcp.interval = value
-
-	return hcp
-}
-
 // Body returns the health check body.
 func (hcp *HTTPHealthCheckPolicy) Body() []byte {
 	return hcp.body
@@ -212,4 +186,116 @@ func (hcp *HTTPHealthCheckPolicy) SetHeaders(value map[string]string) *HTTPHealt
 	hcp.headers = value
 
 	return hcp
+}
+
+// Timeout returns the health check timeout duration.
+func (hcp *HTTPHealthCheckPolicy) Timeout() time.Duration {
+	return hcp.timeout
+}
+
+// SetTimeout sets the health check timeout duration.
+func (hcp *HTTPHealthCheckPolicy) SetTimeout(value time.Duration) *HTTPHealthCheckPolicy {
+	hcp.timeout = value
+
+	return hcp
+}
+
+type httpHealthCheckPolicyBuilder struct {
+	*HTTPHealthCheckPolicy
+
+	successStatus    int
+	successThreshold uint
+	failureThreshold uint
+	interval         time.Duration
+}
+
+// NewHTTPHealthCheckPolicyBuilder creates an HTTP health check policy builder.
+func NewHTTPHealthCheckPolicyBuilder() *httpHealthCheckPolicyBuilder {
+	return &httpHealthCheckPolicyBuilder{
+		HTTPHealthCheckPolicy: &HTTPHealthCheckPolicy{
+			method:  http.MethodGet,
+			path:    "/",
+			timeout: 5 * time.Second,
+		},
+		successStatus:    http.StatusOK,
+		successThreshold: 1,
+		failureThreshold: 3,
+		interval:         time.Minute,
+	}
+}
+
+// WithInterval sets the health check interval.
+func (hb *httpHealthCheckPolicyBuilder) WithInterval(
+	value time.Duration,
+) *httpHealthCheckPolicyBuilder {
+	hb.interval = value
+
+	return hb
+}
+
+// WithSuccessStatus sets the expected success status of the health check.
+func (hb *httpHealthCheckPolicyBuilder) WithSuccessStatus(
+	status int,
+) *httpHealthCheckPolicyBuilder {
+	hb.successStatus = status
+
+	return hb
+}
+
+// WithSuccessThreshold sets the success threshold of the health check.
+func (hb *httpHealthCheckPolicyBuilder) WithSuccessThreshold(
+	value uint,
+) *httpHealthCheckPolicyBuilder {
+	hb.successThreshold = value
+
+	return hb
+}
+
+// WithFailureThreshold sets the failure threshold of the health check.
+func (hb *httpHealthCheckPolicyBuilder) WithFailureThreshold(
+	value uint,
+) *httpHealthCheckPolicyBuilder {
+	hb.failureThreshold = value
+
+	return hb
+}
+
+// Build builds the [HTTPHealthCheckPolicy].
+func (hb *httpHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthCheckPolicy {
+	metrics := gohttpc.GetHTTPClientMetrics()
+	urlScheme := "http"
+
+	if endpoint.Scheme != "" {
+		urlScheme = endpoint.Scheme
+	}
+
+	metricsAttrs := metric.WithAttributeSet(attribute.NewSet(
+		semconv.ServerAddress(endpoint.Host),
+		semconv.URLScheme(urlScheme),
+	))
+
+	builder := circuitbreaker.NewBuilder[int]().
+		HandleIf(func(i int, err error) bool {
+			return err != nil || i != hb.successStatus
+		}).WithSuccessThreshold(hb.successThreshold).
+		WithFailureThreshold(hb.failureThreshold).
+		OnStateChanged(func(sce circuitbreaker.StateChangedEvent) {
+			metrics.ServerState.Record(context.TODO(), int64(sce.NewState), metricsAttrs)
+		})
+
+	if hb.interval > 0 {
+		builder = builder.WithDelay(hb.interval - time.Millisecond)
+	}
+
+	policy := *hb.HTTPHealthCheckPolicy
+	policy.CircuitBreaker = builder.Build()
+
+	// Record initial metrics for the closed state.
+	metrics.ServerState.Record(
+		context.TODO(),
+		int64(circuitbreaker.ClosedState),
+		metricsAttrs,
+	)
+
+	return &policy
 }

@@ -80,7 +80,6 @@ func TransportFromConfig(
 
 	defaultTransport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           dialer.DialContext,
 		MaxIdleConns:          100,
 		ResponseHeaderTimeout: time.Minute,
 		IdleConnTimeout:       90 * time.Second,
@@ -90,12 +89,9 @@ func TransportFromConfig(
 		DisableCompression:    true,
 	}
 
-	if clientOptions.Metrics != nil && *clientOptions.Metrics != noopHTTPClientMetrics {
-		defaultTransport.DialContext = transportDialContext(
-			dialer,
-			clientOptions.Metrics,
-		)
-	}
+	defaultTransport.DialContext = transportDialContext(
+		dialer,
+	)
 
 	if ttc == nil {
 		return defaultTransport

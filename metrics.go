@@ -1,6 +1,8 @@
 package gohttpc
 
 import (
+	"sync/atomic"
+
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/noop"
 )
@@ -200,6 +202,22 @@ func NewHTTPClientMetrics( //nolint:funlen
 	return &metrics, nil
 }
 
+var globalClientMetrics = defaultClientMetrics()
+
+// GetHTTPClientMetrics gets the global [HTTPClientMetrics] instance.
+func GetHTTPClientMetrics() *HTTPClientMetrics {
+	return globalClientMetrics.Load()
+}
+
+// SetHTTPClientMetrics sets the global [HTTPClientMetrics] instance.
+func SetHTTPClientMetrics(metrics *HTTPClientMetrics) {
+	if metrics == nil {
+		metrics = &noopHTTPClientMetrics
+	}
+
+	globalClientMetrics.Store(metrics)
+}
+
 var noopHTTPClientMetrics = HTTPClientMetrics{
 	ConnectionDuration:     noop.Float64Histogram{},
 	OpenConnections:        noop.Int64UpDownCounter{},
@@ -211,4 +229,12 @@ var noopHTTPClientMetrics = HTTPClientMetrics{
 	ResponseBodySize:       noop.Int64Histogram{},
 	RequestDuration:        noop.Float64Histogram{},
 	DNSLookupDuration:      noop.Float64Histogram{},
+}
+
+func defaultClientMetrics() *atomic.Pointer[HTTPClientMetrics] {
+	value := atomic.Pointer[HTTPClientMetrics]{}
+
+	value.Store(&noopHTTPClientMetrics)
+
+	return &value
 }

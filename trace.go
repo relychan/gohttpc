@@ -47,7 +47,6 @@ type simpleClientTrace struct {
 
 	context     context.Context //nolint:containedctx
 	tracer      trace.Tracer
-	metrics     *HTTPClientMetrics
 	metricAttrs []attribute.KeyValue
 	startTime   time.Time
 	totalTime   time.Duration
@@ -59,12 +58,10 @@ func startSimpleClientTrace(
 	parentContext context.Context,
 	name string,
 	tracer trace.Tracer,
-	metrics *HTTPClientMetrics,
 ) *simpleClientTrace {
 	t := &simpleClientTrace{
 		startTime: time.Now(),
 		tracer:    tracer,
-		metrics:   metrics,
 	}
 
 	spanContext, span := t.tracer.Start( //nolint:spancheck
@@ -107,7 +104,7 @@ func (sct *simpleClientTrace) End(options ...trace.SpanEndOption) {
 	sct.Span.End(options...)
 	sct.totalTime = time.Since(sct.startTime)
 
-	sct.metrics.ServerDuration.Record(
+	GetHTTPClientMetrics().ServerDuration.Record(
 		sct.context,
 		sct.totalTime.Seconds(),
 		metric.WithAttributeSet(attribute.NewSet(sct.metricAttrs...)),
@@ -121,7 +118,6 @@ type clientTrace struct {
 	trace.Span
 
 	context              context.Context //nolint:containedctx
-	metrics              *HTTPClientMetrics
 	metricAttrs          []attribute.KeyValue
 	logger               *slog.Logger
 	startTime            time.Time
@@ -144,12 +140,10 @@ func startClientTrace(
 	ctx context.Context,
 	name string,
 	tracer trace.Tracer,
-	metrics *HTTPClientMetrics,
 	logger *slog.Logger,
 ) *clientTrace {
 	ct := &clientTrace{
-		metrics: metrics,
-		logger:  logger,
+		logger: logger,
 	}
 
 	spanContext, span := tracer.Start( //nolint:spancheck
@@ -203,7 +197,7 @@ func (t *clientTrace) End(options ...trace.SpanEndOption) {
 			requestStartTime = t.getConn
 		}
 
-		t.metrics.ServerDuration.Record(
+		GetHTTPClientMetrics().ServerDuration.Record(
 			t.context,
 			endTime.Sub(requestStartTime).Seconds(),
 			metricAttrSet,
@@ -231,6 +225,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 ) context.Context {
 	t.startTime = time.Now()
 	isTraceLogLevelEnabled := t.logger.Enabled(ctx, LogLevelTrace)
+	metrics := GetHTTPClientMetrics()
 
 	ct := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
@@ -280,7 +275,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			t.metrics.DNSLookupDuration.Record(
+			metrics.DNSLookupDuration.Record(
 				ctx,
 				dnsLookupDuration.Seconds(),
 				metric.WithAttributeSet(attribute.NewSet(metricAttrs...)),
@@ -360,7 +355,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 			connTime := time.Since(t.getConn)
 
 			if ci.WasIdle {
-				t.metrics.IdleConnectionDuration.Record(
+				metrics.IdleConnectionDuration.Record(
 					ctx,
 					ci.IdleTime.Seconds(),
 					metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),
@@ -391,7 +386,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 
 			if !t.gotConn.IsZero() {
 				serverTime := t.gotFirstResponseByte.Sub(t.gotConn)
-				t.metrics.ServerDuration.Record(
+				metrics.ServerDuration.Record(
 					ctx,
 					serverTime.Seconds(),
 					metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...)),

@@ -3,7 +3,7 @@ module github.com/relychan/gohttpc/example
 go 1.25.4
 
 require (
-	github.com/hasura/gotel v0.4.1
+	github.com/hasura/gotel v0.4.2
 	github.com/relychan/gohttpc v0.0.0-00010101000000-000000000000
 	github.com/relychan/goutils v0.0.0-20251126052335-b9b7ec5a4db1
 	go.opentelemetry.io/otel v1.38.0
@@ -11,7 +11,7 @@ require (
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.24.0 // indirect
+	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/failsafe-go/failsafe-go v0.9.2 // indirect

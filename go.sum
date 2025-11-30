@@ -1,5 +1,7 @@
 github.com/bits-and-blooms/bitset v1.24.0 h1:H4x4TuulnokZKvHLfzVRTHJfFfnHEeSYJizujEZvmAM=
 github.com/bits-and-blooms/bitset v1.24.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
+github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
+github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/failsafe-go/failsafe-go v0.9.2 h1:Rvj401FLruv0x7OwmAa9wL4HAUxecuoLtp/tp9XAHns=
@@ -17,6 +19,8 @@ github.com/hasura/goenvconf v0.3.0 h1:8Ky4LBTn1j08DQNBfPXeX6bEj3MiH276Rb9GxZxBGl
 github.com/hasura/goenvconf v0.3.0/go.mod h1:mj6eef7yeb8K79e8nI4iCY7ImEydpkSCIiNsU3H5iBA=
 github.com/hasura/gotel v0.4.1 h1:HlKJkMCcdbgdC8N7acY5LuZrfNZNTMdEgdsF82Q1X4w=
 github.com/hasura/gotel v0.4.1/go.mod h1:d/veuJD8nyYwRwxmAIZeJk62sFJ+EgC5ewACiLPBOp4=
+github.com/hasura/gotel v0.4.2 h1:q7ZUqlUJV+zMw+I1ipsWqlCiH32TYOhG0D+4uxL1KJI=
+github.com/hasura/gotel v0.4.2/go.mod h1:d/veuJD8nyYwRwxmAIZeJk62sFJ+EgC5ewACiLPBOp4=
 github.com/influxdata/tdigest v0.0.1 h1:XpFptwYmnEKUqmkcDjrzffswZ3nvNeevbUSLPP/ZzIY=
 github.com/influxdata/tdigest v0.0.1/go.mod h1:Z0kXnxzbTC2qrx4NaIzYkE1k66+6oEDQTvL95hQFh5Y=
 github.com/klauspost/compress v1.18.1 h1:bcSGx7UbpBqMChDtsF28Lw6v/G94LPrrbMbdC3JH2co=

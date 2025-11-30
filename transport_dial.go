@@ -13,7 +13,6 @@ import (
 
 func transportDialContext(
 	dialer *net.Dialer,
-	metrics *HTTPClientMetrics,
 ) func(context.Context, string, string) (net.Conn, error) {
 	return func(ctx context.Context, network string, address string) (net.Conn, error) {
 		createdTime := time.Now()
@@ -27,7 +26,6 @@ func transportDialContext(
 
 		connMetric := &connWithMetric{
 			Conn:        conn,
-			metrics:     metrics,
 			createdTime: createdTime,
 			metricAttrSet: metric.WithAttributeSet(attribute.NewSet(
 				semconv.ServerAddress(address),
@@ -36,7 +34,7 @@ func transportDialContext(
 			)),
 		}
 
-		connMetric.metrics.OpenConnections.Add(ctx, 1, connMetric.metricAttrSet)
+		GetHTTPClientMetrics().OpenConnections.Add(ctx, 1, connMetric.metricAttrSet)
 
 		return connMetric, nil
 	}
@@ -47,13 +45,13 @@ type connWithMetric struct {
 	net.Conn
 
 	createdTime   time.Time
-	metrics       *HTTPClientMetrics
 	metricAttrSet metric.MeasurementOption
 }
 
 func (c *connWithMetric) Close() error {
-	c.metrics.OpenConnections.Add(context.TODO(), -1, c.metricAttrSet)
-	c.metrics.ConnectionDuration.Record(
+	metrics := GetHTTPClientMetrics()
+	metrics.OpenConnections.Add(context.TODO(), -1, c.metricAttrSet)
+	metrics.ConnectionDuration.Record(
 		context.TODO(),
 		time.Since(c.createdTime).Seconds(),
 		c.metricAttrSet,

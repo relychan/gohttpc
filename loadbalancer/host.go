@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -14,8 +15,8 @@ import (
 	"github.com/relychan/goutils"
 )
 
-// Server represents the host information and its weight to load balance the requests.
-type Server struct {
+// Host represents the host information and its weight to load balance the requests.
+type Host struct {
 	// An optional unique string to refer to the host designated by the URL.
 	name string
 	// A URL to the target host.
@@ -34,109 +35,133 @@ type Server struct {
 	currentWeight int
 }
 
-var _ gohttpc.HTTPClient = (*Server)(nil)
+var _ gohttpc.HTTPClient = (*Host)(nil)
 
-// NewServer creates a Server with a client base URL.
-func NewServer(client *http.Client, baseURL string, weight int) *Server {
-	return &Server{
-		url:        strings.TrimRight(baseURL, "/"),
+// NewHost creates an [Host] with a client base URL.
+func NewHost(
+	client *http.Client,
+	baseURL string,
+	weight int,
+	healthCheckPolicyBuilder *httpHealthCheckPolicyBuilder,
+) (*Host, error) {
+	host := &Host{
 		httpClient: client,
 		weight:     weight,
-		healthCheckPolicy: &HTTPHealthCheckPolicy{
-			CircuitBreaker: circuitbreaker.NewWithDefaults[int](),
-		},
 	}
+
+	u, err := host.SetURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if healthCheckPolicyBuilder == nil {
+		healthCheckPolicyBuilder = NewHTTPHealthCheckPolicyBuilder()
+	}
+
+	host.healthCheckPolicy = healthCheckPolicyBuilder.Build(u)
+
+	return host, nil
 }
 
 // SetURL sets the base URL of this host.
-func (s *Server) SetURL(baseURL string) *Server {
+// NOTE: the name won't be updated if it is not empty.
+func (s *Host) SetURL(baseURL string) (*url.URL, error) {
+	u, err := goutils.ParseHTTPURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	s.url = strings.TrimRight(baseURL, "/")
 
-	return s
+	if s.name == "" {
+		s.name = u.Host
+	}
+
+	return u, nil
 }
 
 // URL returns the base URL of this host.
-func (s *Server) URL() string {
+func (s *Host) URL() string {
 	return s.url
 }
 
 // Name returns the unique string of this host.
-func (s *Server) Name() string {
+func (s *Host) Name() string {
 	return s.name
 }
 
 // SetName sets the name of this host.
-func (s *Server) SetName(name string) *Server {
+func (s *Host) SetName(name string) *Host {
 	s.name = name
 
 	return s
 }
 
 // Headers return custom headers of this host.
-func (s *Server) Headers() map[string]string {
+func (s *Host) Headers() map[string]string {
 	return s.headers
 }
 
 // SetHeaders sets headers of this host.
-func (s *Server) SetHeaders(headers map[string]string) *Server {
+func (s *Host) SetHeaders(headers map[string]string) *Host {
 	s.headers = headers
 
 	return s
 }
 
 // Weight returns the weight of this host.
-func (s *Server) Weight() int {
+func (s *Host) Weight() int {
 	return s.weight
 }
 
 // SetWeight sets the weight of this host.
-func (s *Server) SetWeight(weight int) *Server {
+func (s *Host) SetWeight(weight int) *Host {
 	s.weight = weight
 
 	return s
 }
 
 // AddCurrentWeight adds the weight to the current weight.
-func (s *Server) AddCurrentWeight() {
+func (s *Host) AddCurrentWeight() {
 	s.currentWeight += s.weight
 }
 
 // ResetCurrentWeight resets the current weight.
-func (s *Server) ResetCurrentWeight(totalWeight int) {
+func (s *Host) ResetCurrentWeight(totalWeight int) {
 	s.currentWeight -= totalWeight
 }
 
 // CurrentWeight adds the weight to the current weight.
-func (s *Server) CurrentWeight() int {
+func (s *Host) CurrentWeight() int {
 	return s.currentWeight
 }
 
 // HTTPClient returns the HTTP client of this host.
-func (s *Server) HTTPClient() *http.Client {
+func (s *Host) HTTPClient() *http.Client {
 	return s.httpClient
 }
 
 // SetHTTPClient sets the HTTP client of this host.
-func (s *Server) SetHTTPClient(client *http.Client) *Server {
+func (s *Host) SetHTTPClient(client *http.Client) *Host {
 	s.httpClient = client
 
 	return s
 }
 
 // HealthCheckPolicy returns the HTTP health check policy of this host.
-func (s *Server) HealthCheckPolicy() *HTTPHealthCheckPolicy {
+func (s *Host) HealthCheckPolicy() *HTTPHealthCheckPolicy {
 	return s.healthCheckPolicy
 }
 
 // SetHealthCheckPolicy sets the health check policy to this host.
-func (s *Server) SetHealthCheckPolicy(policy *HTTPHealthCheckPolicy) *Server {
+func (s *Host) SetHealthCheckPolicy(policy *HTTPHealthCheckPolicy) *Host {
 	s.healthCheckPolicy = policy
 
 	return s
 }
 
 // State returns the circuit breaker state of this host.
-func (s *Server) State() circuitbreaker.State {
+func (s *Host) State() circuitbreaker.State {
 	if s.healthCheckPolicy == nil {
 		return circuitbreaker.ClosedState
 	}
@@ -145,16 +170,16 @@ func (s *Server) State() circuitbreaker.State {
 }
 
 // CheckHealth runs an HTTP request to checking the health of the host.
-func (s *Server) CheckHealth(ctx context.Context) {
-	if s.healthCheckPolicy == nil || s.healthCheckPolicy.interval <= 0 {
+func (s *Host) CheckHealth(ctx context.Context) {
+	if s.healthCheckPolicy == nil {
 		return
 	}
 
 	healthURL := s.url + s.healthCheckPolicy.path
 
-	timeout := s.healthCheckPolicy.interval - time.Second
+	timeout := s.healthCheckPolicy.timeout
 	if timeout <= 0 {
-		timeout = 3 * time.Second
+		timeout = 5 * time.Second
 	}
 
 	var body io.Reader
@@ -197,7 +222,7 @@ func (s *Server) CheckHealth(ctx context.Context) {
 }
 
 // NewRequest returns a new http.Request given a method, URL, and optional body.
-func (s *Server) NewRequest(
+func (s *Host) NewRequest(
 	ctx context.Context,
 	method string,
 	url string,
@@ -228,18 +253,24 @@ func (s *Server) NewRequest(
 
 // Do sends an HTTP request and returns an HTTP response, following policy
 // (such as redirects, cookies, auth) as configured on the client.
-func (s *Server) Do(req *http.Request) (*http.Response, error) {
+func (s *Host) Do(req *http.Request) (*http.Response, error) {
 	resp, err := s.httpClient.Do(req)
 
-	if s.healthCheckPolicy != nil && resp != nil && resp.StatusCode > http.StatusNotImplemented {
+	if s.healthCheckPolicy == nil {
+		return resp, err
+	}
+
+	if err != nil || (resp != nil && resp.StatusCode > http.StatusNotImplemented) {
 		s.healthCheckPolicy.RecordFailure()
+	} else if resp != nil {
+		s.healthCheckPolicy.RecordSuccess()
 	}
 
 	return resp, err
 }
 
 // Close terminates internal processes.
-func (s *Server) Close() {
+func (s *Host) Close() {
 	if s.httpClient != nil {
 		s.httpClient.CloseIdleConnections()
 	}
