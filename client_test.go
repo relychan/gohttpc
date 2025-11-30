@@ -59,7 +59,7 @@ func TestClient(t *testing.T) {
 			client, err := httpconfig.NewClientFromConfig(
 				*config,
 				gohttpc.WithAuthenticator(nil),
-				gohttpc.WithCustomAttributesFunc(func(r *http.Request) []attribute.KeyValue {
+				gohttpc.WithCustomAttributesFunc(func(r *gohttpc.Request) []attribute.KeyValue {
 					return nil
 				}),
 				gohttpc.WithHTTPClient(http.DefaultClient),

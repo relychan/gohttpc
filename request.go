@@ -254,6 +254,13 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		httpRequestMethodAttr(r.method),
 	}
 
+	if r.options.CustomAttributesFunc != nil {
+		commonAttrs = append(
+			commonAttrs,
+			r.options.CustomAttributesFunc(r)...,
+		)
+	}
+
 	// the request URL may not be a full URI.
 	if endpoint.Host != "" {
 		_, port, _ := otelutils.SplitHostPort(endpoint.Host, endpoint.Scheme)
@@ -586,6 +593,14 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	_, port, _ := otelutils.SplitHostPort(req.URL.Host, req.URL.Scheme)
 
 	commonAttrs := newMetricAttributes(r.method, req.URL, port)
+
+	if r.options.CustomAttributesFunc != nil {
+		commonAttrs = append(
+			commonAttrs,
+			r.options.CustomAttributesFunc(r)...,
+		)
+	}
+
 	span.SetAttributes(commonAttrs...)
 	span.SetAttributes(semconv.URLFull(req.URL.String()))
 

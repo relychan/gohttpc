@@ -33,7 +33,10 @@ type HTTPClientMetrics struct {
 }
 
 // NewHTTPClientMetrics creates an HTTPClientMetrics instance from the OpenTelemetry meter.
-func NewHTTPClientMetrics(meter metric.Meter, clientTraceEnabled bool) (*HTTPClientMetrics, error) {
+func NewHTTPClientMetrics( //nolint:funlen
+	meter metric.Meter,
+	clientTraceEnabled bool,
+) (*HTTPClientMetrics, error) {
 	var err error
 
 	metrics := HTTPClientMetrics{
@@ -74,6 +77,9 @@ func NewHTTPClientMetrics(meter metric.Meter, clientTraceEnabled bool) (*HTTPCli
 			300,
 		),
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	metrics.OpenConnections, err = meter.Int64UpDownCounter(
 		"http.client.open_connections",

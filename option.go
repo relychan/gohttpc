@@ -77,7 +77,7 @@ func (co *ClientOptions) Clone(options ...ClientOption) *ClientOptions {
 }
 
 // CustomAttributesFunc abstracts a function to add custom attributes to spans and metrics.
-type CustomAttributesFunc func(*http.Request) []attribute.KeyValue
+type CustomAttributesFunc func(*Request) []attribute.KeyValue
 
 // ClientOption abstracts a function to modify client options.
 type ClientOption func(*ClientOptions)
