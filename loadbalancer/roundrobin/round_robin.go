@@ -26,12 +26,9 @@ var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
 // NewWeightedRoundRobin method creates the new Weighted Round-Robin
 // load balancer instance with given recovery duration and hosts slice.
 func NewWeightedRoundRobin(
-	healthCheckInterval time.Duration,
 	servers []*loadbalancer.Server,
 ) (*WeightedRoundRobin, error) {
-	wrr := &WeightedRoundRobin{
-		healthCheckInterval: healthCheckInterval,
-	}
+	wrr := &WeightedRoundRobin{}
 
 	err := wrr.Refresh(servers)
 
@@ -62,6 +59,7 @@ func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Server) error {
 	isSameWeight := true
 	lastWeight := 0
 	newTotalWeight := 0
+	minInterval := time.Duration(0)
 
 	for i, h := range servers {
 		weight := h.Weight()
@@ -72,11 +70,23 @@ func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Server) error {
 		} else if isSameWeight && lastWeight != weight {
 			isSameWeight = false
 		}
+
+		hcPolicy := h.HealthCheckPolicy()
+		if hcPolicy == nil {
+			continue
+		}
+
+		interval := hcPolicy.Interval()
+
+		if interval > 0 && (minInterval == 0 || minInterval > interval) {
+			minInterval = interval
+		}
 	}
 
 	// after processing, assign the updates
 	wrr.servers = servers
 	wrr.isSameWeight = isSameWeight
+	wrr.healthCheckInterval = minInterval
 
 	if isSameWeight {
 		// Start the round robin algorithm since all weight are the same.
@@ -150,11 +160,19 @@ func (rr *WeightedRoundRobin) nextRoundRobin() (*loadbalancer.Server, error) {
 		currentIndex := (i + rr.totalWeight) % totalServers
 		server := rr.servers[currentIndex]
 
-		if server.State() != circuitbreaker.OpenState {
-			rr.totalWeight = (currentIndex + 1) % totalServers
-
-			return server, nil
+		policy := server.HealthCheckPolicy()
+		if policy != nil {
+			if policy.State() == circuitbreaker.OpenState {
+				// checks if the open state was expired.
+				if !policy.TryAcquirePermit() {
+					continue
+				}
+			}
 		}
+
+		rr.totalWeight = (currentIndex + 1) % totalServers
+
+		return server, nil
 	}
 
 	return nil, loadbalancer.ErrNoActiveHost
@@ -167,8 +185,14 @@ func (wrr *WeightedRoundRobin) nextWeightRoundRobin() (*loadbalancer.Server, err
 	total := 0
 
 	for _, h := range wrr.servers {
-		if h.State() == circuitbreaker.OpenState {
-			continue
+		policy := h.HealthCheckPolicy()
+		if policy != nil {
+			if policy.State() == circuitbreaker.OpenState {
+				// checks if the open state is expired.
+				if !policy.TryAcquirePermit() {
+					continue
+				}
+			}
 		}
 
 		h.AddCurrentWeight()

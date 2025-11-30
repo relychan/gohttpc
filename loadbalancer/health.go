@@ -84,12 +84,8 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 		}, nil
 	}
 
-	policy := &HTTPHealthCheckPolicy{
-		path:     "/",
-		method:   http.MethodGet,
-		interval: 60,
-		headers:  hc.Headers,
-	}
+	policy := NewHTTPHealthCheckPolicy(http.MethodGet, "/", time.Minute, nil)
+	policy.headers = hc.Headers
 
 	if hc.Path != "" {
 		policy.path = hc.Path
@@ -119,7 +115,7 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 
 	if hc.Interval != nil {
 		policy.interval = time.Duration(*hc.Interval) * time.Second
-		builder = builder.WithDelay(policy.interval)
+		builder = builder.WithDelay(policy.interval - time.Millisecond)
 	}
 
 	policy.CircuitBreaker = builder.Build()
@@ -136,4 +132,84 @@ type HTTPHealthCheckPolicy struct {
 	headers  map[string]string
 	body     []byte
 	interval time.Duration
+}
+
+// NewHTTPHealthCheckPolicy creates a new [HTTPHealthCheckPolicy] instance.
+func NewHTTPHealthCheckPolicy(
+	method string,
+	healthPath string,
+	interval time.Duration,
+	circuitBreaker circuitbreaker.CircuitBreaker[int],
+) *HTTPHealthCheckPolicy {
+	if circuitBreaker == nil {
+		circuitBreaker = circuitbreaker.NewBuilder[int]().
+			WithDelay(interval).Build()
+	}
+
+	return &HTTPHealthCheckPolicy{
+		CircuitBreaker: circuitBreaker,
+		path:           healthPath,
+		method:         method,
+		interval:       interval,
+	}
+}
+
+// Path returns the health check path.
+func (hcp *HTTPHealthCheckPolicy) Path() string {
+	return hcp.path
+}
+
+// SetPath sets the health check path.
+func (hcp *HTTPHealthCheckPolicy) SetPath(value string) *HTTPHealthCheckPolicy {
+	hcp.path = value
+
+	return hcp
+}
+
+// Method returns the health check method.
+func (hcp *HTTPHealthCheckPolicy) Method() string {
+	return hcp.method
+}
+
+// SetMethod sets the health check method.
+func (hcp *HTTPHealthCheckPolicy) SetMethod(value string) *HTTPHealthCheckPolicy {
+	hcp.method = value
+
+	return hcp
+}
+
+// Interval returns the health check interval.
+func (hcp *HTTPHealthCheckPolicy) Interval() time.Duration {
+	return hcp.interval
+}
+
+// SetInterval sets the health check interval.
+func (hcp *HTTPHealthCheckPolicy) SetInterval(value time.Duration) *HTTPHealthCheckPolicy {
+	hcp.interval = value
+
+	return hcp
+}
+
+// Body returns the health check body.
+func (hcp *HTTPHealthCheckPolicy) Body() []byte {
+	return hcp.body
+}
+
+// SetBody sets the health check body.
+func (hcp *HTTPHealthCheckPolicy) SetBody(value []byte) *HTTPHealthCheckPolicy {
+	hcp.body = value
+
+	return hcp
+}
+
+// Headers returns the health check headers.
+func (hcp *HTTPHealthCheckPolicy) Headers() map[string]string {
+	return hcp.headers
+}
+
+// SetHeaders sets the health check headers.
+func (hcp *HTTPHealthCheckPolicy) SetHeaders(value map[string]string) *HTTPHealthCheckPolicy {
+	hcp.headers = value
+
+	return hcp
 }
