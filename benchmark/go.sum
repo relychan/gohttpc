@@ -1,5 +1,3 @@
-github.com/bits-and-blooms/bitset v1.24.0 h1:H4x4TuulnokZKvHLfzVRTHJfFfnHEeSYJizujEZvmAM=
-github.com/bits-and-blooms/bitset v1.24.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
 github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -17,8 +15,6 @@ github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/hasura/goenvconf v0.3.0 h1:8Ky4LBTn1j08DQNBfPXeX6bEj3MiH276Rb9GxZxBGlo=
 github.com/hasura/goenvconf v0.3.0/go.mod h1:mj6eef7yeb8K79e8nI4iCY7ImEydpkSCIiNsU3H5iBA=
-github.com/hasura/gotel v0.4.1 h1:HlKJkMCcdbgdC8N7acY5LuZrfNZNTMdEgdsF82Q1X4w=
-github.com/hasura/gotel v0.4.1/go.mod h1:d/veuJD8nyYwRwxmAIZeJk62sFJ+EgC5ewACiLPBOp4=
 github.com/hasura/gotel v0.4.2 h1:q7ZUqlUJV+zMw+I1ipsWqlCiH32TYOhG0D+4uxL1KJI=
 github.com/hasura/gotel v0.4.2/go.mod h1:d/veuJD8nyYwRwxmAIZeJk62sFJ+EgC5ewACiLPBOp4=
 github.com/influxdata/tdigest v0.0.1 h1:XpFptwYmnEKUqmkcDjrzffswZ3nvNeevbUSLPP/ZzIY=
@@ -59,7 +55,5 @@ google.golang.org/protobuf v1.36.10 h1:AYd7cD/uASjIL6Q9LiTjz8JLcrh/88q5UObnmY3aO
 google.golang.org/protobuf v1.36.10/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-resty.dev/v3 v3.0.0-beta.3 h1:3kEwzEgCnnS6Ob4Emlk94t+I/gClyoah7SnNi67lt+E=
-resty.dev/v3 v3.0.0-beta.3/go.mod h1:OgkqiPvTDtOuV4MGZuUDhwOpkY8enjOsjjMzeOHefy4=
 resty.dev/v3 v3.0.0-beta.4 h1:2O77oFymtA4NT8AY87wAaSgSGUBk2yvvM1qno9VRXZU=
 resty.dev/v3 v3.0.0-beta.4/go.mod h1:NTOerrC/4T7/FE6tXIZGIysXXBdgNqwMZuKtxpea9NM=

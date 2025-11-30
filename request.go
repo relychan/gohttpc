@@ -487,7 +487,7 @@ func (r *Request) executeWithRetries(
 			r.retryAttempts++
 		}
 
-		return resp, nil
+		return resp, err
 	}
 
 	return failsafe.With(r.getRetryPolicy()).Get(operation)
@@ -771,7 +771,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 		span.SetStatus(codes.Error, rawResp.Status)
 
 		err := httpErrorFromResponse(rawResp)
-		goutils.CatchWarnErrorFunc(rawResp.Body.Close)
 		r.logRequestAttempt(span, logger, req, rawResp, err, rawResp.Status)
 
 		return rawResp, err

@@ -5,7 +5,7 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"path"
+	"strings"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
@@ -39,7 +39,7 @@ var _ gohttpc.HTTPClient = (*Server)(nil)
 // NewServer creates a Server with a client base URL.
 func NewServer(client *http.Client, baseURL string, weight int) *Server {
 	return &Server{
-		url:        baseURL,
+		url:        strings.TrimRight(baseURL, "/"),
 		httpClient: client,
 		weight:     weight,
 		healthCheckPolicy: &HTTPHealthCheckPolicy{
@@ -50,7 +50,7 @@ func NewServer(client *http.Client, baseURL string, weight int) *Server {
 
 // SetURL sets the base URL of this host.
 func (s *Server) SetURL(baseURL string) *Server {
-	s.url = baseURL
+	s.url = strings.TrimRight(baseURL, "/")
 
 	return s
 }
@@ -150,7 +150,7 @@ func (s *Server) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	healthURL := path.Join(s.url, s.healthCheckPolicy.path)
+	healthURL := s.url + s.healthCheckPolicy.path
 
 	timeout := s.healthCheckPolicy.interval - time.Second
 	if timeout <= 0 {
@@ -203,6 +203,10 @@ func (s *Server) NewRequest(
 	url string,
 	body io.Reader,
 ) (*http.Request, error) {
+	if !strings.HasPrefix(url, "http") {
+		url = s.url + "/" + strings.TrimLeft(url, "/")
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err

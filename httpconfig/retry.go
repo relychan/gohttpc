@@ -20,7 +20,6 @@ var (
 	errRetryPolicyTimesPositive     = errors.New("retry policy times must be positive")
 	errRetryPolicyDelayPositive     = errors.New("retry delay must be larger than 0")
 	errRetryPolicyInvalidHTTPStatus = errors.New("retry http status must be in between 400 and 599")
-	errRetryPolicyInvalidJitter     = errors.New("jitter must be in range (0, 1)")
 	errRetryPolicyInvalidMultiplier = errors.New("retry multiplier must be >= 1")
 )
 
@@ -97,12 +96,8 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 		multiplier = *rs.Multiplier
 	}
 
-	if rs.Jitter != nil {
-		if *rs.Jitter < 0 || *rs.Jitter > 1 {
-			errs = append(errs, errRetryPolicyInvalidJitter)
-		} else {
-			builder = builder.WithJitter(time.Duration(*rs.Jitter) * time.Millisecond)
-		}
+	if rs.Jitter != nil && *rs.Jitter != 0 {
+		builder = builder.WithJitter(time.Duration(*rs.Jitter) * time.Millisecond)
 	}
 
 	for _, status := range rs.HTTPStatus {

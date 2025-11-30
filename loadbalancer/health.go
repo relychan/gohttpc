@@ -64,11 +64,11 @@ func (hc HTTPHealthCheckConfig) ToPolicy() (*HTTPHealthCheckPolicy, error) { //n
 			return err != nil || i != successStatus
 		})
 
-	if hc.SuccessThreshold != nil && *hc.SuccessStatus > 1 {
-		builder = builder.WithSuccessThreshold(uint(*hc.SuccessThreshold)) //nolint:gosec
+	if hc.SuccessThreshold != nil && *hc.SuccessThreshold > 1 {
+		builder = builder.WithSuccessThreshold(uint(*hc.SuccessThreshold))
 	}
 
-	if hc.FailureThreshold != nil && *hc.FailureThreshold > 1 {
+	if hc.FailureThreshold != nil {
 		if *hc.FailureThreshold < 1 {
 			return nil, ErrInvalidHealthCheckFailureThreshold
 		}

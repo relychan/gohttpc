@@ -27,6 +27,8 @@ func httpErrorFromResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensio
 		return httpErrorFromNoContentResponse(resp)
 	}
 
+	defer goutils.CatchWarnErrorFunc(resp.Body.Close)
+
 	if resp.Header.Get(httpheader.ContentType) == httpheader.ContentTypeJSON {
 		var httpError goutils.RFC9457ErrorWithExtensions
 

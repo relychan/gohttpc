@@ -49,6 +49,10 @@ func TestClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
 			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](tc.ConfigPath)
@@ -63,18 +67,19 @@ func TestClient(t *testing.T) {
 					return nil
 				}),
 				gohttpc.WithHTTPClient(http.DefaultClient),
-				gohttpc.WithLogger(slog.Default()),
+				gohttpc.WithLogger(logger),
 				gohttpc.WithMetricHighCardinalityPath(true),
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.WithMetrics(clientMetrics),
 				gohttpc.WithTracer(otel.Tracer("test")),
+				gohttpc.EnableClientTrace(true),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
 			defer goutils.CatchWarnErrorFunc(client.Close)
 
-			resp, err := client.R(http.MethodGet, mockState.Server.URL+tc.Endpoint).
+			resp, err := client.Clone().R(http.MethodGet, mockState.Server.URL+tc.Endpoint).
 				Execute(context.TODO())
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
@@ -99,11 +104,7 @@ type mockServerState struct {
 }
 
 func (mss *mockServerState) Increase() int32 {
-	newValue := mss.counter.Add(1)
-
-	mss.counter.Store(newValue)
-
-	return newValue
+	return mss.counter.Add(1)
 }
 
 func (mss *mockServerState) GetCounter() int32 {

@@ -37,16 +37,25 @@ func NewClientFromConfig(
 		options = append(options, gohttpc.WithTimeout(time.Duration(*config.Timeout)))
 	}
 
+	opts := gohttpc.NewClientOptions(options...)
+
 	if config.Retry != nil {
 		retry, err := config.Retry.ToRetryPolicy() //nolint:bodyclose
 		if err != nil {
 			return nil, err
 		}
 
-		options = append(options, gohttpc.WithRetry(retry))
+		opts.Retry = retry
 	}
 
-	opts := gohttpc.NewClientOptions(options...)
+	if config.Authentication != nil {
+		authenticator, err := authc.NewAuthenticatorFromConfig(config.Authentication)
+		if err != nil {
+			return nil, err
+		}
+
+		opts.Authenticator = authenticator
+	}
 
 	httpClient, err := NewHTTPClientFromConfig(config, opts)
 	if err != nil {
