@@ -161,4 +161,3 @@ func TestHTTPAuthConfig_Validate(t *testing.T) {
 		}
 	})
 }
-

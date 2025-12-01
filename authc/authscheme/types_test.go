@@ -153,4 +153,3 @@ func TestParseAuthLocation(t *testing.T) {
 		}
 	})
 }
-

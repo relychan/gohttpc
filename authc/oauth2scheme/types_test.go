@@ -100,4 +100,3 @@ func TestParseOAuthFlowType(t *testing.T) {
 		}
 	})
 }
-
