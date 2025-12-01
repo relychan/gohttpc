@@ -369,7 +369,10 @@ type HostOption func(*hostOptions)
 // WithWeight sets the weight for the host.
 func WithWeight(weight int) HostOption {
 	return func(ho *hostOptions) {
-		ho.weight = weight
+		if weight > 0 {
+			ho.weight = weight
+		}
+		// If weight is not positive, ignore the value.
 	}
 }
 

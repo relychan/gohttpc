@@ -24,8 +24,8 @@ type WeightedRoundRobin struct {
 
 var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
 
-// NewWeightedRoundRobin method creates the new Weighted Round-Robin
-// load balancer instance with given recovery duration and hosts slice.
+// NewWeightedRoundRobin creates a new Weighted Round-Robin
+// load balancer instance with the given hosts slice and optional configuration.
 func NewWeightedRoundRobin(
 	hosts []*loadbalancer.Host,
 	options ...WeightedRoundRobinOption,
@@ -169,7 +169,7 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 	}
 }
 
-// the next server based on the Round-Robin algorithm.
+// Returns the next server based on the Round-Robin algorithm.
 func (rr *WeightedRoundRobin) nextRoundRobin() *loadbalancer.Host {
 	totalServers := len(rr.hosts)
 
@@ -208,7 +208,7 @@ func (rr *WeightedRoundRobin) nextRoundRobin() *loadbalancer.Host {
 	return fallbackHost
 }
 
-// Find the next server based on the Weighted Round-Robin algorithm.
+// nextWeightRoundRobin returns the next server based on the Weighted Round-Robin algorithm.
 func (wrr *WeightedRoundRobin) nextWeightRoundRobin() *loadbalancer.Host {
 	var best, fallbackHost *loadbalancer.Host
 
@@ -262,6 +262,11 @@ type WeightedRoundRobinOption func(*weightedRoundRobinOptions)
 // WithHealthCheckInterval sets the health check interval for the round robin.
 func WithHealthCheckInterval(duration time.Duration) WeightedRoundRobinOption {
 	return func(wrro *weightedRoundRobinOptions) {
-		wrro.healthCheckInterval = duration
+		if duration < 0 {
+			// Negative durations are not allowed; set to zero (or could ignore assignment)
+			wrro.healthCheckInterval = 0
+		} else {
+			wrro.healthCheckInterval = duration
+		}
 	}
 }
