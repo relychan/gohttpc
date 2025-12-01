@@ -256,7 +256,7 @@ type weightedRoundRobinOptions struct {
 	healthCheckInterval time.Duration
 }
 
-// WeightedRoundRobinOption represents a function to modify the Weight Round-Robin options.
+// WeightedRoundRobinOption represents a function to modify the Weighted Round-Robin options.
 type WeightedRoundRobinOption func(*weightedRoundRobinOptions)
 
 // WithHealthCheckInterval sets the health check interval for the round robin.

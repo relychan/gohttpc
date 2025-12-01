@@ -201,7 +201,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 	requestContext, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	req, err := s.NewRequest(
+	req, err := s.newRequest(
 		requestContext,
 		s.healthCheckPolicy.method,
 		healthURL,
@@ -252,11 +252,54 @@ func (s *Host) NewRequest(
 	if s.healthCheckPolicy != nil && s.healthCheckPolicy.State() == circuitbreaker.OpenState {
 		lastHTTPErrorStatus, isOutage := s.GetLastHTTPErrorStatus()
 		if isOutage {
-			// Returns error directly if HTTP status >= 502, excepts 504.
+			// Returns error directly if HTTP status >= 502, except 504.
 			return nil, goutils.NewRFC9457Error(int(lastHTTPErrorStatus), "")
 		}
 	}
 
+	return s.newRequest(ctx, method, url, body)
+}
+
+// Do sends an HTTP request and returns an HTTP response, following policy
+// (such as redirects, cookies, auth) as configured on the client.
+func (s *Host) Do(req *http.Request) (*http.Response, error) {
+	resp, err := s.httpClient.Do(req)
+
+	if s.healthCheckPolicy == nil {
+		return resp, err
+	}
+
+	if resp != nil {
+		if resp.StatusCode >= http.StatusInternalServerError {
+			s.lastHTTPErrorStatus.Store(int32(resp.StatusCode)) //nolint:gosec
+			s.healthCheckPolicy.RecordFailure()
+		} else {
+			s.healthCheckPolicy.RecordSuccess()
+		}
+	} else if err != nil {
+		s.healthCheckPolicy.RecordFailure()
+	}
+
+	return resp, err
+}
+
+// Close terminates internal processes.
+func (s *Host) Close() {
+	if s.httpClient != nil {
+		s.httpClient.CloseIdleConnections()
+	}
+
+	if s.healthCheckPolicy != nil {
+		s.healthCheckPolicy.Close()
+	}
+}
+
+func (s *Host) newRequest(
+	ctx context.Context,
+	method string,
+	url string,
+	body io.Reader,
+) (*http.Request, error) {
 	if !strings.HasPrefix(url, "http") {
 		url = s.url + "/" + strings.TrimLeft(url, "/")
 	}
@@ -278,36 +321,6 @@ func (s *Host) NewRequest(
 	}
 
 	return req, nil
-}
-
-// Do sends an HTTP request and returns an HTTP response, following policy
-// (such as redirects, cookies, auth) as configured on the client.
-func (s *Host) Do(req *http.Request) (*http.Response, error) {
-	resp, err := s.httpClient.Do(req)
-
-	if s.healthCheckPolicy == nil {
-		return resp, err
-	}
-
-	if err != nil || (resp != nil && resp.StatusCode >= http.StatusInternalServerError) {
-		s.lastHTTPErrorStatus.Store(int32(resp.StatusCode)) //nolint:gosec
-		s.healthCheckPolicy.RecordFailure()
-	} else if resp != nil {
-		s.healthCheckPolicy.RecordSuccess()
-	}
-
-	return resp, err
-}
-
-// Close terminates internal processes.
-func (s *Host) Close() {
-	if s.httpClient != nil {
-		s.httpClient.CloseIdleConnections()
-	}
-
-	if s.healthCheckPolicy != nil {
-		s.healthCheckPolicy.Close()
-	}
 }
 
 // ServerMetrics represents the metrics data of a server.
