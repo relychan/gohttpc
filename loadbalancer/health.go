@@ -214,6 +214,7 @@ func (hcp *HTTPHealthCheckPolicy) SetTimeout(value time.Duration) *HTTPHealthChe
 	return hcp
 }
 
+// HTTPHealthCheckPolicyBuilder represents an HTTP health check policy builder.
 type HTTPHealthCheckPolicyBuilder struct {
 	*HTTPHealthCheckPolicy
 
@@ -236,6 +237,26 @@ func NewHTTPHealthCheckPolicyBuilder() *HTTPHealthCheckPolicyBuilder {
 		failureThreshold: 3,
 		interval:         time.Minute,
 	}
+}
+
+// Interval gets the health check interval.
+func (hb *HTTPHealthCheckPolicyBuilder) Interval() time.Duration {
+	return hb.interval
+}
+
+// SuccessStatus gets the success status.
+func (hb *HTTPHealthCheckPolicyBuilder) SuccessStatus() int {
+	return hb.successStatus
+}
+
+// SuccessThreshold gets the success threshold.
+func (hb *HTTPHealthCheckPolicyBuilder) SuccessThreshold() uint {
+	return hb.successThreshold
+}
+
+// FailureThreshold gets the failure threshold.
+func (hb *HTTPHealthCheckPolicyBuilder) FailureThreshold() uint {
+	return hb.failureThreshold
 }
 
 // WithInterval sets the health check interval.
