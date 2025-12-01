@@ -3,7 +3,6 @@ package loadbalancer
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -345,8 +344,6 @@ type ServerMetrics struct {
 	// The rate is based on the configured success thresholding capacity.
 	SuccessRate float64 `json:"success_rate"`
 }
-
-var errMinDelayLargerThanMaxDelay = errors.New("min delay must be smaller than max delay")
 
 type hostOptions struct {
 	weight                   int
