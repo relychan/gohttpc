@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  pull-requests: write
+  
 jobs:
   lint:
     name: Lint and test
