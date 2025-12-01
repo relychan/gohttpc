@@ -3,10 +3,12 @@ package loadbalancer
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
@@ -33,6 +35,8 @@ type Host struct {
 	healthCheckPolicy *HTTPHealthCheckPolicy
 	// The current weight of the server.
 	currentWeight int
+	// Cache the last HTTP Error status of the host.
+	lastHTTPErrorStatus atomic.Int32
 }
 
 var _ gohttpc.HTTPClient = (*Host)(nil)
@@ -41,12 +45,19 @@ var _ gohttpc.HTTPClient = (*Host)(nil)
 func NewHost(
 	client *http.Client,
 	baseURL string,
-	weight int,
-	healthCheckPolicyBuilder *httpHealthCheckPolicyBuilder,
+	options ...HostOption,
 ) (*Host, error) {
+	opts := &hostOptions{
+		weight: 1,
+	}
+
+	for _, opt := range options {
+		opt(opts)
+	}
+
 	host := &Host{
 		httpClient: client,
-		weight:     weight,
+		weight:     opts.weight,
 	}
 
 	u, err := host.SetURL(baseURL)
@@ -54,11 +65,11 @@ func NewHost(
 		return nil, err
 	}
 
-	if healthCheckPolicyBuilder == nil {
-		healthCheckPolicyBuilder = NewHTTPHealthCheckPolicyBuilder()
+	if opts.healthCheckPolicyBuilder == nil {
+		opts.healthCheckPolicyBuilder = NewHTTPHealthCheckPolicyBuilder()
 	}
 
-	host.healthCheckPolicy = healthCheckPolicyBuilder.Build(u)
+	host.healthCheckPolicy = opts.healthCheckPolicyBuilder.Build(u)
 
 	return host, nil
 }
@@ -221,6 +232,17 @@ func (s *Host) CheckHealth(ctx context.Context) {
 	s.healthCheckPolicy.RecordResult(resp.StatusCode)
 }
 
+// GetLastHTTPErrorStatus returns the last HTTP error status,
+// and the flag to determine if it is the server outage status.
+func (s *Host) GetLastHTTPErrorStatus() (int32, bool) {
+	lastHTTPErrorStatus := s.lastHTTPErrorStatus.Load()
+	// The gateway timeout status may be caused by the slow backend. It may not be server outage.
+	isServerOutage := lastHTTPErrorStatus >= http.StatusBadGateway &&
+		lastHTTPErrorStatus != http.StatusGatewayTimeout
+
+	return lastHTTPErrorStatus, isServerOutage
+}
+
 // NewRequest returns a new http.Request given a method, URL, and optional body.
 func (s *Host) NewRequest(
 	ctx context.Context,
@@ -228,6 +250,14 @@ func (s *Host) NewRequest(
 	url string,
 	body io.Reader,
 ) (*http.Request, error) {
+	if s.healthCheckPolicy != nil && s.healthCheckPolicy.State() == circuitbreaker.OpenState {
+		lastHTTPErrorStatus, isOutage := s.GetLastHTTPErrorStatus()
+		if isOutage {
+			// Returns error directly if HTTP status >= 502, excepts 504.
+			return nil, goutils.NewRFC9457Error(int(lastHTTPErrorStatus), "")
+		}
+	}
+
 	if !strings.HasPrefix(url, "http") {
 		url = s.url + "/" + strings.TrimLeft(url, "/")
 	}
@@ -260,7 +290,8 @@ func (s *Host) Do(req *http.Request) (*http.Response, error) {
 		return resp, err
 	}
 
-	if err != nil || (resp != nil && resp.StatusCode > http.StatusNotImplemented) {
+	if err != nil || (resp != nil && resp.StatusCode >= http.StatusInternalServerError) {
+		s.lastHTTPErrorStatus.Store(int32(resp.StatusCode)) //nolint:gosec
 		s.healthCheckPolicy.RecordFailure()
 	} else if resp != nil {
 		s.healthCheckPolicy.RecordSuccess()
@@ -313,4 +344,30 @@ type ServerMetrics struct {
 	//
 	// The rate is based on the configured success thresholding capacity.
 	SuccessRate float64 `json:"success_rate"`
+}
+
+var errMinDelayLargerThanMaxDelay = errors.New("min delay must be smaller than max delay")
+
+type hostOptions struct {
+	weight                   int
+	healthCheckPolicyBuilder *HTTPHealthCheckPolicyBuilder
+}
+
+// HostOption represents a function to modify host options.
+type HostOption func(*hostOptions)
+
+// WithWeight sets the weight for the host.
+func WithWeight(weight int) HostOption {
+	return func(ho *hostOptions) {
+		ho.weight = weight
+	}
+}
+
+// WithHTTPHealthCheckPolicyBuilder sets the http health check builder for the host.
+func WithHTTPHealthCheckPolicyBuilder(builder *HTTPHealthCheckPolicyBuilder) HostOption {
+	return func(ho *hostOptions) {
+		if builder != nil {
+			ho.healthCheckPolicyBuilder = builder
+		}
+	}
 }

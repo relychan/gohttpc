@@ -53,7 +53,7 @@ func (m *mockLoadBalancer) Close() error {
 
 func TestNewLoadBalancerClient(t *testing.T) {
 	t.Run("creates client with default options", func(t *testing.T) {
-		host, err := NewHost(&http.Client{}, "https://example.com", 1, nil)
+		host, err := NewHost(&http.Client{}, "https://example.com")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -157,7 +157,7 @@ func TestLoadBalancerClient_R(t *testing.T) {
 
 func TestLoadBalancerClient_HTTPClient(t *testing.T) {
 	t.Run("returns server from load balancer", func(t *testing.T) {
-		expectedServer, err := NewHost(&http.Client{}, "https://example.com", 1, nil)
+		expectedServer, err := NewHost(&http.Client{}, "https://example.com")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -334,7 +334,7 @@ func (m *mockServer) Do(req *http.Request) (*http.Response, error) {
 
 func TestLoadBalancerClient_Integration(t *testing.T) {
 	t.Run("full request flow with load balancer", func(t *testing.T) {
-		server, err := NewHost(&http.Client{}, "https://example.com", 1, nil)
+		server, err := NewHost(&http.Client{}, "https://example.com")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -355,17 +355,17 @@ func TestLoadBalancerClient_Integration(t *testing.T) {
 	})
 
 	t.Run("multiple servers in load balancer", func(t *testing.T) {
-		server1, err := NewHost(&http.Client{}, "https://example1.com", 1, nil)
+		server1, err := NewHost(&http.Client{}, "https://example1.com")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		server2, err := NewHost(&http.Client{}, "https://example2.com", 1, nil)
+		server2, err := NewHost(&http.Client{}, "https://example2.com")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		server3, err := NewHost(&http.Client{}, "https://example3.com", 1, nil)
+		server3, err := NewHost(&http.Client{}, "https://example3.com")
 		if err != nil {
 			t.Fatal(err)
 		}

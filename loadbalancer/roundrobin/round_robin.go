@@ -13,12 +13,13 @@ import (
 // WeightedRoundRobin represents the load balancer for
 // Weighted Round-Robin algorithm implementation.
 type WeightedRoundRobin struct {
-	lock                sync.Mutex
-	hosts               []*loadbalancer.Host
-	isSameWeight        bool
-	totalWeight         int
-	tick                *time.Ticker
-	healthCheckInterval time.Duration
+	weightedRoundRobinOptions
+
+	lock         sync.Mutex
+	hosts        []*loadbalancer.Host
+	isSameWeight bool
+	totalWeight  int
+	tick         *time.Ticker
 }
 
 var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
@@ -26,11 +27,17 @@ var _ loadbalancer.LoadBalancer = (*WeightedRoundRobin)(nil)
 // NewWeightedRoundRobin method creates the new Weighted Round-Robin
 // load balancer instance with given recovery duration and hosts slice.
 func NewWeightedRoundRobin(
-	healthCheckInterval time.Duration,
 	hosts []*loadbalancer.Host,
+	options ...WeightedRoundRobinOption,
 ) (*WeightedRoundRobin, error) {
 	wrr := &WeightedRoundRobin{
-		healthCheckInterval: healthCheckInterval,
+		weightedRoundRobinOptions: weightedRoundRobinOptions{
+			healthCheckInterval: 0,
+		},
+	}
+
+	for _, opt := range options {
+		opt(&wrr.weightedRoundRobinOptions)
 	}
 
 	err := wrr.Refresh(hosts)
@@ -43,11 +50,19 @@ func (wrr *WeightedRoundRobin) Next() (*loadbalancer.Host, error) {
 	wrr.lock.Lock()
 	defer wrr.lock.Unlock()
 
-	if wrr.isSameWeight {
-		return wrr.nextRoundRobin()
-	}
+	switch len(wrr.hosts) {
+	case 0:
+		return nil, loadbalancer.ErrNoActiveHost
+	case 1:
+		// Return the only host directly.
+		return wrr.hosts[0], nil
+	default:
+		if wrr.isSameWeight {
+			return wrr.nextRoundRobin(), nil
+		}
 
-	return wrr.nextWeightRoundRobin()
+		return wrr.nextWeightRoundRobin(), nil
+	}
 }
 
 // Refresh resets the existing values with the given [Host] slice to refresh it.
@@ -123,7 +138,11 @@ func (wrr *WeightedRoundRobin) Hosts() []*loadbalancer.Host {
 
 // StartHealthCheck starts a ticker to run health checking for servers in the background.
 func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
+	wrr.lock.Lock()
+
 	if wrr.healthCheckInterval <= 0 {
+		wrr.lock.Unlock()
+
 		return
 	}
 
@@ -131,7 +150,10 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 		goutils.CatchWarnErrorFunc(wrr.Close)
 	}
 
-	wrr.tick = time.NewTicker(wrr.healthCheckInterval)
+	newTicker := time.NewTicker(wrr.healthCheckInterval)
+	wrr.tick = newTicker
+
+	wrr.lock.Unlock()
 
 	for {
 		select {
@@ -139,8 +161,8 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 			goutils.CatchWarnErrorFunc(wrr.Close)
 
 			return
-		case <-wrr.tick.C:
-			for _, host := range wrr.hosts {
+		case <-newTicker.C:
+			for _, host := range wrr.Hosts() {
 				host.CheckHealth(ctx)
 			}
 		}
@@ -148,8 +170,10 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 }
 
 // the next server based on the Round-Robin algorithm.
-func (rr *WeightedRoundRobin) nextRoundRobin() (*loadbalancer.Host, error) {
+func (rr *WeightedRoundRobin) nextRoundRobin() *loadbalancer.Host {
 	totalServers := len(rr.hosts)
+
+	var fallbackHost *loadbalancer.Host
 
 	for i := range totalServers {
 		currentIndex := (i + rr.totalWeight) % totalServers
@@ -160,6 +184,11 @@ func (rr *WeightedRoundRobin) nextRoundRobin() (*loadbalancer.Host, error) {
 			if policy.State() == circuitbreaker.OpenState {
 				// checks if the open state was expired.
 				if !policy.TryAcquirePermit() {
+					_, isOutage := server.GetLastHTTPErrorStatus()
+					if !isOutage {
+						fallbackHost = server
+					}
+
 					continue
 				}
 			}
@@ -167,15 +196,21 @@ func (rr *WeightedRoundRobin) nextRoundRobin() (*loadbalancer.Host, error) {
 
 		rr.totalWeight = (currentIndex + 1) % totalServers
 
-		return server, nil
+		return server
 	}
 
-	return nil, loadbalancer.ErrNoActiveHost
+	if fallbackHost == nil {
+		fallbackHost = rr.hosts[rr.totalWeight]
+	}
+
+	rr.totalWeight = (rr.totalWeight + 1) % totalServers
+
+	return fallbackHost
 }
 
 // Find the next server based on the Weighted Round-Robin algorithm.
-func (wrr *WeightedRoundRobin) nextWeightRoundRobin() (*loadbalancer.Host, error) {
-	var best *loadbalancer.Host
+func (wrr *WeightedRoundRobin) nextWeightRoundRobin() *loadbalancer.Host {
+	var best, fallbackHost *loadbalancer.Host
 
 	total := 0
 
@@ -185,6 +220,11 @@ func (wrr *WeightedRoundRobin) nextWeightRoundRobin() (*loadbalancer.Host, error
 			if policy.State() == circuitbreaker.OpenState {
 				// checks if the open state is expired.
 				if !policy.TryAcquirePermit() {
+					_, isOutage := h.GetLastHTTPErrorStatus()
+					if !isOutage {
+						fallbackHost = h
+					}
+
 					continue
 				}
 			}
@@ -199,11 +239,29 @@ func (wrr *WeightedRoundRobin) nextWeightRoundRobin() (*loadbalancer.Host, error
 		}
 	}
 
-	if best == nil {
-		return nil, loadbalancer.ErrNoActiveHost
+	if best != nil {
+		best.ResetCurrentWeight(total)
+
+		return best
 	}
 
-	best.ResetCurrentWeight(total)
+	if fallbackHost == nil {
+		fallbackHost = wrr.hosts[0]
+	}
 
-	return best, nil
+	return fallbackHost
+}
+
+type weightedRoundRobinOptions struct {
+	healthCheckInterval time.Duration
+}
+
+// WeightedRoundRobinOption represents a function to modify the Weight Round-Robin options.
+type WeightedRoundRobinOption func(*weightedRoundRobinOptions)
+
+// WithHealthCheckInterval sets the health check interval for the round robin.
+func WithHealthCheckInterval(duration time.Duration) WeightedRoundRobinOption {
+	return func(wrro *weightedRoundRobinOptions) {
+		wrro.healthCheckInterval = duration
+	}
 }
