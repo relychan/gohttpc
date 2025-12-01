@@ -16,24 +16,24 @@ import (
 
 func TestWeightedRoundRobin(t *testing.T) {
 	t.Run("3 hosts with weight {5,2,1}", func(t *testing.T) {
-		server1, err := loadbalancer.NewHost(nil, "https://example1.com", 5, nil)
+		server1, err := loadbalancer.NewHost(nil, "https://example1.com", loadbalancer.WithWeight(5))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		server2, err := loadbalancer.NewHost(nil, "https://example2.com", 2, nil)
+		server2, err := loadbalancer.NewHost(nil, "https://example2.com", loadbalancer.WithWeight(2))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		server3, err := loadbalancer.NewHost(nil, "https://example3.com", 1, nil)
+		server3, err := loadbalancer.NewHost(nil, "https://example3.com")
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		hosts := []*loadbalancer.Host{server1, server2, server3}
 
-		wrr, err := NewWeightedRoundRobin(0, hosts)
+		wrr, err := NewWeightedRoundRobin(hosts)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -65,18 +65,17 @@ func TestWeightedRoundRobin(t *testing.T) {
 	})
 
 	t.Run("2 hosts with weight {5,5} and refresh", func(t *testing.T) {
-		server1, err := loadbalancer.NewHost(nil, "https://example1.com", 5, nil)
+		server1, err := loadbalancer.NewHost(nil, "https://example1.com", loadbalancer.WithWeight(5))
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		server2, err := loadbalancer.NewHost(nil, "https://example2.com", 5, nil)
+		server2, err := loadbalancer.NewHost(nil, "https://example2.com", loadbalancer.WithWeight(5))
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		wrr, err := NewWeightedRoundRobin(
-			0,
 			[]*loadbalancer.Host{server1, server2},
 		)
 		if err != nil {
@@ -84,11 +83,11 @@ func TestWeightedRoundRobin(t *testing.T) {
 		}
 		defer wrr.Close()
 
-		host3, err := loadbalancer.NewHost(nil, "https://example3.com", 5, nil)
+		host3, err := loadbalancer.NewHost(nil, "https://example3.com", loadbalancer.WithWeight(5))
 		if err != nil {
 			t.Fatal(err)
 		}
-		host4, err := loadbalancer.NewHost(nil, "https://example4.com", 5, nil)
+		host4, err := loadbalancer.NewHost(nil, "https://example4.com", loadbalancer.WithWeight(5))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -124,7 +123,7 @@ func TestWeightedRoundRobin(t *testing.T) {
 	})
 
 	t.Run("no active hosts error", func(t *testing.T) {
-		wrr, err := NewWeightedRoundRobin(0, []*loadbalancer.Host{})
+		wrr, err := NewWeightedRoundRobin([]*loadbalancer.Host{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,17 +168,17 @@ func TestWeightedRoundRobinIntegration(t *testing.T) {
 	testServer3 := httptest.NewServer(handler3)
 	defer testServer3.Close()
 
-	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL, 2, nil)
+	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL, loadbalancer.WithWeight(2))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL, 1, nil)
+	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	host3, err := loadbalancer.NewHost(http.DefaultClient, testServer3.URL, 1, nil)
+	host3, err := loadbalancer.NewHost(http.DefaultClient, testServer3.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +189,7 @@ func TestWeightedRoundRobinIntegration(t *testing.T) {
 		WithDelay(100 * time.Millisecond).
 		WithFailureThreshold(1).Build()
 
-	wrr, err := NewWeightedRoundRobin(100*time.Millisecond, hosts)
+	wrr, err := NewWeightedRoundRobin(hosts, WithHealthCheckInterval(100*time.Millisecond))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,10 +223,7 @@ func TestWeightedRoundRobinIntegration(t *testing.T) {
 	cancel()
 
 	for range 4 {
-		_, err = wrr.nextRoundRobin()
-		if err != nil {
-			t.Error(err)
-		}
+		wrr.nextRoundRobin()
 	}
 
 	if hosts[2].State() != circuitbreaker.HalfOpenState {
@@ -267,27 +263,29 @@ func TestRoundRobinIntegration(t *testing.T) {
 	testServer3 := httptest.NewServer(handler3)
 	defer testServer3.Close()
 
-	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL, 1, nil)
+	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL, 1, nil)
+	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	host3, err := loadbalancer.NewHost(http.DefaultClient, testServer3.URL, 1,
-		loadbalancer.NewHTTPHealthCheckPolicyBuilder().
+	host3, err := loadbalancer.NewHost(
+		http.DefaultClient,
+		testServer3.URL,
+		loadbalancer.WithHTTPHealthCheckPolicyBuilder(loadbalancer.NewHTTPHealthCheckPolicyBuilder().
 			WithInterval(100*time.Millisecond).
-			WithFailureThreshold(1))
+			WithFailureThreshold(1)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	hosts := []*loadbalancer.Host{host1, host2, host3}
 
-	wrr, err := NewWeightedRoundRobin(100*time.Millisecond, hosts)
+	wrr, err := NewWeightedRoundRobin(hosts, WithHealthCheckInterval(100*time.Millisecond))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,10 +318,7 @@ func TestRoundRobinIntegration(t *testing.T) {
 	cancel()
 
 	for range 3 {
-		_, err = wrr.nextRoundRobin()
-		if err != nil {
-			t.Error(err)
-		}
+		wrr.nextRoundRobin()
 	}
 
 	if hosts[2].State() != circuitbreaker.HalfOpenState {
