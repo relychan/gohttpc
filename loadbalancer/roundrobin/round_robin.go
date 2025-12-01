@@ -138,11 +138,7 @@ func (wrr *WeightedRoundRobin) Hosts() []*loadbalancer.Host {
 
 // StartHealthCheck starts a ticker to run health checking for servers in the background.
 func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
-	wrr.lock.Lock()
-
 	if wrr.healthCheckInterval <= 0 {
-		wrr.lock.Unlock()
-
 		return
 	}
 
@@ -151,8 +147,9 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 	}
 
 	newTicker := time.NewTicker(wrr.healthCheckInterval)
-	wrr.tick = newTicker
 
+	wrr.lock.Lock()
+	wrr.tick = newTicker
 	wrr.lock.Unlock()
 
 	for {
@@ -262,11 +259,8 @@ type WeightedRoundRobinOption func(*weightedRoundRobinOptions)
 // WithHealthCheckInterval sets the health check interval for the round robin.
 func WithHealthCheckInterval(duration time.Duration) WeightedRoundRobinOption {
 	return func(wrro *weightedRoundRobinOptions) {
-		if duration < 0 {
+		wrro.healthCheckInterval = max(
 			// Negative durations are not allowed; set to zero (or could ignore assignment)
-			wrro.healthCheckInterval = 0
-		} else {
-			wrro.healthCheckInterval = duration
-		}
+			duration, 0)
 	}
 }
