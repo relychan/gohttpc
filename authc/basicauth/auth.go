@@ -41,7 +41,10 @@ func NewBasicCredential(config *BasicAuthConfig) (*BasicCredential, error) {
 }
 
 // Authenticate the credential into the incoming request.
-func (bc *BasicCredential) Authenticate(req *http.Request) error {
+func (bc *BasicCredential) Authenticate(
+	req *http.Request,
+	options ...authscheme.AuthenticateOption,
+) error {
 	return bc.inject(req, bc.username, bc.password)
 }
 

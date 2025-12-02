@@ -10,7 +10,7 @@ import (
 // HTTPClientAuthenticator abstracts an interface for injecting authentication value into HTTP requests.
 type HTTPClientAuthenticator interface {
 	// Authenticate the credential into the incoming request.
-	Authenticate(req *http.Request) error
+	Authenticate(req *http.Request, options ...AuthenticateOption) error
 }
 
 // HTTPClientAuthenticatorConfig abstracts an interface of the HTTP client authentication config.
@@ -47,7 +47,7 @@ var errInvalidHTTPClientAuthType = fmt.Errorf(
 func (j HTTPClientAuthType) Validate() error {
 	if !slices.Contains(GetSupportedHTTPClientAuthTypes(), j) {
 		return fmt.Errorf(
-			"%w, got <%s>",
+			"%w; got: %s",
 			errInvalidHTTPClientAuthType,
 			j,
 		)
@@ -77,19 +77,13 @@ const (
 	InCookie AuthLocation = "cookie"
 )
 
-var (
-	enumValuesAuthLocations = []AuthLocation{InHeader, InQuery, InCookie}
-	errInvalidAuthLocation  = fmt.Errorf(
-		"invalid AuthLocation. Expected %v",
-		enumValuesAuthLocations,
-	)
-)
+var enumValuesAuthLocations = []AuthLocation{InHeader, InQuery, InCookie}
 
 // Validate checks if the security scheme type is valid.
 func (j AuthLocation) Validate() error {
 	if !slices.Contains(GetSupportedAuthLocations(), j) {
 		return fmt.Errorf(
-			"%w, got <%s>",
+			"%w; got: %s",
 			errInvalidAuthLocation,
 			j,
 		)
@@ -108,4 +102,19 @@ func ParseAuthLocation(value string) (AuthLocation, error) {
 // GetSupportedAuthLocations get the list of supported auth locations.
 func GetSupportedAuthLocations() []AuthLocation {
 	return enumValuesAuthLocations
+}
+
+// AuthenticateOptions represents custom options for the authentication.
+type AuthenticateOptions struct {
+	Name string
+}
+
+// AuthenticateOption adds custom options to the authenticate request.
+type AuthenticateOption func(*AuthenticateOptions)
+
+// WithAuthenticationName creates an option to set the authentication name.
+func WithAuthenticationName(name string) AuthenticateOption {
+	return func(ao *AuthenticateOptions) {
+		ao.Name = name
+	}
 }

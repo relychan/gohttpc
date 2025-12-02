@@ -131,7 +131,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
-		err = cred.Authenticate(req)
+		err = cred.Authenticate(req, authscheme.WithAuthenticationName("test"))
 
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)

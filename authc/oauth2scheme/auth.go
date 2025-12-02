@@ -85,7 +85,10 @@ func NewOAuth2Client(config *OAuth2Config) (*OAuth2Client, error) {
 }
 
 // Authenticate the credential into the incoming request.
-func (oc *OAuth2Client) Authenticate(req *http.Request) error {
+func (oc *OAuth2Client) Authenticate(
+	req *http.Request,
+	options ...authscheme.AuthenticateOption,
+) error {
 	if oc.oauth2Config == nil {
 		return authscheme.ErrAuthCredentialEmpty
 	}
