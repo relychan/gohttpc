@@ -33,6 +33,8 @@ type RequestOptions struct {
 	AllowedTraceResponseHeaders []string
 }
 
+var _ RequestOptionsGetter = (*RequestOptions)(nil)
+
 // GetRequestOptions gets the inner [RequestOptions].
 func (ro *RequestOptions) GetRequestOptions() *RequestOptions {
 	return ro
