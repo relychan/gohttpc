@@ -12,6 +12,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// RequestOptionsGetter abstracts an interface to get the [RequestOptions].
+type RequestOptionsGetter interface {
+	GetRequestOptions() *RequestOptions
+}
+
 // RequestOptions defines options for the request.
 type RequestOptions struct {
 	Logger                      *slog.Logger
@@ -26,6 +31,11 @@ type RequestOptions struct {
 	UserAgent                   string
 	AllowedTraceRequestHeaders  []string
 	AllowedTraceResponseHeaders []string
+}
+
+// GetRequestOptions gets the inner [RequestOptions].
+func (ro *RequestOptions) GetRequestOptions() *RequestOptions {
+	return ro
 }
 
 // IsTraceRequestHeadersEnabled checks if the trace request headers are enabled.
@@ -45,7 +55,7 @@ type ClientOptions struct {
 	HTTPClient *http.Client
 }
 
-// NewClientOptions create a new ClientOptions instance.
+// NewClientOptions create a new [ClientOptions] instance.
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	opts := ClientOptions{
 		RequestOptions: RequestOptions{
@@ -61,6 +71,13 @@ func NewClientOptions(options ...ClientOption) *ClientOptions {
 	}
 
 	return &opts
+}
+
+var _ RequestOptionsGetter = (*ClientOptions)(nil)
+
+// GetRequestOptions gets the inner [RequestOptions].
+func (co *ClientOptions) GetRequestOptions() *RequestOptions {
+	return &co.RequestOptions
 }
 
 // Clone creates a new ClientOptions instance with copied values.

@@ -109,7 +109,7 @@ func TestNewLoadBalancerClientWithOptions(t *testing.T) {
 			t.Fatal("expected client to be created")
 		}
 
-		if client.options != opts {
+		if client.options != &opts.RequestOptions {
 			t.Error("expected options to match provided options")
 		}
 
@@ -226,7 +226,7 @@ func TestLoadBalancerClient_StartHealthCheck(t *testing.T) {
 	t.Run("handles nil load balancer gracefully", func(t *testing.T) {
 		client := &LoadBalancerClient{
 			loadBalancer: nil,
-			options:      gohttpc.NewClientOptions(),
+			options:      &gohttpc.NewClientOptions().RequestOptions,
 		}
 		ctx := context.Background()
 
@@ -272,7 +272,7 @@ func TestLoadBalancerClient_Close(t *testing.T) {
 	t.Run("handles nil load balancer gracefully", func(t *testing.T) {
 		client := &LoadBalancerClient{
 			loadBalancer: nil,
-			options:      gohttpc.NewClientOptions(),
+			options:      &gohttpc.NewClientOptions().RequestOptions,
 		}
 
 		err := client.Close()

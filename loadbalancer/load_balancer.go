@@ -24,7 +24,7 @@ type LoadBalancer interface {
 // and load balance requests to each host.
 type LoadBalancerClient struct {
 	loadBalancer LoadBalancer
-	options      *gohttpc.ClientOptions
+	options      *gohttpc.RequestOptions
 }
 
 // NewLoadBalancerClient creates a new [LoadBalancerClient] instance.
@@ -41,18 +41,18 @@ func NewLoadBalancerClient(
 // NewLoadBalancerClientWithOptions creates a new [LoadBalancerClient] instance with explicit client options.
 func NewLoadBalancerClientWithOptions(
 	loadBalancer LoadBalancer,
-	options *gohttpc.ClientOptions,
+	options gohttpc.RequestOptionsGetter,
 ) *LoadBalancerClient {
 	return &LoadBalancerClient{
 		loadBalancer: loadBalancer,
-		options:      options,
+		options:      options.GetRequestOptions(),
 	}
 }
 
 // R is the shortcut to create a Request given a method, URL with default request options.
 func (lbc *LoadBalancerClient) R(method string, url string) *gohttpc.RequestWithClient {
 	return gohttpc.NewRequestWithClient(
-		gohttpc.NewRequest(method, url, &lbc.options.RequestOptions),
+		gohttpc.NewRequest(method, url, lbc.options),
 		lbc,
 	)
 }
