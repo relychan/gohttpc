@@ -11,6 +11,10 @@ var ErrAuthCredentialEmpty = errors.New("the auth credential is empty")
 var (
 	errUnmatchedSecurityScheme = errors.New("client auth type does not match")
 	errRequiredSecurityField   = errors.New("required field")
+	errInvalidAuthLocation     = fmt.Errorf(
+		"invalid AuthLocation. Expected %v",
+		enumValuesAuthLocations,
+	)
 )
 
 // NewRequiredSecurityFieldError creates an error for required field in the security scheme config.

@@ -30,7 +30,7 @@ jobs:
       - name: Test
         run: |
           ./testdata/tls/create-certs.sh
-          go test -v -race -timeout 3m -coverprofile=coverage.out ./...
+          go test -v -race -timeout 3m -coverpkg=./... -coverprofile=coverage.out ./...
       - name: Go coverage format
         if: ${{ github.event_name == 'pull_request' && github.repository == 'relychan/gohttpc' }}
         run: |

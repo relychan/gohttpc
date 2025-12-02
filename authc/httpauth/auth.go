@@ -47,7 +47,10 @@ func NewHTTPCredential(config *HTTPAuthConfig) (*HTTPCredential, error) {
 }
 
 // Authenticate the credential into the incoming request.
-func (hc *HTTPCredential) Authenticate(req *http.Request) error {
+func (hc *HTTPCredential) Authenticate(
+	req *http.Request,
+	options ...authscheme.AuthenticateOption,
+) error {
 	_, err := hc.location.InjectRequest(req, hc.value, false)
 
 	return err
