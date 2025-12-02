@@ -300,11 +300,22 @@ func (s *Host) newRequest(
 	url string,
 	body io.Reader,
 ) (*http.Request, error) {
-	if !strings.HasPrefix(url, "http") {
-		url = s.url + "/" + strings.TrimLeft(url, "/")
+	reqURL := url
+
+	switch {
+	case url == "" || url == "/":
+		reqURL = s.url
+	case !strings.HasPrefix(url, "http"):
+		if url[0] == '/' {
+			reqURL = s.url + url
+		} else {
+			reqURL = s.url + "/" + url
+		}
+
+		reqURL = strings.TrimRight(reqURL, "/")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, body)
 	if err != nil {
 		return nil, err
 	}
