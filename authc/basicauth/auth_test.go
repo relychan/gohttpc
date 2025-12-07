@@ -157,16 +157,9 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue(""),
 		}
 
-		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
-		if err != nil {
-			t.Fatalf("failed to create credential: %v", err)
-		}
-
-		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
-		err = cred.Authenticate(req)
-
+		_, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != authscheme.ErrAuthCredentialEmpty {
-			t.Errorf("expected ErrAuthCredentialEmpty, got %v", err)
+			t.Fatalf("expected failed credential, got: %v", err)
 		}
 	})
 
