@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc"
+	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/goutils"
 	"go.opentelemetry.io/otel"
@@ -76,11 +76,7 @@ func TestClient(t *testing.T) {
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
-				gohttpc.WithCustomEnvGetter(func(ctx context.Context) goenvconf.GetEnvFunc {
-					return func(s string) (string, error) {
-						return "", nil
-					}
-				}),
+				gohttpc.WithCustomEnvGetter(authscheme.NewHTTPClientAuthenticatorOptions().CustomEnvGetter),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
