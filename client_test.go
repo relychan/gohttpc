@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/goutils"
@@ -63,7 +64,8 @@ func TestClient(t *testing.T) {
 			}
 
 			client, err := httpconfig.NewClientFromConfig(
-				*config,
+				context.TODO(),
+				config,
 				gohttpc.WithAuthenticator(nil),
 				gohttpc.WithCustomAttributesFunc(func(r *gohttpc.Request) []attribute.KeyValue {
 					return nil
@@ -74,6 +76,11 @@ func TestClient(t *testing.T) {
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
+				gohttpc.WithCustomEnvGetter(func(ctx context.Context) goenvconf.GetEnvFunc {
+					return func(s string) (string, error) {
+						return "", nil
+					}
+				}),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
@@ -209,7 +216,7 @@ func TestTLS(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(*config)
+			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
@@ -252,7 +259,7 @@ func TestTLSInsecure(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(*config)
+			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}

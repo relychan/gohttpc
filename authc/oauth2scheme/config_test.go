@@ -14,12 +14,6 @@ func ptrEnvString(value string) *goenvconf.EnvString {
 	return &v
 }
 
-// Helper function to create a pointer to EnvString from variable
-func ptrEnvStringVar(varName string) *goenvconf.EnvString {
-	v := goenvconf.NewEnvStringVariable(varName)
-	return &v
-}
-
 func TestNewOAuth2Config(t *testing.T) {
 	t.Run("creates config with correct type", func(t *testing.T) {
 		flows := OAuth2Flows{

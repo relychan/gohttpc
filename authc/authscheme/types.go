@@ -2,15 +2,21 @@
 package authscheme
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"slices"
+
+	"github.com/hasura/goenvconf"
 )
 
 // HTTPClientAuthenticator abstracts an interface for injecting authentication value into HTTP requests.
 type HTTPClientAuthenticator interface {
 	// Authenticate the credential into the incoming request.
 	Authenticate(req *http.Request, options ...AuthenticateOption) error
+	// Reload reloads the configuration and state.
+	Reload(ctx context.Context) error
 }
 
 // HTTPClientAuthenticatorConfig abstracts an interface of the HTTP client authentication config.
@@ -116,5 +122,52 @@ type AuthenticateOption func(*AuthenticateOptions)
 func WithAuthenticationName(name string) AuthenticateOption {
 	return func(ao *AuthenticateOptions) {
 		ao.Name = name
+	}
+}
+
+// HTTPClientAuthenticatorOptions define common options for the authenticator client.
+type HTTPClientAuthenticatorOptions struct {
+	CustomEnvGetter func(ctx context.Context) goenvconf.GetEnvFunc
+}
+
+// NewHTTPClientAuthenticatorOptions creates a new [HTTPClientAuthenticatorOptions] instance.
+func NewHTTPClientAuthenticatorOptions(
+	options ...HTTPClientAuthenticatorOption,
+) *HTTPClientAuthenticatorOptions {
+	result := &HTTPClientAuthenticatorOptions{
+		CustomEnvGetter: osEnvGetter,
+	}
+
+	for _, opt := range options {
+		opt(result)
+	}
+
+	return result
+}
+
+// HTTPClientAuthenticatorOption defines a function to modify [AuthenticatorOptions].
+type HTTPClientAuthenticatorOption func(*HTTPClientAuthenticatorOptions)
+
+// WithCustomEnvGetter returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
+func WithCustomEnvGetter(
+	getter func(ctx context.Context) goenvconf.GetEnvFunc,
+) HTTPClientAuthenticatorOption {
+	return func(hao *HTTPClientAuthenticatorOptions) {
+		if getter == nil {
+			return
+		}
+
+		hao.CustomEnvGetter = getter
+	}
+}
+
+func osEnvGetter(_ context.Context) goenvconf.GetEnvFunc {
+	return func(s string) (string, error) {
+		value, ok := os.LookupEnv(s)
+		if !ok {
+			return value, goenvconf.ErrEnvironmentVariableValueRequired
+		}
+
+		return value, nil
 	}
 }

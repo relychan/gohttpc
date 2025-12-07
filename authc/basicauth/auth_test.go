@@ -1,6 +1,7 @@
 package basicauth
 
 import (
+	"context"
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +19,7 @@ func TestNewBasicCredential(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("testpass"),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -45,14 +46,14 @@ func TestNewBasicCredential(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("testpass"),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if cred.header != "X-Custom-Auth" {
-			t.Errorf("expected header 'X-Custom-Auth', got '%s'", cred.header)
+		if cred.config.Header != "X-Custom-Auth" {
+			t.Errorf("expected header 'X-Custom-Auth', got '%s'", cred.config.Header)
 		}
 	})
 
@@ -63,7 +64,7 @@ func TestNewBasicCredential(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("testpass"),
 		}
 
-		_, err := NewBasicCredential(config)
+		_, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err == nil {
 			t.Error("expected error when username resolution fails")
@@ -77,7 +78,7 @@ func TestNewBasicCredential(t *testing.T) {
 			Password: goenvconf.NewEnvStringVariable("NONEXISTENT_VAR"),
 		}
 
-		_, err := NewBasicCredential(config)
+		_, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err == nil {
 			t.Error("expected error when password resolution fails")
@@ -93,7 +94,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("testpass"),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -125,7 +126,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("testpass"),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -156,7 +157,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue(""),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -176,7 +177,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue(""),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -202,7 +203,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue(""),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -233,7 +234,7 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 			Password: goenvconf.NewEnvStringValue("p@ss:w0rd!"),
 		}
 
-		cred, err := NewBasicCredential(config)
+		cred, err := NewBasicCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}

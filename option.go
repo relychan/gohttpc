@@ -1,12 +1,14 @@
 package gohttpc
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
+	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -53,6 +55,7 @@ func (ro *RequestOptions) IsTraceResponseHeadersEnabled() bool {
 // ClientOptions defines options for the client.
 type ClientOptions struct {
 	RequestOptions
+	authscheme.HTTPClientAuthenticatorOptions
 
 	HTTPClient *http.Client
 }
@@ -66,6 +69,7 @@ func NewClientOptions(options ...ClientOption) *ClientOptions {
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
 		},
+		HTTPClientAuthenticatorOptions: *authscheme.NewHTTPClientAuthenticatorOptions(),
 	}
 
 	for _, opt := range options {
@@ -192,5 +196,16 @@ func AllowTraceResponseHeaders(keys []string) ClientOption {
 func WithUserAgent(userAgent string) ClientOption {
 	return func(co *ClientOptions) {
 		co.UserAgent = userAgent
+	}
+}
+
+// WithCustomEnvGetter returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
+func WithCustomEnvGetter(getter func(ctx context.Context) goenvconf.GetEnvFunc) ClientOption {
+	return func(co *ClientOptions) {
+		if getter == nil {
+			return
+		}
+
+		co.CustomEnvGetter = getter
 	}
 }

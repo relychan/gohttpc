@@ -1,6 +1,7 @@
 package httpconfig
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -87,9 +88,9 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 
 func TestNewClientFromConfig(t *testing.T) {
 	t.Run("creates client with empty config", func(t *testing.T) {
-		config := HTTPClientConfig{}
+		config := &HTTPClientConfig{}
 
-		client, err := NewClientFromConfig(config)
+		client, err := NewClientFromConfig(context.TODO(), config)
 
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -104,11 +105,11 @@ func TestNewClientFromConfig(t *testing.T) {
 
 	t.Run("creates client with timeout", func(t *testing.T) {
 		timeout := goutils.Duration(time.Second * 30)
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Timeout: &timeout,
 		}
 
-		client, err := NewClientFromConfig(config)
+		client, err := NewClientFromConfig(context.TODO(), config)
 
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -123,13 +124,13 @@ func TestNewClientFromConfig(t *testing.T) {
 
 	t.Run("creates client with retry policy", func(t *testing.T) {
 		maxAttempts := goenvconf.NewEnvIntValue(3)
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Retry: &HTTPRetryConfig{
 				MaxAttempts: &maxAttempts,
 			},
 		}
 
-		client, err := NewClientFromConfig(config)
+		client, err := NewClientFromConfig(context.TODO(), config)
 
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -144,13 +145,13 @@ func TestNewClientFromConfig(t *testing.T) {
 
 	t.Run("returns error when retry policy is invalid", func(t *testing.T) {
 		maxAttempts := goenvconf.NewEnvIntValue(-1)
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Retry: &HTTPRetryConfig{
 				MaxAttempts: &maxAttempts,
 			},
 		}
 
-		client, err := NewClientFromConfig(config)
+		client, err := NewClientFromConfig(context.TODO(), config)
 
 		if err == nil {
 			t.Error("expected error for invalid retry policy")
@@ -162,7 +163,7 @@ func TestNewClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("creates client with authentication", func(t *testing.T) {
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Authentication: &authc.HTTPClientAuthConfig{
 				HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 					Type:     authscheme.BasicAuthScheme,
@@ -172,7 +173,7 @@ func TestNewClientFromConfig(t *testing.T) {
 			},
 		}
 
-		client, err := NewClientFromConfig(config)
+		client, err := NewClientFromConfig(context.TODO(), config)
 
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
@@ -186,9 +187,10 @@ func TestNewClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("creates client with custom options", func(t *testing.T) {
-		config := HTTPClientConfig{}
+		config := &HTTPClientConfig{}
 
 		client, err := NewClientFromConfig(
+			context.TODO(),
 			config,
 			gohttpc.WithHTTPClient(http.DefaultClient),
 			gohttpc.WithTimeout(time.Second*10),
@@ -213,7 +215,7 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 			HTTPClient: existingClient,
 		}
 
-		config := HTTPClientConfig{}
+		config := &HTTPClientConfig{}
 
 		client, err := NewHTTPClientFromConfig(config, options)
 
@@ -228,7 +230,7 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 
 	t.Run("creates new HTTP client with transport config", func(t *testing.T) {
 		maxIdleConns := 50
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Transport: &gohttpc.HTTPTransportConfig{
 				MaxIdleConns: &maxIdleConns,
 			},
@@ -257,7 +259,7 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("creates new HTTP client with TLS config", func(t *testing.T) {
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			TLS: &TLSConfig{
 				MinVersion: "1.2",
 			},
@@ -286,7 +288,7 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("returns error when TLS config is invalid", func(t *testing.T) {
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			TLS: &TLSConfig{
 				MinVersion: "invalid",
 			},
@@ -316,7 +318,7 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 			HTTPClient: existingClient,
 		}
 
-		config := HTTPClientConfig{
+		config := &HTTPClientConfig{
 			Transport: &gohttpc.HTTPTransportConfig{},
 		}
 
