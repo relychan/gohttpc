@@ -271,7 +271,7 @@ func (s *Host) Do(req *http.Request) (*http.Response, error) {
 
 	if resp != nil {
 		if resp.StatusCode >= http.StatusInternalServerError {
-			s.lastHTTPErrorStatus.Store(int32(resp.StatusCode)) //nolint:gosec
+			s.lastHTTPErrorStatus.Store(int32(resp.StatusCode))
 			s.healthCheckPolicy.RecordFailure()
 		} else {
 			s.healthCheckPolicy.RecordSuccess()
