@@ -1,6 +1,7 @@
 package httpauth
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,7 +22,7 @@ func TestNewHTTPCredential(t *testing.T) {
 			Value: goenvconf.NewEnvStringValue("test-token"),
 		}
 
-		cred, err := NewHTTPCredential(config)
+		cred, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -46,7 +47,7 @@ func TestNewHTTPCredential(t *testing.T) {
 			Value: goenvconf.NewEnvStringValue("test-key"),
 		}
 
-		cred, err := NewHTTPCredential(config)
+		cred, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -71,10 +72,33 @@ func TestNewHTTPCredential(t *testing.T) {
 			Value: goenvconf.NewEnvStringVariable("NONEXISTENT_VAR"),
 		}
 
-		_, err := NewHTTPCredential(config)
+		_, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err == nil {
 			t.Error("expected error when value resolution fails")
+		}
+	})
+
+	t.Run("creates credential with empty value", func(t *testing.T) {
+		config := &HTTPAuthConfig{
+			Type: authscheme.HTTPAuthScheme,
+			TokenLocation: authscheme.TokenLocation{
+				In:     authscheme.InHeader,
+				Name:   "Authorization",
+				Scheme: "Bearer",
+			},
+			Value: goenvconf.NewEnvStringVariable("NONEXISTENT_VAR"),
+		}
+
+		_, err := NewHTTPCredential(context.TODO(), config, &authscheme.HTTPClientAuthenticatorOptions{
+			CustomEnvGetter: func(ctx context.Context) goenvconf.GetEnvFunc {
+				return func(s string) (string, error) {
+					return "", nil
+				}
+			},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
 		}
 	})
 }
@@ -91,7 +115,7 @@ func TestHTTPCredential_Authenticate(t *testing.T) {
 			Value: goenvconf.NewEnvStringValue("test-token"),
 		}
 
-		cred, err := NewHTTPCredential(config)
+		cred, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -119,7 +143,7 @@ func TestHTTPCredential_Authenticate(t *testing.T) {
 			Value: goenvconf.NewEnvStringValue("test-key"),
 		}
 
-		cred, err := NewHTTPCredential(config)
+		cred, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}
@@ -147,7 +171,7 @@ func TestHTTPCredential_Authenticate(t *testing.T) {
 			Value: goenvconf.NewEnvStringValue("custom-key"),
 		}
 
-		cred, err := NewHTTPCredential(config)
+		cred, err := NewHTTPCredential(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Fatalf("failed to create credential: %v", err)
 		}

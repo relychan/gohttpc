@@ -1,6 +1,7 @@
 package httpconfig
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -30,9 +31,14 @@ func (c *HTTPClientConfig) IsZero() bool {
 
 // NewClientFromConfig creates a HTTP client wrapper with configuration.
 func NewClientFromConfig(
-	config HTTPClientConfig,
+	ctx context.Context,
+	config *HTTPClientConfig,
 	options ...gohttpc.ClientOption,
 ) (*gohttpc.Client, error) {
+	if config == nil {
+		config = &HTTPClientConfig{}
+	}
+
 	if config.Timeout != nil && *config.Timeout > 0 {
 		options = append(options, gohttpc.WithTimeout(time.Duration(*config.Timeout)))
 	}
@@ -49,7 +55,11 @@ func NewClientFromConfig(
 	}
 
 	if config.Authentication != nil {
-		authenticator, err := authc.NewAuthenticatorFromConfig(config.Authentication)
+		authenticator, err := authc.NewAuthenticatorFromConfig(
+			ctx,
+			config.Authentication,
+			&opts.HTTPClientAuthenticatorOptions,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +79,7 @@ func NewClientFromConfig(
 
 // NewHTTPClientFromConfig creates a HTTP client with configuration.
 func NewHTTPClientFromConfig(
-	config HTTPClientConfig,
+	config *HTTPClientConfig,
 	options *gohttpc.ClientOptions,
 ) (*http.Client, error) {
 	if config.Transport == nil && config.TLS == nil && options.HTTPClient != nil {

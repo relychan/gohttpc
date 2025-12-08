@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/relychan/gohttpc"
+	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/goutils"
 	"go.opentelemetry.io/otel"
@@ -63,7 +64,8 @@ func TestClient(t *testing.T) {
 			}
 
 			client, err := httpconfig.NewClientFromConfig(
-				*config,
+				context.TODO(),
+				config,
 				gohttpc.WithAuthenticator(nil),
 				gohttpc.WithCustomAttributesFunc(func(r *gohttpc.Request) []attribute.KeyValue {
 					return nil
@@ -74,6 +76,7 @@ func TestClient(t *testing.T) {
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
+				gohttpc.WithCustomEnvGetter(authscheme.NewHTTPClientAuthenticatorOptions().CustomEnvGetter),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
@@ -209,7 +212,7 @@ func TestTLS(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(*config)
+			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
@@ -252,7 +255,7 @@ func TestTLSInsecure(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(*config)
+			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
