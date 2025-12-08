@@ -70,7 +70,13 @@ func (oc *OAuth2Credential) Authenticate(
 		return err
 	}
 
-	_, err = oc.location.InjectRequest(req, token.AccessToken, false)
+	location := oc.getLocation()
+
+	if location.Scheme == "" {
+		location.Scheme = strings.ToLower(token.Type())
+	}
+
+	_, err = location.InjectRequest(req, token.AccessToken, false)
 
 	return err
 }
@@ -85,7 +91,7 @@ func (oc *OAuth2Credential) Reload(ctx context.Context) error {
 	return oc.doReload(ctx)
 }
 
-func (oc *OAuth2Credential) doReload(ctx context.Context) error { //nolint:funlen
+func (oc *OAuth2Credential) doReload(ctx context.Context) error {
 	oc.mu.RLock()
 	getter := oc.options.CustomEnvGetter(ctx)
 	flow := oc.config.Flows.ClientCredentials
@@ -140,15 +146,6 @@ func (oc *OAuth2Credential) doReload(ctx context.Context) error { //nolint:funle
 	oc.mu.Lock()
 	defer oc.mu.Unlock()
 
-	if oc.location.Scheme == "" {
-		token, err := oauth2Config.Token(ctx)
-		if err != nil {
-			return err
-		}
-
-		oc.location.Scheme = strings.ToLower(token.Type())
-	}
-
 	oc.oauth2Config = oauth2Config
 
 	return nil
@@ -159,4 +156,11 @@ func (oc *OAuth2Credential) getOAuth2Config() *clientcredentials.Config {
 	defer oc.mu.RUnlock()
 
 	return oc.oauth2Config
+}
+
+func (oc *OAuth2Credential) getLocation() authscheme.TokenLocation {
+	oc.mu.RLock()
+	defer oc.mu.RUnlock()
+
+	return *oc.location
 }
