@@ -16,8 +16,8 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-// OAuth2Client represent the client of the OAuth2 client credentials.
-type OAuth2Client struct {
+// OAuth2Credential represent the client of the OAuth2 client credentials.
+type OAuth2Credential struct {
 	oauth2Config *clientcredentials.Config
 	location     *authscheme.TokenLocation
 	config       *OAuth2Config
@@ -25,14 +25,14 @@ type OAuth2Client struct {
 	mu           sync.RWMutex
 }
 
-var _ authscheme.HTTPClientAuthenticator = (*OAuth2Client)(nil)
+var _ authscheme.HTTPClientAuthenticator = (*OAuth2Credential)(nil)
 
-// NewOAuth2Client creates an OAuth2 client from the security scheme.
-func NewOAuth2Client(
+// NewOAuth2Credential creates an OAuth2 client from the security scheme.
+func NewOAuth2Credential(
 	ctx context.Context,
 	config *OAuth2Config,
 	options *authscheme.HTTPClientAuthenticatorOptions,
-) (*OAuth2Client, error) {
+) (*OAuth2Credential, error) {
 	location := config.TokenLocation
 	if location == nil {
 		location = &authscheme.TokenLocation{
@@ -45,7 +45,7 @@ func NewOAuth2Client(
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	client := &OAuth2Client{
+	client := &OAuth2Credential{
 		config:   config,
 		location: location,
 		options:  options,
@@ -55,7 +55,7 @@ func NewOAuth2Client(
 }
 
 // Authenticate the credential into the incoming request.
-func (oc *OAuth2Client) Authenticate(
+func (oc *OAuth2Credential) Authenticate(
 	req *http.Request,
 	options ...authscheme.AuthenticateOption,
 ) error {
@@ -70,34 +70,26 @@ func (oc *OAuth2Client) Authenticate(
 		return err
 	}
 
-	if oc.location.Scheme == "" {
-		oc.location.Scheme = strings.ToLower(token.Type())
-	}
-
 	_, err = oc.location.InjectRequest(req, token.AccessToken, false)
 
 	return err
 }
 
 // Close terminates internal processes before destroyed.
-func (*OAuth2Client) Close() error {
+func (*OAuth2Credential) Close() error {
 	return nil
 }
 
 // Reload reloads the configuration and state.
-func (oc *OAuth2Client) Reload(ctx context.Context) error {
-	oc.mu.Lock()
-	defer oc.mu.Unlock()
-
+func (oc *OAuth2Credential) Reload(ctx context.Context) error {
 	return oc.doReload(ctx)
 }
 
-func (oc *OAuth2Client) doReload(ctx context.Context) error {
-	oc.mu.Lock()
-	defer oc.mu.Unlock()
-
+func (oc *OAuth2Credential) doReload(ctx context.Context) error { //nolint:funlen
+	oc.mu.RLock()
 	getter := oc.options.CustomEnvGetter(ctx)
 	flow := oc.config.Flows.ClientCredentials
+	oc.mu.RUnlock()
 
 	rawTokenURL, err := flow.TokenURL.GetCustom(getter)
 	if err != nil {
@@ -137,7 +129,7 @@ func (oc *OAuth2Client) doReload(ctx context.Context) error {
 		}
 	}
 
-	oc.oauth2Config = &clientcredentials.Config{
+	oauth2Config := &clientcredentials.Config{
 		ClientID:       clientID,
 		ClientSecret:   clientSecret,
 		Scopes:         scopes,
@@ -145,10 +137,24 @@ func (oc *OAuth2Client) doReload(ctx context.Context) error {
 		EndpointParams: endpointParams,
 	}
 
+	oc.mu.Lock()
+	defer oc.mu.Unlock()
+
+	if oc.location.Scheme == "" {
+		token, err := oauth2Config.Token(ctx)
+		if err != nil {
+			return err
+		}
+
+		oc.location.Scheme = strings.ToLower(token.Type())
+	}
+
+	oc.oauth2Config = oauth2Config
+
 	return nil
 }
 
-func (oc *OAuth2Client) getOAuth2Config() *clientcredentials.Config {
+func (oc *OAuth2Credential) getOAuth2Config() *clientcredentials.Config {
 	oc.mu.RLock()
 	defer oc.mu.RUnlock()
 

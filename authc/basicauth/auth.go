@@ -29,6 +29,10 @@ func NewBasicCredential(
 	config *BasicAuthConfig,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*BasicCredential, error) {
+	if options == nil || options.CustomEnvGetter == nil {
+		options = authscheme.NewHTTPClientAuthenticatorOptions()
+	}
+
 	result := &BasicCredential{
 		config:  config,
 		options: options,

@@ -92,7 +92,7 @@ func (c *Client) Close() error {
 	}
 
 	if c.options.Authenticator != nil {
-		c.options.Authenticator.Close()
+		return c.options.Authenticator.Close()
 	}
 
 	return nil

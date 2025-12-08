@@ -22,7 +22,7 @@ func NewAuthenticatorFromConfig(
 	case *httpauth.HTTPAuthConfig:
 		return httpauth.NewHTTPCredential(ctx, conf, options)
 	case *oauth2scheme.OAuth2Config:
-		return oauth2scheme.NewOAuth2Client(ctx, conf, options)
+		return oauth2scheme.NewOAuth2Credential(ctx, conf, options)
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnsupportedSecurityScheme, config.GetType())
 	}

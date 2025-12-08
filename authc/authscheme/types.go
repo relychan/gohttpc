@@ -147,7 +147,7 @@ func NewHTTPClientAuthenticatorOptions(
 	return result
 }
 
-// HTTPClientAuthenticatorOption defines a function to modify [AuthenticatorOptions].
+// HTTPClientAuthenticatorOption defines a function to modify [HTTPClientAuthenticatorOptions].
 type HTTPClientAuthenticatorOption func(*HTTPClientAuthenticatorOptions)
 
 // WithCustomEnvGetter returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].

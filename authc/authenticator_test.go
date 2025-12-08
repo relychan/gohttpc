@@ -93,7 +93,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 			t.Error("expected authenticator to be created")
 		}
 
-		if _, ok := authenticator.(*oauth2scheme.OAuth2Client); !ok {
+		if _, ok := authenticator.(*oauth2scheme.OAuth2Credential); !ok {
 			t.Errorf("expected OAuth2Client, got %T", authenticator)
 		}
 	})

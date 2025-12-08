@@ -41,6 +41,10 @@ func NewHTTPCredential(
 
 	scheme := strings.TrimSpace(config.Scheme)
 
+	if options == nil || options.CustomEnvGetter == nil {
+		options = authscheme.NewHTTPClientAuthenticatorOptions()
+	}
+
 	result := &HTTPCredential{
 		location: authscheme.TokenLocation{
 			In:     authscheme.InHeader,
