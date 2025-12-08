@@ -64,6 +64,11 @@ func (hc *HTTPCredential) Authenticate(
 	return err
 }
 
+// Close terminates internal processes before destroyed.
+func (*HTTPCredential) Close() error {
+	return nil
+}
+
 // Reload reloads the configuration and state.
 func (hc *HTTPCredential) Reload(ctx context.Context) error {
 	hc.mu.Lock()

@@ -45,6 +45,11 @@ func (bc *BasicCredential) Authenticate(
 	return bc.inject(req, bc.username, bc.password)
 }
 
+// Close terminates internal processes before destroyed.
+func (*BasicCredential) Close() error {
+	return nil
+}
+
 // Reload reloads the configuration and state.
 func (bc *BasicCredential) Reload(ctx context.Context) error {
 	bc.mu.Lock()
@@ -58,12 +63,12 @@ func (bc *BasicCredential) doReload(ctx context.Context) error {
 
 	user, err := bc.config.Username.GetCustom(getter)
 	if err != nil {
-		return fmt.Errorf("failed to create basic credential. Invalid username: %w", err)
+		return fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
 	}
 
 	password, err := bc.config.Password.GetCustom(getter)
 	if err != nil {
-		return fmt.Errorf("failed to create basic credential. Invalid password: %w", err)
+		return fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
 	}
 
 	if user == "" && password == "" {

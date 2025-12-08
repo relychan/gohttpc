@@ -17,6 +17,8 @@ type HTTPClientAuthenticator interface {
 	Authenticate(req *http.Request, options ...AuthenticateOption) error
 	// Reload reloads the configuration and state.
 	Reload(ctx context.Context) error
+	// Close terminates internal processes before destroyed.
+	Close() error
 }
 
 // HTTPClientAuthenticatorConfig abstracts an interface of the HTTP client authentication config.

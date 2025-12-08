@@ -91,5 +91,9 @@ func (c *Client) Close() error {
 		c.options.HTTPClient.CloseIdleConnections()
 	}
 
+	if c.options.Authenticator != nil {
+		c.options.Authenticator.Close()
+	}
+
 	return nil
 }

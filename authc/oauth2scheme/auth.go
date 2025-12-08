@@ -41,11 +41,17 @@ func NewOAuth2Client(
 		}
 	}
 
-	return &OAuth2Client{
+	if options == nil || options.CustomEnvGetter == nil {
+		options = authscheme.NewHTTPClientAuthenticatorOptions()
+	}
+
+	client := &OAuth2Client{
 		config:   config,
 		location: location,
 		options:  options,
-	}, nil
+	}
+
+	return client, client.doReload(ctx)
 }
 
 // Authenticate the credential into the incoming request.
@@ -53,12 +59,13 @@ func (oc *OAuth2Client) Authenticate(
 	req *http.Request,
 	options ...authscheme.AuthenticateOption,
 ) error {
-	if oc.oauth2Config == nil {
+	oauth2Config := oc.getOAuth2Config()
+	if oauth2Config == nil {
 		return authscheme.ErrAuthCredentialEmpty
 	}
 
 	// get the token from client credentials
-	token, err := oc.oauth2Config.Token(req.Context())
+	token, err := oauth2Config.Token(req.Context())
 	if err != nil {
 		return err
 	}
@@ -72,6 +79,11 @@ func (oc *OAuth2Client) Authenticate(
 	return err
 }
 
+// Close terminates internal processes before destroyed.
+func (*OAuth2Client) Close() error {
+	return nil
+}
+
 // Reload reloads the configuration and state.
 func (oc *OAuth2Client) Reload(ctx context.Context) error {
 	oc.mu.Lock()
@@ -81,8 +93,10 @@ func (oc *OAuth2Client) Reload(ctx context.Context) error {
 }
 
 func (oc *OAuth2Client) doReload(ctx context.Context) error {
-	getter := oc.options.CustomEnvGetter(ctx)
+	oc.mu.Lock()
+	defer oc.mu.Unlock()
 
+	getter := oc.options.CustomEnvGetter(ctx)
 	flow := oc.config.Flows.ClientCredentials
 
 	rawTokenURL, err := flow.TokenURL.GetCustom(getter)
@@ -132,4 +146,11 @@ func (oc *OAuth2Client) doReload(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (oc *OAuth2Client) getOAuth2Config() *clientcredentials.Config {
+	oc.mu.RLock()
+	defer oc.mu.RUnlock()
+
+	return oc.oauth2Config
 }
