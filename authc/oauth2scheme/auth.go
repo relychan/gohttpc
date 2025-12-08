@@ -92,10 +92,11 @@ func (oc *OAuth2Credential) Reload(ctx context.Context) error {
 }
 
 func (oc *OAuth2Credential) doReload(ctx context.Context) error {
-	oc.mu.RLock()
+	oc.mu.Lock()
+	defer oc.mu.Unlock()
+
 	getter := oc.options.CustomEnvGetter(ctx)
 	flow := oc.config.Flows.ClientCredentials
-	oc.mu.RUnlock()
 
 	rawTokenURL, err := flow.TokenURL.GetCustom(getter)
 	if err != nil {
@@ -142,9 +143,6 @@ func (oc *OAuth2Credential) doReload(ctx context.Context) error {
 		TokenURL:       tokenURL.String(),
 		EndpointParams: endpointParams,
 	}
-
-	oc.mu.Lock()
-	defer oc.mu.Unlock()
 
 	oc.oauth2Config = oauth2Config
 
