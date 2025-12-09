@@ -15,7 +15,7 @@ import (
 	"github.com/relychan/gohttpc"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.38.0"
 )
 
 var (
