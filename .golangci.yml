@@ -62,6 +62,24 @@ linters:
     gosec:
       excludes:
         - G115
+    recvcheck:
+      # Disables the built-in method exclusions:
+      # - `MarshalText`
+      # - `MarshalJSON`
+      # - `MarshalYAML`
+      # - `MarshalXML`
+      # - `MarshalBinary`
+      # - `GobEncode`
+      # Default: false
+      disable-builtin: false
+      # User-defined method exclusions.
+      # The format is `struct_name.method_name` (ex: `Foo.MethodName`).
+      # A wildcard `*` can use as a struct name (ex: `*.MethodName`).
+      # Default: []
+      exclusions:
+        - "*.UnmarshalJSON"
+        - "*.UnmarshalYAML"
+        - "*.Equal"
 
   # Defines a set of rules to ignore issues.
   # It does not skip the analysis, and so does not ignore "typecheck" errors.

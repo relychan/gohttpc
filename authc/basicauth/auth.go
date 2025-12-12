@@ -7,18 +7,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"sync"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
 )
 
 // BasicCredential represents the basic authentication credential.
 type BasicCredential struct {
-	config   *BasicAuthConfig
-	options  *authscheme.HTTPClientAuthenticatorOptions
+	header   string
 	username string
 	password string
-	mu       sync.RWMutex
 }
 
 var _ authscheme.HTTPClientAuthenticator = (*BasicCredential)(nil)
@@ -33,12 +30,29 @@ func NewBasicCredential(
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	result := &BasicCredential{
-		config:  config,
-		options: options,
+	getter := options.CustomEnvGetter(ctx)
+
+	user, err := config.Username.GetCustom(getter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
 	}
 
-	return result, result.doReload(ctx)
+	password, err := config.Password.GetCustom(getter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
+	}
+
+	if user == "" && password == "" {
+		return nil, authscheme.ErrAuthCredentialEmpty
+	}
+
+	result := &BasicCredential{
+		header:   config.Header,
+		username: user,
+		password: password,
+	}
+
+	return result, nil
 }
 
 // Authenticate the credential into the incoming request.
@@ -49,47 +63,24 @@ func (bc *BasicCredential) Authenticate(
 	return bc.inject(req, bc.username, bc.password)
 }
 
+// Equal checks if the target value is equal.
+func (bc *BasicCredential) Equal(target *BasicCredential) bool {
+	if target == nil {
+		return false
+	}
+
+	return bc.header == target.header &&
+		bc.username == target.username &&
+		bc.password == target.password
+}
+
 // Close terminates internal processes before destroyed.
 func (*BasicCredential) Close() error {
 	return nil
 }
 
-// Reload reloads the configuration and state.
-func (bc *BasicCredential) Reload(ctx context.Context) error {
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-
-	return bc.doReload(ctx)
-}
-
-func (bc *BasicCredential) doReload(ctx context.Context) error {
-	getter := bc.options.CustomEnvGetter(ctx)
-
-	user, err := bc.config.Username.GetCustom(getter)
-	if err != nil {
-		return fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
-	}
-
-	password, err := bc.config.Password.GetCustom(getter)
-	if err != nil {
-		return fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
-	}
-
-	if user == "" && password == "" {
-		return authscheme.ErrAuthCredentialEmpty
-	}
-
-	bc.username = user
-	bc.password = password
-
-	return nil
-}
-
 func (bc *BasicCredential) inject(req *http.Request, user, password string) error {
-	bc.mu.RLock()
-	defer bc.mu.RUnlock()
-
-	if bc.config.Header != "" {
+	if bc.header != "" {
 		var userInfo *url.Userinfo
 
 		if password != "" {
@@ -99,7 +90,7 @@ func (bc *BasicCredential) inject(req *http.Request, user, password string) erro
 		}
 
 		b64Value := base64.StdEncoding.EncodeToString([]byte(userInfo.String()))
-		req.Header.Set(bc.config.Header, "Basic "+b64Value)
+		req.Header.Set(bc.header, "Basic "+b64Value)
 	} else {
 		req.SetBasicAuth(user, password)
 	}

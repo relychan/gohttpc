@@ -16,6 +16,13 @@ type TokenLocation struct {
 	Scheme string `json:"scheme,omitempty" yaml:"scheme,omitempty"`
 }
 
+// Equal checks if the target value is equal.
+func (tl TokenLocation) Equal(target TokenLocation) bool {
+	return tl.In == target.In &&
+		tl.Name == target.Name &&
+		tl.Scheme == target.Scheme
+}
+
 // InjectRequest injects the authentication token value into the request.
 func (tl TokenLocation) InjectRequest(
 	req *http.Request,
