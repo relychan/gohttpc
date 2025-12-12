@@ -36,6 +36,14 @@ func TestNewBasicCredential(t *testing.T) {
 		if cred.password != "testpass" {
 			t.Errorf("expected password 'testpass', got '%s'", cred.password)
 		}
+
+		if !cred.Equal(cred) {
+			t.Errorf("expected self equality, got 'false'")
+		}
+
+		if cred.Equal(nil) {
+			t.Errorf("expected not equal, got 'true'")
+		}
 	})
 
 	t.Run("creates credential with custom header", func(t *testing.T) {
@@ -52,8 +60,8 @@ func TestNewBasicCredential(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		if cred.config.Header != "X-Custom-Auth" {
-			t.Errorf("expected header 'X-Custom-Auth', got '%s'", cred.config.Header)
+		if cred.header != "X-Custom-Auth" {
+			t.Errorf("expected header 'X-Custom-Auth', got '%s'", cred.header)
 		}
 	})
 

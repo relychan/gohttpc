@@ -11,12 +11,16 @@ import (
 	"github.com/hasura/goenvconf"
 )
 
+// Equaler abstracts an interface to check the equality.
+type Equaler[T any] interface {
+	// Equal checks if the target value is equal.
+	Equal(target T) bool
+}
+
 // HTTPClientAuthenticator abstracts an interface for injecting authentication value into HTTP requests.
 type HTTPClientAuthenticator interface {
 	// Authenticate the credential into the incoming request.
 	Authenticate(req *http.Request, options ...AuthenticateOption) error
-	// Reload reloads the configuration and state.
-	Reload(ctx context.Context) error
 	// Close terminates internal processes before destroyed.
 	Close() error
 }

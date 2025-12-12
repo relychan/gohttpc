@@ -35,6 +35,14 @@ func TestNewHTTPCredential(t *testing.T) {
 		if cred.value != "test-token" {
 			t.Errorf("expected value 'test-token', got '%s'", cred.value)
 		}
+
+		if !cred.Equal(cred) {
+			t.Errorf("expected self equality, got 'false'")
+		}
+
+		if cred.Equal(nil) {
+			t.Errorf("expected not equal, got 'true'")
+		}
 	})
 
 	t.Run("creates credential with custom header name", func(t *testing.T) {

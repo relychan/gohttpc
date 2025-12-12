@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
@@ -19,10 +18,7 @@ import (
 // OAuth2Credential represent the client of the OAuth2 client credentials.
 type OAuth2Credential struct {
 	oauth2Config *clientcredentials.Config
-	location     *authscheme.TokenLocation
-	config       *OAuth2Config
-	options      *authscheme.HTTPClientAuthenticatorOptions
-	mu           sync.RWMutex
+	location     authscheme.TokenLocation
 }
 
 var _ authscheme.HTTPClientAuthenticator = (*OAuth2Credential)(nil)
@@ -45,13 +41,17 @@ func NewOAuth2Credential(
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	client := &OAuth2Credential{
-		config:   config,
-		location: location,
-		options:  options,
+	oauth2Config, err := newClientCredentialsConfig(ctx, config, options)
+	if err != nil {
+		return nil, err
 	}
 
-	return client, client.doReload(ctx)
+	client := &OAuth2Credential{
+		location:     *location,
+		oauth2Config: oauth2Config,
+	}
+
+	return client, nil
 }
 
 // Authenticate the credential into the incoming request.
@@ -59,7 +59,7 @@ func (oc *OAuth2Credential) Authenticate(
 	req *http.Request,
 	options ...authscheme.AuthenticateOption,
 ) error {
-	oauth2Config := oc.getOAuth2Config()
+	oauth2Config := oc.oauth2Config
 	if oauth2Config == nil {
 		return authscheme.ErrAuthCredentialEmpty
 	}
@@ -70,7 +70,7 @@ func (oc *OAuth2Credential) Authenticate(
 		return err
 	}
 
-	location := oc.getLocation()
+	location := oc.location
 
 	if location.Scheme == "" {
 		location.Scheme = strings.ToLower(token.Type())
@@ -81,31 +81,64 @@ func (oc *OAuth2Credential) Authenticate(
 	return err
 }
 
+// Equal checks if the target value is equal.
+func (oc *OAuth2Credential) Equal(target *OAuth2Credential) bool {
+	if target == nil {
+		return false
+	}
+
+	return oc.location.Equal(target.location) &&
+		EqualClientCredentialsConfig(oc.oauth2Config, target.oauth2Config)
+}
+
 // Close terminates internal processes before destroyed.
 func (*OAuth2Credential) Close() error {
 	return nil
 }
 
-// Reload reloads the configuration and state.
-func (oc *OAuth2Credential) Reload(ctx context.Context) error {
-	return oc.doReload(ctx)
+// EqualClientCredentialsConfig checks if both client credentials configs are equal.
+func EqualClientCredentialsConfig(a, b *clientcredentials.Config) bool {
+	isEqual := a.AuthStyle == b.AuthStyle &&
+		a.ClientID == b.ClientID &&
+		a.ClientSecret == b.ClientSecret &&
+		a.TokenURL == b.TokenURL &&
+		len(a.EndpointParams) == len(b.EndpointParams) &&
+		goutils.SliceEqualSorted(a.Scopes, b.Scopes)
+
+	if !isEqual {
+		return false
+	}
+
+	if len(a.EndpointParams) == 0 {
+		return true
+	}
+
+	for key, values := range a.EndpointParams {
+		targetValues := b.EndpointParams[key]
+		if !goutils.SliceEqualSorted(values, targetValues) {
+			return false
+		}
+	}
+
+	return true
 }
 
-func (oc *OAuth2Credential) doReload(ctx context.Context) error {
-	oc.mu.Lock()
-	defer oc.mu.Unlock()
-
-	getter := oc.options.CustomEnvGetter(ctx)
-	flow := oc.config.Flows.ClientCredentials
+func newClientCredentialsConfig(
+	ctx context.Context,
+	config *OAuth2Config,
+	options *authscheme.HTTPClientAuthenticatorOptions,
+) (*clientcredentials.Config, error) {
+	getter := options.CustomEnvGetter(ctx)
+	flow := config.Flows.ClientCredentials
 
 	rawTokenURL, err := flow.TokenURL.GetCustom(getter)
 	if err != nil {
-		return fmt.Errorf("tokenUrl: %w", err)
+		return nil, fmt.Errorf("tokenUrl: %w", err)
 	}
 
 	tokenURL, err := goutils.ParseRelativeOrHTTPURL(rawTokenURL)
 	if err != nil {
-		return fmt.Errorf("tokenUrl: %w", err)
+		return nil, fmt.Errorf("tokenUrl: %w", err)
 	}
 
 	scopes := make([]string, 0, len(flow.Scopes))
@@ -115,12 +148,12 @@ func (oc *OAuth2Credential) doReload(ctx context.Context) error {
 
 	clientID, err := flow.ClientID.GetCustom(getter)
 	if err != nil {
-		return fmt.Errorf("clientId: %w", err)
+		return nil, fmt.Errorf("clientId: %w", err)
 	}
 
 	clientSecret, err := flow.ClientSecret.GetCustom(getter)
 	if err != nil {
-		return fmt.Errorf("clientSecret: %w", err)
+		return nil, fmt.Errorf("clientSecret: %w", err)
 	}
 
 	var endpointParams url.Values
@@ -128,7 +161,7 @@ func (oc *OAuth2Credential) doReload(ctx context.Context) error {
 	for key, envValue := range flow.EndpointParams {
 		value, err := envValue.GetCustom(getter)
 		if err != nil && !errors.Is(err, goenvconf.ErrEnvironmentVariableValueRequired) {
-			return fmt.Errorf("endpointParams[%s]: %w", key, err)
+			return nil, fmt.Errorf("endpointParams[%s]: %w", key, err)
 		}
 
 		if value != "" {
@@ -136,29 +169,11 @@ func (oc *OAuth2Credential) doReload(ctx context.Context) error {
 		}
 	}
 
-	oauth2Config := &clientcredentials.Config{
+	return &clientcredentials.Config{
 		ClientID:       clientID,
 		ClientSecret:   clientSecret,
 		Scopes:         scopes,
 		TokenURL:       tokenURL.String(),
 		EndpointParams: endpointParams,
-	}
-
-	oc.oauth2Config = oauth2Config
-
-	return nil
-}
-
-func (oc *OAuth2Credential) getOAuth2Config() *clientcredentials.Config {
-	oc.mu.RLock()
-	defer oc.mu.RUnlock()
-
-	return oc.oauth2Config
-}
-
-func (oc *OAuth2Credential) getLocation() authscheme.TokenLocation {
-	oc.mu.RLock()
-	defer oc.mu.RUnlock()
-
-	return *oc.location
+	}, nil
 }
