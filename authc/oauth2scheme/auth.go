@@ -98,6 +98,14 @@ func (*OAuth2Credential) Close() error {
 
 // EqualClientCredentialsConfig checks if both client credentials configs are equal.
 func EqualClientCredentialsConfig(a, b *clientcredentials.Config) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
 	isEqual := a.AuthStyle == b.AuthStyle &&
 		a.ClientID == b.ClientID &&
 		a.ClientSecret == b.ClientSecret &&
