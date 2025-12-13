@@ -5,6 +5,7 @@ import (
 
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 var (
@@ -46,6 +47,13 @@ func (ss OAuth2Config) GetType() authscheme.HTTPClientAuthType {
 	return authscheme.OAuth2Scheme
 }
 
+// Equal checks if this instance equals the target value.
+func (ss OAuth2Config) Equal(target OAuth2Config) bool {
+	return ss.Type == target.Type &&
+		ss.Flows.Equal(target.Flows) &&
+		goutils.EqualPtr(ss.TokenLocation, target.TokenLocation)
+}
+
 // Validate if the current instance is valid.
 func (ss OAuth2Config) Validate(_ bool) error {
 	authType := ss.GetType()
@@ -63,6 +71,11 @@ type OAuth2Flows struct {
 	ClientCredentials ClientCredentialsOAuthFlow `json:"clientCredentials" yaml:"clientCredentials"`
 }
 
+// Equal checks if this instance equals the target value.
+func (ss OAuth2Flows) Equal(target OAuth2Flows) bool {
+	return ss.ClientCredentials.Equal(target.ClientCredentials)
+}
+
 // ClientCredentialsOAuthFlow contains flow configurations for OAuth 2.0 client credential flow.
 type ClientCredentialsOAuthFlow struct {
 	// The token URL to be used for this flow. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS.
@@ -74,6 +87,16 @@ type ClientCredentialsOAuthFlow struct {
 	ClientID       *goenvconf.EnvString           `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
 	ClientSecret   *goenvconf.EnvString           `json:"clientSecret,omitempty"   yaml:"clientSecret,omitempty"`
 	EndpointParams map[string]goenvconf.EnvString `json:"endpointParams,omitempty" yaml:"endpointParams,omitempty"`
+}
+
+// Equal checks if this instance equals the target value.
+func (ss ClientCredentialsOAuthFlow) Equal(target ClientCredentialsOAuthFlow) bool {
+	return goutils.EqualPtr(ss.TokenURL, target.TokenURL) &&
+		goutils.EqualPtr(ss.RefreshURL, target.RefreshURL) &&
+		goutils.EqualMap(ss.Scopes, target.Scopes, true) &&
+		goutils.EqualPtr(ss.ClientID, target.ClientID) &&
+		goutils.EqualPtr(ss.ClientSecret, target.ClientSecret) &&
+		goutils.EqualMap(ss.EndpointParams, target.EndpointParams, true)
 }
 
 // Validate if the current instance is valid.

@@ -124,6 +124,21 @@ type TLSConfig struct {
 	ServerName *goenvconf.EnvString `json:"serverName,omitempty" yaml:"serverName,omitempty"`
 }
 
+// Equal checks if this instance equals the target.
+func (tc TLSConfig) Equal(target TLSConfig) bool {
+	return tc.MinVersion == target.MaxVersion &&
+		tc.MaxVersion == target.MaxVersion &&
+		goutils.EqualSliceSorted(tc.CipherSuites, target.CipherSuites) &&
+		goutils.EqualPtr(tc.ServerName, target.ServerName) &&
+		goutils.EqualPtr(tc.InsecureSkipVerify, target.InsecureSkipVerify) &&
+		goutils.EqualPtr(tc.IncludeSystemCACertsPool, target.IncludeSystemCACertsPool) &&
+		goutils.EqualSlice(tc.RootCAFile, target.RootCAFile, true) &&
+		goutils.EqualSlice(tc.RootCAPem, target.RootCAPem, true) &&
+		goutils.EqualSlice(tc.CAFile, target.CAFile, true) &&
+		goutils.EqualSlice(tc.CAPem, target.CAPem, true) &&
+		goutils.EqualSlice(tc.Certificates, target.Certificates, true)
+}
+
 // Validate if the current instance is valid.
 func (tc TLSConfig) Validate() error {
 	minTLS, err := tc.GetMinVersion()

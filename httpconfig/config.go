@@ -24,9 +24,22 @@ type HTTPClientConfig struct {
 	Authentication *authc.HTTPClientAuthConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
 }
 
+// IsZero if the current instance is empty.
 func (c *HTTPClientConfig) IsZero() bool {
 	return (c.Timeout == nil || *c.Timeout <= 0) &&
-		c.Transport == nil && c.TLS == nil && c.Retry == nil && c.Authentication == nil
+		goutils.IsZeroPtr(c.Transport) &&
+		goutils.IsZeroPtr(c.TLS) &&
+		goutils.IsZeroPtr(c.Retry) &&
+		c.Authentication == nil
+}
+
+// Equal checks if the target value is equal.
+func (j HTTPClientConfig) Equal(target HTTPClientConfig) bool {
+	return goutils.EqualComparablePtr(j.Timeout, target.Timeout) &&
+		goutils.EqualPtr(j.Transport, target.Transport) &&
+		goutils.EqualPtr(j.TLS, target.TLS) &&
+		goutils.EqualPtr(j.Retry, target.Retry) &&
+		goutils.EqualPtr(j.Authentication, target.Authentication)
 }
 
 // NewClientFromConfig creates a HTTP client wrapper with configuration.

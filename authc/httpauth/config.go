@@ -33,6 +33,13 @@ func NewHTTPAuthConfig(
 	}
 }
 
+// Equal checks if the target value is equal.
+func (tac HTTPAuthConfig) Equal(target HTTPAuthConfig) bool {
+	return tac.Type == target.Type &&
+		tac.Value.Equal(target.Value) &&
+		tac.TokenLocation.Equal(target.TokenLocation)
+}
+
 // Validate if the current instance is valid.
 func (tac HTTPAuthConfig) Validate(strict bool) error {
 	authType := tac.GetType()

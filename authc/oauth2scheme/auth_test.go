@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 func TestNewOAuth2Credential(t *testing.T) {
@@ -32,11 +33,11 @@ func TestNewOAuth2Credential(t *testing.T) {
 			t.Errorf("expected nil error, got: %s", err)
 		}
 
-		if !cred.Equal(cred) {
+		if !cred.Equal(*cred) {
 			t.Errorf("expected self equality, got 'false'")
 		}
 
-		if cred.Equal(nil) {
+		if goutils.EqualPtr(cred, nil) {
 			t.Errorf("expected not equal, got 'true'")
 		}
 	})

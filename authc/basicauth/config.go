@@ -31,23 +31,31 @@ func NewBasicAuthConfig(username, password goenvconf.EnvString) *BasicAuthConfig
 	}
 }
 
-// Validate if the current instance is valid.
-func (ss BasicAuthConfig) Validate(strict bool) error {
-	authType := ss.GetType()
+// Equal checks if the target value is equal.
+func (bac BasicAuthConfig) Equal(target BasicAuthConfig) bool {
+	return bac.Type == target.Type &&
+		bac.Header == target.Header &&
+		bac.Username.Equal(target.Username) &&
+		bac.Password.Equal(target.Password)
+}
 
-	if ss.Type != authType {
-		return authscheme.NewUnmatchedSecuritySchemeError(authType, ss.Type)
+// Validate if the current instance is valid.
+func (bac BasicAuthConfig) Validate(strict bool) error {
+	authType := bac.GetType()
+
+	if bac.Type != authType {
+		return authscheme.NewUnmatchedSecuritySchemeError(authType, bac.Type)
 	}
 
 	if !strict {
 		return nil
 	}
 
-	if ss.Username.IsZero() {
+	if bac.Username.IsZero() {
 		return authscheme.NewRequiredSecurityFieldError(authType, "username")
 	}
 
-	if ss.Password.IsZero() {
+	if bac.Password.IsZero() {
 		return authscheme.NewRequiredSecurityFieldError(authType, "password")
 	}
 

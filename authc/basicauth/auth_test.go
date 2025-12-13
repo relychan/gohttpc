@@ -9,6 +9,7 @@ import (
 
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 func TestNewBasicCredential(t *testing.T) {
@@ -37,11 +38,11 @@ func TestNewBasicCredential(t *testing.T) {
 			t.Errorf("expected password 'testpass', got '%s'", cred.password)
 		}
 
-		if !cred.Equal(cred) {
+		if !goutils.EqualPtr(cred, cred) {
 			t.Errorf("expected self equality, got 'false'")
 		}
 
-		if cred.Equal(nil) {
+		if goutils.EqualPtr(cred, nil) {
 			t.Errorf("expected not equal, got 'true'")
 		}
 	})

@@ -32,6 +32,12 @@ github.com/relychan/goutils v0.0.0-20251126052335-b9b7ec5a4db1 h1:LsT/oV5mfBEOO5
 github.com/relychan/goutils v0.0.0-20251126052335-b9b7ec5a4db1/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
 github.com/relychan/goutils v0.0.0-20251213033500-a44e270caa71 h1:xv+ueqb+acrPFBxrFueMi8eqKwY7j3IZmyXhWK7c6bI=
 github.com/relychan/goutils v0.0.0-20251213033500-a44e270caa71/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
+github.com/relychan/goutils v0.0.0-20251213100016-1228dfd1cbe3 h1:bLcYlQ/CwurEjG1rn3NKFfkOAH0pOwag0x0G3/mSGtc=
+github.com/relychan/goutils v0.0.0-20251213100016-1228dfd1cbe3/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
+github.com/relychan/goutils v0.0.0-20251213140534-a1500ae5972b h1:xtBIboJ8rD8qVGMP5xtvi+r6lnAxULIaUdPb56FseDY=
+github.com/relychan/goutils v0.0.0-20251213140534-a1500ae5972b/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
+github.com/relychan/goutils v0.0.0-20251213144555-58fea62853f9 h1:hQCDEvviXy7bdbUdbcTcghxu/uzzjeJpqSBzic+RJNY=
+github.com/relychan/goutils v0.0.0-20251213144555-58fea62853f9/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
