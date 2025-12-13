@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/hasura/goenvconf"
+	"github.com/relychan/goutils"
 )
 
 var systemCertPool = x509.SystemCertPool
@@ -62,6 +63,14 @@ func (tc TLSClientCertificate) IsZero() bool {
 		(tc.CertFile == nil || tc.CertFile.IsZero())) &&
 		((tc.KeyFile == nil || tc.KeyFile.IsZero()) &&
 			(tc.KeyPem == nil || tc.KeyPem.IsZero()))
+}
+
+// Equal checks if this instance equals the target.
+func (tc TLSClientCertificate) Equal(target TLSClientCertificate) bool {
+	return goutils.EqualPtr(tc.CertFile, target.CertFile) &&
+		goutils.EqualPtr(tc.CertPem, target.CertPem) &&
+		goutils.EqualPtr(tc.KeyFile, target.KeyFile) &&
+		goutils.EqualPtr(tc.KeyPem, target.KeyPem)
 }
 
 // LoadKeyPair loads the X509 key pair from configurations.
