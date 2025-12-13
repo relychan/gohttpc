@@ -68,9 +68,9 @@ func (rs HTTPRetryConfig) Equal(target HTTPRetryConfig) bool {
 		goutils.EqualComparablePtr(rs.MaxDelay, target.MaxDelay) &&
 		goutils.EqualComparablePtr(rs.Multiplier, target.Multiplier) &&
 		goutils.EqualComparablePtr(rs.Jitter, target.Jitter) &&
+		goutils.EqualComparablePtr(rs.JitterFactor, target.JitterFactor) &&
 		goutils.EqualSliceSorted(rs.HTTPStatus, target.HTTPStatus) &&
-		goutils.EqualPtr(rs.MaxAttempts, target.MaxAttempts) &&
-		goutils.EqualSlice(rs.HTTPStatus, target.HTTPStatus, true)
+		goutils.EqualPtr(rs.MaxAttempts, target.MaxAttempts)
 }
 
 // ToRetryPolicy validates and create the retry policy.

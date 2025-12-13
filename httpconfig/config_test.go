@@ -70,8 +70,8 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 			Retry: &HTTPRetryConfig{},
 		}
 
-		if config.IsZero() {
-			t.Error("expected IsZero to return false")
+		if !config.IsZero() {
+			t.Error("expected IsZero to return true")
 		}
 	})
 

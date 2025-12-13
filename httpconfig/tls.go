@@ -126,7 +126,7 @@ type TLSConfig struct {
 
 // Equal checks if this instance equals the target.
 func (tc TLSConfig) Equal(target TLSConfig) bool {
-	return tc.MinVersion == target.MaxVersion &&
+	return tc.MinVersion == target.MinVersion &&
 		tc.MaxVersion == target.MaxVersion &&
 		goutils.EqualSliceSorted(tc.CipherSuites, target.CipherSuites) &&
 		goutils.EqualPtr(tc.ServerName, target.ServerName) &&
