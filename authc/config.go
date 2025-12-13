@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/gohttpc/authc/basicauth"
@@ -133,15 +134,20 @@ func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
 }
 
 // Validate if the current instance is valid.
-func (ss *HTTPClientAuthConfig) Validate(strict bool) error {
-	if ss.HTTPClientAuthenticatorConfig == nil {
+func (j *HTTPClientAuthConfig) Validate(strict bool) error {
+	if j.HTTPClientAuthenticatorConfig == nil {
 		return errSecuritySchemeDefinitionRequired
 	}
 
-	return ss.HTTPClientAuthenticatorConfig.Validate(strict)
+	return j.HTTPClientAuthenticatorConfig.Validate(strict)
 }
 
 // IsZero if the current instance is empty.
-func (ss *HTTPClientAuthConfig) IsZero() bool {
-	return ss.HTTPClientAuthenticatorConfig == nil
+func (j *HTTPClientAuthConfig) IsZero() bool {
+	return j.HTTPClientAuthenticatorConfig == nil
+}
+
+// Equal checks if the target value is equal.
+func (j HTTPClientAuthConfig) Equal(target HTTPClientAuthConfig) bool {
+	return reflect.DeepEqual(j.HTTPClientAuthenticatorConfig, target.HTTPClientAuthenticatorConfig)
 }

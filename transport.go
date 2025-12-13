@@ -30,6 +30,24 @@ type HTTPDialerConfig struct {
 	FallbackDelay *goutils.Duration `json:"fallbackDelay,omitempty" jsonschema:"oneof_ref=#/$defs/Duration,oneof_type=null" yaml:"fallbackDelay"`
 }
 
+// IsZero if the current instance is empty.
+func (c *HTTPDialerConfig) IsZero() bool {
+	return (c.Timeout == nil || *c.Timeout <= 0) &&
+		c.KeepAliveEnabled == nil && c.KeepAliveInterval == nil &&
+		c.KeepAliveCount == nil && c.KeepAliveIdle == nil &&
+		c.FallbackDelay == nil
+}
+
+// Equal checks if this instance equals the target.
+func (c HTTPDialerConfig) Equal(target HTTPDialerConfig) bool {
+	return goutils.EqualComparablePtr(c.Timeout, target.Timeout) &&
+		goutils.EqualComparablePtr(c.KeepAliveEnabled, target.KeepAliveEnabled) &&
+		goutils.EqualComparablePtr(c.KeepAliveInterval, target.KeepAliveInterval) &&
+		goutils.EqualComparablePtr(c.KeepAliveCount, target.KeepAliveCount) &&
+		goutils.EqualComparablePtr(c.KeepAliveIdle, target.KeepAliveIdle) &&
+		goutils.EqualComparablePtr(c.FallbackDelay, target.FallbackDelay)
+}
+
 // HTTPTransportConfig stores the http.Transport configuration for the http client.
 type HTTPTransportConfig struct {
 	// Options the http.Dialer to connect to an address
@@ -63,6 +81,33 @@ type HTTPTransportConfig struct {
 	// DisableKeepAlives, if true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request.
 	// This is unrelated to the similarly named TCP keep-alives.
 	DisableKeepAlives bool `json:"disableKeepAlives,omitempty" yaml:"disableKeepAlives"`
+}
+
+// IsZero if the current instance is empty.
+func (c *HTTPTransportConfig) IsZero() bool {
+	return (c.Dialer == nil || c.Dialer.IsZero()) &&
+		c.IdleConnTimeout == nil && c.ResponseHeaderTimeout == nil &&
+		c.TLSHandshakeTimeout == nil && c.ExpectContinueTimeout == nil &&
+		c.MaxIdleConns == nil && c.MaxIdleConnsPerHost == nil &&
+		c.MaxConnsPerHost == nil && c.MaxResponseHeaderBytes == nil &&
+		c.ReadBufferSize == nil && c.WriteBufferSize == nil &&
+		!c.DisableKeepAlives
+}
+
+// Equal checks if this instance equals the target.
+func (c HTTPTransportConfig) Equal(target HTTPTransportConfig) bool {
+	return goutils.EqualPtr(c.Dialer, target.Dialer) &&
+		goutils.EqualComparablePtr(c.IdleConnTimeout, target.IdleConnTimeout) &&
+		goutils.EqualComparablePtr(c.ResponseHeaderTimeout, target.ResponseHeaderTimeout) &&
+		goutils.EqualComparablePtr(c.TLSHandshakeTimeout, target.TLSHandshakeTimeout) &&
+		goutils.EqualComparablePtr(c.ExpectContinueTimeout, target.ExpectContinueTimeout) &&
+		goutils.EqualComparablePtr(c.MaxIdleConns, target.MaxIdleConns) &&
+		goutils.EqualComparablePtr(c.MaxIdleConnsPerHost, target.MaxIdleConnsPerHost) &&
+		goutils.EqualComparablePtr(c.MaxConnsPerHost, target.MaxConnsPerHost) &&
+		goutils.EqualComparablePtr(c.MaxResponseHeaderBytes, target.MaxResponseHeaderBytes) &&
+		goutils.EqualComparablePtr(c.ReadBufferSize, target.ReadBufferSize) &&
+		goutils.EqualComparablePtr(c.WriteBufferSize, target.WriteBufferSize) &&
+		c.DisableKeepAlives == target.DisableKeepAlives
 }
 
 // TransportFromConfig creates an http transport from the configuration.

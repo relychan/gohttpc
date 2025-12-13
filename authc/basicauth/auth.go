@@ -64,11 +64,7 @@ func (bc *BasicCredential) Authenticate(
 }
 
 // Equal checks if the target value is equal.
-func (bc *BasicCredential) Equal(target *BasicCredential) bool {
-	if target == nil {
-		return false
-	}
-
+func (bc BasicCredential) Equal(target BasicCredential) bool {
 	return bc.header == target.header &&
 		bc.username == target.username &&
 		bc.password == target.password

@@ -65,9 +65,22 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 		}
 	})
 
-	t.Run("returns false when Retry is set", func(t *testing.T) {
+	t.Run("returns true when Retry is empty", func(t *testing.T) {
 		config := HTTPClientConfig{
 			Retry: &HTTPRetryConfig{},
+		}
+
+		if !config.IsZero() {
+			t.Error("expected IsZero to return true for empty retry config")
+		}
+	})
+
+	t.Run("returns false when Retry is set with values", func(t *testing.T) {
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+		config := HTTPClientConfig{
+			Retry: &HTTPRetryConfig{
+				MaxAttempts: &maxAttempts,
+			},
 		}
 
 		if config.IsZero() {
@@ -82,6 +95,164 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 
 		if config.IsZero() {
 			t.Error("expected IsZero to return false")
+		}
+	})
+}
+
+func TestHTTPClientConfig_Equal(t *testing.T) {
+	t.Run("returns true for two empty configs", func(t *testing.T) {
+		config1 := HTTPClientConfig{}
+		config2 := HTTPClientConfig{}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for two empty configs")
+		}
+	})
+
+	t.Run("returns true for identical configs with timeout", func(t *testing.T) {
+		timeout := goutils.Duration(time.Second * 30)
+		config1 := HTTPClientConfig{
+			Timeout: &timeout,
+		}
+		config2 := HTTPClientConfig{
+			Timeout: &timeout,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns false for different timeout values", func(t *testing.T) {
+		timeout1 := goutils.Duration(time.Second * 30)
+		timeout2 := goutils.Duration(time.Second * 60)
+		config1 := HTTPClientConfig{
+			Timeout: &timeout1,
+		}
+		config2 := HTTPClientConfig{
+			Timeout: &timeout2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different timeouts")
+		}
+	})
+
+	t.Run("returns false when one has timeout and other doesn't", func(t *testing.T) {
+		timeout := goutils.Duration(time.Second * 30)
+		config1 := HTTPClientConfig{
+			Timeout: &timeout,
+		}
+		config2 := HTTPClientConfig{}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false")
+		}
+	})
+
+	t.Run("returns true for identical transport configs", func(t *testing.T) {
+		maxIdleConns := 50
+		transport := &gohttpc.HTTPTransportConfig{
+			MaxIdleConns: &maxIdleConns,
+		}
+		config1 := HTTPClientConfig{
+			Transport: transport,
+		}
+		config2 := HTTPClientConfig{
+			Transport: transport,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical TLS configs", func(t *testing.T) {
+		tlsConfig := &TLSConfig{
+			MinVersion: "1.2",
+		}
+		config1 := HTTPClientConfig{
+			TLS: tlsConfig,
+		}
+		config2 := HTTPClientConfig{
+			TLS: tlsConfig,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical retry configs", func(t *testing.T) {
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+		retryConfig := &HTTPRetryConfig{
+			MaxAttempts: &maxAttempts,
+		}
+		config1 := HTTPClientConfig{
+			Retry: retryConfig,
+		}
+		config2 := HTTPClientConfig{
+			Retry: retryConfig,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical authentication configs", func(t *testing.T) {
+		authConfig := &authc.HTTPClientAuthConfig{
+			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
+				Type:     authscheme.BasicAuthScheme,
+				Username: goenvconf.NewEnvStringValue("user"),
+				Password: goenvconf.NewEnvStringValue("pass"),
+			},
+		}
+		config1 := HTTPClientConfig{
+			Authentication: authConfig,
+		}
+		config2 := HTTPClientConfig{
+			Authentication: authConfig,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for fully identical configs", func(t *testing.T) {
+		timeout := goutils.Duration(time.Second * 30)
+		maxIdleConns := 50
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+
+		config1 := HTTPClientConfig{
+			Timeout: &timeout,
+			Transport: &gohttpc.HTTPTransportConfig{
+				MaxIdleConns: &maxIdleConns,
+			},
+			TLS: &TLSConfig{
+				MinVersion: "1.2",
+			},
+			Retry: &HTTPRetryConfig{
+				MaxAttempts: &maxAttempts,
+			},
+		}
+
+		config2 := HTTPClientConfig{
+			Timeout: &timeout,
+			Transport: &gohttpc.HTTPTransportConfig{
+				MaxIdleConns: &maxIdleConns,
+			},
+			TLS: &TLSConfig{
+				MinVersion: "1.2",
+			},
+			Retry: &HTTPRetryConfig{
+				MaxAttempts: &maxAttempts,
+			},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for identical configs")
 		}
 	})
 }

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 
 	"github.com/hasura/goenvconf"
+	"github.com/relychan/goutils"
 )
 
 var systemCertPool = x509.SystemCertPool
@@ -64,6 +65,14 @@ func (tc TLSClientCertificate) IsZero() bool {
 			(tc.KeyPem == nil || tc.KeyPem.IsZero()))
 }
 
+// Equal checks if this instance equals the target.
+func (tc TLSClientCertificate) Equal(target TLSClientCertificate) bool {
+	return goutils.EqualPtr(tc.CertFile, target.CertFile) &&
+		goutils.EqualPtr(tc.CertPem, target.CertPem) &&
+		goutils.EqualPtr(tc.KeyFile, target.KeyFile) &&
+		goutils.EqualPtr(tc.KeyPem, target.KeyPem)
+}
+
 // LoadKeyPair loads the X509 key pair from configurations.
 func (tc TLSClientCertificate) LoadKeyPair() (*tls.Certificate, error) {
 	certData, err := loadEitherCertPemOrFile(tc.CertPem, tc.CertFile)
@@ -113,6 +122,21 @@ type TLSConfig struct {
 	// This sets the ServerName in the TLSConfig. Please refer to
 	// https://godoc.org/crypto/tls#Config for more information. (optional)
 	ServerName *goenvconf.EnvString `json:"serverName,omitempty" yaml:"serverName,omitempty"`
+}
+
+// Equal checks if this instance equals the target.
+func (tc TLSConfig) Equal(target TLSConfig) bool {
+	return tc.MinVersion == target.MinVersion &&
+		tc.MaxVersion == target.MaxVersion &&
+		goutils.EqualSliceSorted(tc.CipherSuites, target.CipherSuites) &&
+		goutils.EqualPtr(tc.ServerName, target.ServerName) &&
+		goutils.EqualPtr(tc.InsecureSkipVerify, target.InsecureSkipVerify) &&
+		goutils.EqualPtr(tc.IncludeSystemCACertsPool, target.IncludeSystemCACertsPool) &&
+		goutils.EqualSlice(tc.RootCAFile, target.RootCAFile, true) &&
+		goutils.EqualSlice(tc.RootCAPem, target.RootCAPem, true) &&
+		goutils.EqualSlice(tc.CAFile, target.CAFile, true) &&
+		goutils.EqualSlice(tc.CAPem, target.CAPem, true) &&
+		goutils.EqualSlice(tc.Certificates, target.Certificates, true)
 }
 
 // Validate if the current instance is valid.

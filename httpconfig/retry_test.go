@@ -8,6 +8,271 @@ import (
 	"github.com/hasura/goenvconf"
 )
 
+func TestHTTPRetryConfig_IsZero(t *testing.T) {
+	t.Run("returns true when all fields are nil or empty", func(t *testing.T) {
+		config := HTTPRetryConfig{}
+
+		if !config.IsZero() {
+			t.Error("expected IsZero to return true")
+		}
+	})
+
+	t.Run("returns false when MaxAttempts is set", func(t *testing.T) {
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+		config := HTTPRetryConfig{
+			MaxAttempts: &maxAttempts,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when Delay is set", func(t *testing.T) {
+		delay := int64(1000)
+		config := HTTPRetryConfig{
+			Delay: &delay,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when MaxDelay is set", func(t *testing.T) {
+		maxDelay := int64(5000)
+		config := HTTPRetryConfig{
+			MaxDelay: &maxDelay,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when HTTPStatus is set", func(t *testing.T) {
+		config := HTTPRetryConfig{
+			HTTPStatus: []int{500, 502},
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when Multiplier is set", func(t *testing.T) {
+		multiplier := 1.5
+		config := HTTPRetryConfig{
+			Multiplier: &multiplier,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when Jitter is set", func(t *testing.T) {
+		jitter := int64(100)
+		config := HTTPRetryConfig{
+			Jitter: &jitter,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when JitterFactor is set", func(t *testing.T) {
+		jitterFactor := 0.25
+		config := HTTPRetryConfig{
+			JitterFactor: &jitterFactor,
+		}
+
+		if config.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+}
+
+func TestHTTPRetryConfig_Equal(t *testing.T) {
+	t.Run("returns true for two empty configs", func(t *testing.T) {
+		config1 := HTTPRetryConfig{}
+		config2 := HTTPRetryConfig{}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for two empty configs")
+		}
+	})
+
+	t.Run("returns true for identical configs with all fields", func(t *testing.T) {
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+		delay := int64(1000)
+		maxDelay := int64(5000)
+		multiplier := 1.5
+		jitter := int64(100)
+		jitterFactor := 0.25
+
+		config1 := HTTPRetryConfig{
+			MaxAttempts:  &maxAttempts,
+			Delay:        &delay,
+			MaxDelay:     &maxDelay,
+			HTTPStatus:   []int{500, 502, 503},
+			Multiplier:   &multiplier,
+			Jitter:       &jitter,
+			JitterFactor: &jitterFactor,
+		}
+
+		config2 := HTTPRetryConfig{
+			MaxAttempts:  &maxAttempts,
+			Delay:        &delay,
+			MaxDelay:     &maxDelay,
+			HTTPStatus:   []int{500, 502, 503},
+			Multiplier:   &multiplier,
+			Jitter:       &jitter,
+			JitterFactor: &jitterFactor,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for identical configs")
+		}
+	})
+
+	t.Run("returns false for different MaxAttempts", func(t *testing.T) {
+		maxAttempts1 := goenvconf.NewEnvIntValue(3)
+		maxAttempts2 := goenvconf.NewEnvIntValue(5)
+
+		config1 := HTTPRetryConfig{
+			MaxAttempts: &maxAttempts1,
+		}
+		config2 := HTTPRetryConfig{
+			MaxAttempts: &maxAttempts2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different MaxAttempts")
+		}
+	})
+
+	t.Run("returns false for different Delay", func(t *testing.T) {
+		delay1 := int64(1000)
+		delay2 := int64(2000)
+
+		config1 := HTTPRetryConfig{
+			Delay: &delay1,
+		}
+		config2 := HTTPRetryConfig{
+			Delay: &delay2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different Delay")
+		}
+	})
+
+	t.Run("returns false for different MaxDelay", func(t *testing.T) {
+		maxDelay1 := int64(5000)
+		maxDelay2 := int64(10000)
+
+		config1 := HTTPRetryConfig{
+			MaxDelay: &maxDelay1,
+		}
+		config2 := HTTPRetryConfig{
+			MaxDelay: &maxDelay2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different MaxDelay")
+		}
+	})
+
+	t.Run("returns false for different HTTPStatus", func(t *testing.T) {
+		config1 := HTTPRetryConfig{
+			HTTPStatus: []int{500, 502},
+		}
+		config2 := HTTPRetryConfig{
+			HTTPStatus: []int{500, 503},
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different HTTPStatus")
+		}
+	})
+
+	t.Run("returns true for HTTPStatus in different order", func(t *testing.T) {
+		config1 := HTTPRetryConfig{
+			HTTPStatus: []int{500, 502, 503},
+		}
+		config2 := HTTPRetryConfig{
+			HTTPStatus: []int{503, 500, 502},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for HTTPStatus in different order")
+		}
+	})
+
+	t.Run("returns false for different Multiplier", func(t *testing.T) {
+		multiplier1 := 1.5
+		multiplier2 := 2.0
+
+		config1 := HTTPRetryConfig{
+			Multiplier: &multiplier1,
+		}
+		config2 := HTTPRetryConfig{
+			Multiplier: &multiplier2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different Multiplier")
+		}
+	})
+
+	t.Run("returns false for different Jitter", func(t *testing.T) {
+		jitter1 := int64(100)
+		jitter2 := int64(200)
+
+		config1 := HTTPRetryConfig{
+			Jitter: &jitter1,
+		}
+		config2 := HTTPRetryConfig{
+			Jitter: &jitter2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different Jitter")
+		}
+	})
+
+	t.Run("returns false for different JitterFactor", func(t *testing.T) {
+		jitterFactor1 := 0.25
+		jitterFactor2 := 0.5
+
+		config1 := HTTPRetryConfig{
+			JitterFactor: &jitterFactor1,
+		}
+		config2 := HTTPRetryConfig{
+			JitterFactor: &jitterFactor2,
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different JitterFactor")
+		}
+	})
+
+	t.Run("returns false when one has field and other doesn't", func(t *testing.T) {
+		maxAttempts := goenvconf.NewEnvIntValue(3)
+
+		config1 := HTTPRetryConfig{
+			MaxAttempts: &maxAttempts,
+		}
+		config2 := HTTPRetryConfig{}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false")
+		}
+	})
+}
+
 func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	t.Run("returns nil when MaxAttempts is nil", func(t *testing.T) {
 		config := HTTPRetryConfig{}

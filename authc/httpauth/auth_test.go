@@ -8,6 +8,7 @@ import (
 
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 func TestNewHTTPCredential(t *testing.T) {
@@ -36,11 +37,11 @@ func TestNewHTTPCredential(t *testing.T) {
 			t.Errorf("expected value 'test-token', got '%s'", cred.value)
 		}
 
-		if !cred.Equal(cred) {
+		if !goutils.EqualPtr(cred, cred) {
 			t.Errorf("expected self equality, got 'false'")
 		}
 
-		if cred.Equal(nil) {
+		if goutils.EqualPtr(cred, nil) {
 			t.Errorf("expected not equal, got 'true'")
 		}
 	})

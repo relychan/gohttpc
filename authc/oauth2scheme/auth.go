@@ -82,11 +82,7 @@ func (oc *OAuth2Credential) Authenticate(
 }
 
 // Equal checks if the target value is equal.
-func (oc *OAuth2Credential) Equal(target *OAuth2Credential) bool {
-	if target == nil {
-		return false
-	}
-
+func (oc OAuth2Credential) Equal(target OAuth2Credential) bool {
 	return oc.location.Equal(target.location) &&
 		EqualClientCredentialsConfig(oc.oauth2Config, target.oauth2Config)
 }
@@ -111,7 +107,7 @@ func EqualClientCredentialsConfig(a, b *clientcredentials.Config) bool {
 		a.ClientSecret == b.ClientSecret &&
 		a.TokenURL == b.TokenURL &&
 		len(a.EndpointParams) == len(b.EndpointParams) &&
-		goutils.SliceEqualSorted(a.Scopes, b.Scopes)
+		goutils.EqualSliceSorted(a.Scopes, b.Scopes)
 
 	if !isEqual {
 		return false
@@ -123,7 +119,7 @@ func EqualClientCredentialsConfig(a, b *clientcredentials.Config) bool {
 
 	for key, values := range a.EndpointParams {
 		targetValues := b.EndpointParams[key]
-		if !goutils.SliceEqualSorted(values, targetValues) {
+		if !goutils.EqualSliceSorted(values, targetValues) {
 			return false
 		}
 	}

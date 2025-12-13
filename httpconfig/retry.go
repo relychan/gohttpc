@@ -14,6 +14,7 @@ import (
 	"github.com/failsafe-go/failsafe-go/failsafehttp"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 	"github.com/hasura/goenvconf"
+	"github.com/relychan/goutils"
 )
 
 var (
@@ -48,6 +49,28 @@ type HTTPRetryConfig struct {
 	// For example: a retry delay of 100 milliseconds and a jitterFactor of .25 will result in a random retry delay between 75 and 125 milliseconds.
 	// Replaces any previously configured jitter duration.
 	JitterFactor *float64 `json:"jitterFactor,omitempty" mapstructure:"jitterFactor" yaml:"jitterFactor,omitempty"`
+}
+
+// IsZero if the current instance is empty.
+func (rs HTTPRetryConfig) IsZero() bool {
+	return rs.MaxAttempts == nil &&
+		rs.Delay == nil &&
+		rs.MaxDelay == nil &&
+		len(rs.HTTPStatus) == 0 &&
+		rs.Multiplier == nil &&
+		rs.Jitter == nil &&
+		rs.JitterFactor == nil
+}
+
+// Equal checks if this instance equals the target.
+func (rs HTTPRetryConfig) Equal(target HTTPRetryConfig) bool {
+	return goutils.EqualComparablePtr(rs.Delay, target.Delay) &&
+		goutils.EqualComparablePtr(rs.MaxDelay, target.MaxDelay) &&
+		goutils.EqualComparablePtr(rs.Multiplier, target.Multiplier) &&
+		goutils.EqualComparablePtr(rs.Jitter, target.Jitter) &&
+		goutils.EqualComparablePtr(rs.JitterFactor, target.JitterFactor) &&
+		goutils.EqualSliceSorted(rs.HTTPStatus, target.HTTPStatus) &&
+		goutils.EqualPtr(rs.MaxAttempts, target.MaxAttempts)
 }
 
 // ToRetryPolicy validates and create the retry policy.

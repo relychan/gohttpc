@@ -55,7 +55,7 @@ func main() {
 	gohttpc.SetHTTPClientMetrics(clientMetrics)
 
 	httpClient, err := httpconfig.NewHTTPClientFromConfig(
-		httpconfig.HTTPClientConfig{},
+		&httpconfig.HTTPClientConfig{},
 		gohttpc.NewClientOptions(
 			gohttpc.WithTracer(exporters.Tracer),
 			gohttpc.EnableClientTrace(true),
@@ -65,17 +65,17 @@ func main() {
 		panic(err)
 	}
 
-	host, err := loadbalancer.NewHost(httpClient, "https://jsonplaceholder.typicode.com", 1, nil)
+	host, err := loadbalancer.NewHost(httpClient, "https://jsonplaceholder.typicode.com")
 	if err != nil {
 		panic(err)
 	}
 
-	host2, err := loadbalancer.NewHost(httpClient, "https://jsonplaceholder.typicode.cc", 1, nil)
+	host2, err := loadbalancer.NewHost(httpClient, "https://jsonplaceholder.typicode.cc")
 	if err != nil {
 		panic(err)
 	}
 
-	wrr, err := roundrobin.NewWeightedRoundRobin(time.Second, []*loadbalancer.Host{host, host2})
+	wrr, err := roundrobin.NewWeightedRoundRobin([]*loadbalancer.Host{host, host2})
 	if err != nil {
 		panic(err)
 	}

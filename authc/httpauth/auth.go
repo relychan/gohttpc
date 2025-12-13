@@ -70,11 +70,7 @@ func (hc *HTTPCredential) Authenticate(
 }
 
 // Equal checks if the target value is equal.
-func (hc *HTTPCredential) Equal(target *HTTPCredential) bool {
-	if target == nil {
-		return false
-	}
-
+func (hc HTTPCredential) Equal(target HTTPCredential) bool {
 	return hc.value == target.value &&
 		hc.location.Equal(target.location)
 }
