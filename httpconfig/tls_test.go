@@ -41,6 +41,104 @@ func TestTLSClientCertificate_IsZero(t *testing.T) {
 			t.Error("expected IsZero to return false")
 		}
 	})
+
+	t.Run("returns false when KeyFile is set", func(t *testing.T) {
+		keyFile := goenvconf.NewEnvStringValue("key.pem")
+		cert := TLSClientCertificate{
+			KeyFile: &keyFile,
+		}
+
+		if cert.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+
+	t.Run("returns false when KeyPem is set", func(t *testing.T) {
+		keyPem := goenvconf.NewEnvStringValue("base64key")
+		cert := TLSClientCertificate{
+			KeyPem: &keyPem,
+		}
+
+		if cert.IsZero() {
+			t.Error("expected IsZero to return false")
+		}
+	})
+}
+
+func TestTLSClientCertificate_Equal(t *testing.T) {
+	t.Run("returns true for two empty certificates", func(t *testing.T) {
+		cert1 := TLSClientCertificate{}
+		cert2 := TLSClientCertificate{}
+
+		if !cert1.Equal(cert2) {
+			t.Error("expected Equal to return true for two empty certificates")
+		}
+	})
+
+	t.Run("returns true for identical certificates with CertFile", func(t *testing.T) {
+		certFile := goenvconf.NewEnvStringValue("cert.pem")
+		cert1 := TLSClientCertificate{
+			CertFile: &certFile,
+		}
+		cert2 := TLSClientCertificate{
+			CertFile: &certFile,
+		}
+
+		if !cert1.Equal(cert2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns false for different CertFile values", func(t *testing.T) {
+		certFile1 := goenvconf.NewEnvStringValue("cert1.pem")
+		certFile2 := goenvconf.NewEnvStringValue("cert2.pem")
+		cert1 := TLSClientCertificate{
+			CertFile: &certFile1,
+		}
+		cert2 := TLSClientCertificate{
+			CertFile: &certFile2,
+		}
+
+		if cert1.Equal(cert2) {
+			t.Error("expected Equal to return false for different CertFile")
+		}
+	})
+
+	t.Run("returns true for identical certificates with all fields", func(t *testing.T) {
+		certFile := goenvconf.NewEnvStringValue("cert.pem")
+		certPem := goenvconf.NewEnvStringValue("certpem")
+		keyFile := goenvconf.NewEnvStringValue("key.pem")
+		keyPem := goenvconf.NewEnvStringValue("keypem")
+
+		cert1 := TLSClientCertificate{
+			CertFile: &certFile,
+			CertPem:  &certPem,
+			KeyFile:  &keyFile,
+			KeyPem:   &keyPem,
+		}
+		cert2 := TLSClientCertificate{
+			CertFile: &certFile,
+			CertPem:  &certPem,
+			KeyFile:  &keyFile,
+			KeyPem:   &keyPem,
+		}
+
+		if !cert1.Equal(cert2) {
+			t.Error("expected Equal to return true for identical certificates")
+		}
+	})
+
+	t.Run("returns false when one has field and other doesn't", func(t *testing.T) {
+		certFile := goenvconf.NewEnvStringValue("cert.pem")
+		cert1 := TLSClientCertificate{
+			CertFile: &certFile,
+		}
+		cert2 := TLSClientCertificate{}
+
+		if cert1.Equal(cert2) {
+			t.Error("expected Equal to return false")
+		}
+	})
 }
 
 func TestTLSConfig_GetMinVersion(t *testing.T) {
@@ -412,6 +510,216 @@ func TestLoadEitherCertPemOrFile(t *testing.T) {
 
 		if err == nil {
 			t.Error("expected error for nonexistent file")
+		}
+	})
+}
+
+func TestTLSConfig_Equal(t *testing.T) {
+	t.Run("returns true for two empty configs", func(t *testing.T) {
+		config1 := TLSConfig{}
+		config2 := TLSConfig{}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for two empty configs")
+		}
+	})
+
+	t.Run("returns true for identical MinVersion", func(t *testing.T) {
+		config1 := TLSConfig{
+			MinVersion: "1.2",
+		}
+		config2 := TLSConfig{
+			MinVersion: "1.2",
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns false for different MinVersion", func(t *testing.T) {
+		config1 := TLSConfig{
+			MinVersion: "1.2",
+		}
+		config2 := TLSConfig{
+			MinVersion: "1.3",
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different MinVersion")
+		}
+	})
+
+	t.Run("returns true for identical MaxVersion", func(t *testing.T) {
+		config1 := TLSConfig{
+			MaxVersion: "1.3",
+		}
+		config2 := TLSConfig{
+			MaxVersion: "1.3",
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns false for different MaxVersion", func(t *testing.T) {
+		config1 := TLSConfig{
+			MaxVersion: "1.2",
+		}
+		config2 := TLSConfig{
+			MaxVersion: "1.3",
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different MaxVersion")
+		}
+	})
+
+	t.Run("returns true for identical CipherSuites", func(t *testing.T) {
+		config1 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA"},
+		}
+		config2 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA"},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for CipherSuites in different order", func(t *testing.T) {
+		config1 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA"},
+		}
+		config2 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA"},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for CipherSuites in different order")
+		}
+	})
+
+	t.Run("returns false for different CipherSuites", func(t *testing.T) {
+		config1 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_128_CBC_SHA"},
+		}
+		config2 := TLSConfig{
+			CipherSuites: []string{"TLS_RSA_WITH_AES_256_CBC_SHA"},
+		}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false for different CipherSuites")
+		}
+	})
+
+	t.Run("returns true for identical ServerName", func(t *testing.T) {
+		serverName := goenvconf.NewEnvStringValue("example.com")
+		config1 := TLSConfig{
+			ServerName: &serverName,
+		}
+		config2 := TLSConfig{
+			ServerName: &serverName,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical InsecureSkipVerify", func(t *testing.T) {
+		insecure := goenvconf.NewEnvBoolValue(true)
+		config1 := TLSConfig{
+			InsecureSkipVerify: &insecure,
+		}
+		config2 := TLSConfig{
+			InsecureSkipVerify: &insecure,
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical RootCAFile", func(t *testing.T) {
+		rootCA := goenvconf.NewEnvStringValue("ca.pem")
+		config1 := TLSConfig{
+			RootCAFile: []goenvconf.EnvString{rootCA},
+		}
+		config2 := TLSConfig{
+			RootCAFile: []goenvconf.EnvString{rootCA},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for identical Certificates", func(t *testing.T) {
+		certFile := goenvconf.NewEnvStringValue("cert.pem")
+		cert := TLSClientCertificate{
+			CertFile: &certFile,
+		}
+		config1 := TLSConfig{
+			Certificates: []TLSClientCertificate{cert},
+		}
+		config2 := TLSConfig{
+			Certificates: []TLSClientCertificate{cert},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true")
+		}
+	})
+
+	t.Run("returns true for fully identical configs", func(t *testing.T) {
+		serverName := goenvconf.NewEnvStringValue("example.com")
+		insecure := goenvconf.NewEnvBoolValue(false)
+		includeSystem := goenvconf.NewEnvBoolValue(true)
+		rootCA := goenvconf.NewEnvStringValue("ca.pem")
+		certFile := goenvconf.NewEnvStringValue("cert.pem")
+
+		config1 := TLSConfig{
+			MinVersion:               "1.2",
+			MaxVersion:               "1.3",
+			CipherSuites:             []string{"TLS_RSA_WITH_AES_128_CBC_SHA"},
+			ServerName:               &serverName,
+			InsecureSkipVerify:       &insecure,
+			IncludeSystemCACertsPool: &includeSystem,
+			RootCAFile:               []goenvconf.EnvString{rootCA},
+			Certificates: []TLSClientCertificate{
+				{CertFile: &certFile},
+			},
+		}
+
+		config2 := TLSConfig{
+			MinVersion:               "1.2",
+			MaxVersion:               "1.3",
+			CipherSuites:             []string{"TLS_RSA_WITH_AES_128_CBC_SHA"},
+			ServerName:               &serverName,
+			InsecureSkipVerify:       &insecure,
+			IncludeSystemCACertsPool: &includeSystem,
+			RootCAFile:               []goenvconf.EnvString{rootCA},
+			Certificates: []TLSClientCertificate{
+				{CertFile: &certFile},
+			},
+		}
+
+		if !config1.Equal(config2) {
+			t.Error("expected Equal to return true for fully identical configs")
+		}
+	})
+
+	t.Run("returns false when one has field and other doesn't", func(t *testing.T) {
+		config1 := TLSConfig{
+			MinVersion: "1.2",
+		}
+		config2 := TLSConfig{}
+
+		if config1.Equal(config2) {
+			t.Error("expected Equal to return false")
 		}
 	})
 }
