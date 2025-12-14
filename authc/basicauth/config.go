@@ -36,7 +36,8 @@ func (bac BasicAuthConfig) IsZero() bool {
 	return bac.Type == "" &&
 		bac.Header == "" &&
 		bac.Username.IsZero() &&
-		bac.Password.IsZero()
+		bac.Password.IsZero() &&
+		bac.Description == ""
 }
 
 // Equal checks if the target value is equal.

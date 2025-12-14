@@ -49,7 +49,10 @@ func (ss OAuth2Config) GetType() authscheme.HTTPClientAuthType {
 
 // IsZero if the current instance is empty.
 func (ss OAuth2Config) IsZero() bool {
-	return ss.Type == "" && ss.Flows.IsZero()
+	return ss.Type == "" &&
+		ss.Flows.IsZero() &&
+		ss.Description == "" &&
+		ss.TokenLocation == nil
 }
 
 // Equal checks if this instance equals the target value.
