@@ -47,6 +47,11 @@ func (ss OAuth2Config) GetType() authscheme.HTTPClientAuthType {
 	return authscheme.OAuth2Scheme
 }
 
+// IsZero if the current instance is empty.
+func (ss OAuth2Config) IsZero() bool {
+	return ss.Type == "" && ss.Flows.IsZero()
+}
+
 // Equal checks if this instance equals the target value.
 func (ss OAuth2Config) Equal(target OAuth2Config) bool {
 	return ss.Type == target.Type &&
@@ -71,6 +76,11 @@ type OAuth2Flows struct {
 	ClientCredentials ClientCredentialsOAuthFlow `json:"clientCredentials" yaml:"clientCredentials"`
 }
 
+// IsZero if the current instance is empty.
+func (ss OAuth2Flows) IsZero() bool {
+	return ss.ClientCredentials.IsZero()
+}
+
 // Equal checks if this instance equals the target value.
 func (ss OAuth2Flows) Equal(target OAuth2Flows) bool {
 	return ss.ClientCredentials.Equal(target.ClientCredentials)
@@ -87,6 +97,15 @@ type ClientCredentialsOAuthFlow struct {
 	ClientID       *goenvconf.EnvString           `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
 	ClientSecret   *goenvconf.EnvString           `json:"clientSecret,omitempty"   yaml:"clientSecret,omitempty"`
 	EndpointParams map[string]goenvconf.EnvString `json:"endpointParams,omitempty" yaml:"endpointParams,omitempty"`
+}
+
+// IsZero if the current instance is empty.
+func (ss ClientCredentialsOAuthFlow) IsZero() bool {
+	return (ss.TokenURL == nil || ss.TokenURL.IsZero()) &&
+		(ss.RefreshURL == nil || ss.RefreshURL.IsZero()) &&
+		(ss.ClientID == nil || ss.ClientID.IsZero()) &&
+		(ss.ClientSecret == nil || ss.ClientSecret.IsZero()) &&
+		len(ss.Scopes) == 0 && len(ss.EndpointParams) == 0
 }
 
 // Equal checks if this instance equals the target value.

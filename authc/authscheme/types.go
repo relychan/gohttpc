@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/hasura/goenvconf"
+	"github.com/relychan/goutils"
 )
 
 // HTTPClientAuthenticator abstracts an interface for injecting authentication value into HTTP requests.
@@ -21,6 +22,7 @@ type HTTPClientAuthenticator interface {
 
 // HTTPClientAuthenticatorConfig abstracts an interface of the HTTP client authentication config.
 type HTTPClientAuthenticatorConfig interface {
+	goutils.IsZeroer
 	// GetType gets the type of security scheme.
 	GetType() HTTPClientAuthType
 	// Validate checks if the instance is valid.

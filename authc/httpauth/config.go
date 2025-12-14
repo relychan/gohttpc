@@ -33,6 +33,14 @@ func NewHTTPAuthConfig(
 	}
 }
 
+// IsZero if the current instance is empty.
+func (bac HTTPAuthConfig) IsZero() bool {
+	return bac.Type == "" &&
+		bac.Value.IsZero() &&
+		bac.TokenLocation.IsZero() &&
+		bac.Description == ""
+}
+
 // Equal checks if the target value is equal.
 func (tac HTTPAuthConfig) Equal(target HTTPAuthConfig) bool {
 	return tac.Type == target.Type &&
