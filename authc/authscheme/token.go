@@ -16,6 +16,11 @@ type TokenLocation struct {
 	Scheme string `json:"scheme,omitempty" yaml:"scheme,omitempty"`
 }
 
+// IsZero if the current instance is empty.
+func (tl TokenLocation) IsZero() bool {
+	return tl.In == "" && tl.Name == "" && tl.Scheme == ""
+}
+
 // Equal checks if the target value is equal.
 func (tl TokenLocation) Equal(target TokenLocation) bool {
 	return tl.In == target.In &&

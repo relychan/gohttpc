@@ -123,6 +123,11 @@ func (m *mockUnsupportedConfig) GetType() authscheme.HTTPClientAuthType {
 	return "unsupported"
 }
 
+// IsZero if the current instance is empty.
+func (m mockUnsupportedConfig) IsZero() bool {
+	return true
+}
+
 func (m *mockUnsupportedConfig) Validate(strict bool) error {
 	return nil
 }

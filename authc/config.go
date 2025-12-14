@@ -143,7 +143,7 @@ func (j *HTTPClientAuthConfig) Validate(strict bool) error {
 }
 
 // IsZero if the current instance is empty.
-func (j *HTTPClientAuthConfig) IsZero() bool {
+func (j HTTPClientAuthConfig) IsZero() bool {
 	return j.HTTPClientAuthenticatorConfig == nil
 }
 
