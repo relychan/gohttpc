@@ -81,6 +81,9 @@ type HTTPTransportConfig struct {
 	// DisableKeepAlives, if true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request.
 	// This is unrelated to the similarly named TCP keep-alives.
 	DisableKeepAlives bool `json:"disableKeepAlives,omitempty" yaml:"disableKeepAlives"`
+	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
+	// Default is true.
+	ForceAttemptHTTP2 *bool `json:"forceAttemptHTTP2,omitempty" yaml:"forceAttemptHTTP2"`
 }
 
 // IsZero if the current instance is empty.
@@ -91,7 +94,7 @@ func (c *HTTPTransportConfig) IsZero() bool {
 		c.MaxIdleConns == nil && c.MaxIdleConnsPerHost == nil &&
 		c.MaxConnsPerHost == nil && c.MaxResponseHeaderBytes == nil &&
 		c.ReadBufferSize == nil && c.WriteBufferSize == nil &&
-		!c.DisableKeepAlives
+		!c.DisableKeepAlives && c.ForceAttemptHTTP2 == nil
 }
 
 // Equal checks if this instance equals the target.
@@ -107,7 +110,8 @@ func (c HTTPTransportConfig) Equal(target HTTPTransportConfig) bool {
 		goutils.EqualComparablePtr(c.MaxResponseHeaderBytes, target.MaxResponseHeaderBytes) &&
 		goutils.EqualComparablePtr(c.ReadBufferSize, target.ReadBufferSize) &&
 		goutils.EqualComparablePtr(c.WriteBufferSize, target.WriteBufferSize) &&
-		c.DisableKeepAlives == target.DisableKeepAlives
+		c.DisableKeepAlives == target.DisableKeepAlives &&
+		goutils.EqualComparablePtr(c.ForceAttemptHTTP2, target.ForceAttemptHTTP2)
 }
 
 // TransportFromConfig creates an http transport from the configuration.
@@ -190,6 +194,10 @@ func applyTransport(ttc *HTTPTransportConfig, defaultTransport *http.Transport) 
 
 	if ttc.WriteBufferSize != nil && *ttc.WriteBufferSize > 0 {
 		defaultTransport.WriteBufferSize = *ttc.WriteBufferSize
+	}
+
+	if ttc.ForceAttemptHTTP2 != nil {
+		defaultTransport.ForceAttemptHTTP2 = *ttc.ForceAttemptHTTP2
 	}
 
 	return defaultTransport

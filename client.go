@@ -62,6 +62,11 @@ func (c *Client) HTTPClient() (HTTPClient, error) {
 	return c, nil
 }
 
+// ClientOptions returns a cloned [ClientOptions] of the current client.
+func (c *Client) ClientOptions() *ClientOptions {
+	return c.options.Clone()
+}
+
 // NewRequest returns a new http.Request given a method, URL, and optional body.
 func (c *Client) NewRequest(
 	ctx context.Context,

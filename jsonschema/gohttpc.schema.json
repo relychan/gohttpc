@@ -21,16 +21,20 @@
           ]
         },
         "header": {
-          "type": "string"
+          "type": "string",
+          "description": "Header where the credential will be set."
         },
         "username": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "Username to authenticate."
         },
         "password": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "Password to authenticate."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A description for security scheme."
         }
       },
       "additionalProperties": false,
@@ -39,21 +43,25 @@
         "type",
         "username",
         "password"
-      ]
+      ],
+      "description": "BasicAuthConfig contains configurations for the [basic] authentication.\n\n[basic]: https://swagger.io/docs/specification/authentication/basic-authentication"
     },
     "ClientCredentialsOAuthFlow": {
       "properties": {
         "tokenUrl": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "The token URL to be used for this flow. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS."
         },
         "refreshUrl": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS."
         },
         "scopes": {
           "additionalProperties": {
             "type": "string"
           },
-          "type": "object"
+          "type": "object",
+          "description": "The available scopes for the OAuth2 security scheme. A map between the scope name and a short description for it. The map MAY be empty."
         },
         "clientId": {
           "$ref": "#/$defs/EnvString"
@@ -69,7 +77,8 @@
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "ClientCredentialsOAuthFlow contains flow configurations for OAuth 2.0 client credential flow."
     },
     "Duration": {
       "type": "string",
@@ -161,10 +170,12 @@
           "description": "The location enum for setting authentication value"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the field to validate, for example, Authorization header."
         },
         "scheme": {
-          "type": "string"
+          "type": "string",
+          "description": "The name of the HTTP Authentication scheme to be used in the Authorization header as defined in RFC7235.\nThe values used SHOULD be registered in the IANA Authentication Scheme registry. https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml\nThe value is case-insensitive, as defined in RFC7235."
         },
         "type": {
           "type": "string",
@@ -173,10 +184,12 @@
           ]
         },
         "value": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "Value of the access token."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A description for security scheme."
         }
       },
       "additionalProperties": false,
@@ -186,7 +199,8 @@
         "name",
         "type",
         "value"
-      ]
+      ],
+      "description": "HTTPAuthConfig contains configurations for http authentication\nIf the scheme is [bearer], the authenticator follows OpenAPI 3 specification.\n\n[bearer]: https://swagger.io/docs/specification/authentication/bearer-authentication"
     },
     "HTTPClientAuthConfig": {
       "oneOf": [
@@ -215,23 +229,29 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Default maximum timeout duration that is applied for all requests."
         },
         "transport": {
-          "$ref": "#/$defs/HTTPTransportConfig"
+          "$ref": "#/$defs/HTTPTransportConfig",
+          "description": "Transport stores the http.Transport configuration for the http client."
         },
         "tls": {
-          "$ref": "#/$defs/TLSConfig"
+          "$ref": "#/$defs/TLSConfig",
+          "description": "The transport layer security (LTS) configuration for the mutualTLS authentication."
         },
         "retry": {
-          "$ref": "#/$defs/HTTPRetryConfig"
+          "$ref": "#/$defs/HTTPRetryConfig",
+          "description": "Retry policy of client requests."
         },
         "authentication": {
-          "$ref": "#/$defs/HTTPClientAuthConfig"
+          "$ref": "#/$defs/HTTPClientAuthConfig",
+          "description": "Authentication configuration."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "HTTPClientConfig contains configurations to create client."
     },
     "HTTPDialerConfig": {
       "properties": {
@@ -243,10 +263,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The maximum amount of time a dial will wait for a connect to complete.\nIf Deadline is also set, it may fail earlier."
         },
         "keepAliveEnabled": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Keep-alive probes are enabled by default."
         },
         "keepAliveInterval": {
           "oneOf": [
@@ -256,12 +278,14 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "KeepAliveInterval is the time between keep-alive probes. If zero, a default value of 15 seconds is used."
         },
         "keepAliveCount": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "KeepAliveCount is the maximum number of keep-alive probes that can go unanswered before dropping a connection.\nIf zero, a default value of 9 is used."
             },
             {
               "type": "null"
@@ -276,7 +300,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "KeepAliveIdle is the time that the connection must be idle before the first keep-alive probe is sent.\nIf zero, a default value of 15 seconds is used."
         },
         "fallbackDelay": {
           "oneOf": [
@@ -286,46 +311,57 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "FallbackDelay specifies the length of time to wait before spawning a RFC 6555 Fast Fallback connection.\nThat is, this is the amount of time to wait for IPv6 to succeed before assuming that IPv6 is misconfigured and falling back to IPv4.\nIf zero, a default delay of 300ms is used. A negative value disables Fast Fallback support."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "HTTPDialerConfig contains options the http.Dialer to connect to an address."
     },
     "HTTPRetryConfig": {
       "properties": {
         "maxAttempts": {
-          "$ref": "#/$defs/EnvInt"
+          "$ref": "#/$defs/EnvInt",
+          "description": "Maximum number of retry attempts."
         },
         "delay": {
-          "type": "integer"
+          "type": "integer",
+          "description": "The initial wait time in milliseconds before a retry is attempted.\nMust be \u003e0. Defaults to 1 second."
         },
         "maxDelay": {
-          "type": "integer"
+          "type": "integer",
+          "description": "The max delay in milliseconds of the exponentially backing off.\nIf the max delay is smaller or equal the base delay. The delay is constant."
         },
         "httpStatus": {
           "items": {
             "type": "integer"
           },
-          "type": "array"
+          "type": "array",
+          "description": "HTTPStatus retries if the remote service returns one of these http status"
         },
         "multiplier": {
-          "type": "number"
+          "type": "number",
+          "description": "How much should the reconnection time grow on subsequent attempts.\nMust be \u003e=1; 1 = constant interval. Defaults to 1.5."
         },
         "jitter": {
-          "type": "integer"
+          "type": "integer",
+          "description": "For each retry delay, a random portion of the jitter will be added or subtracted to the delay.\nFor example: a jitter of 100 milliseconds will randomly add between -100 and 100 milliseconds to each retry delay.\nReplaces any previously configured jitter factor."
         },
         "jitterFactor": {
-          "type": "number"
+          "type": "number",
+          "description": "For each retry delay, a random portion of the delay multiplied by the jitterFactor will be added or subtracted to the delay.\nFor example: a retry delay of 100 milliseconds and a jitterFactor of .25 will result in a random retry delay between 75 and 125 milliseconds.\nReplaces any previously configured jitter duration."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "HTTPRetryConfig represents retry policy settings."
     },
     "HTTPTransportConfig": {
       "properties": {
         "dialer": {
-          "$ref": "#/$defs/HTTPDialerConfig"
+          "$ref": "#/$defs/HTTPDialerConfig",
+          "description": "Options the http.Dialer to connect to an address"
         },
         "idleConnTimeout": {
           "oneOf": [
@@ -335,7 +371,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Idle connection timeout. The maximum amount of time an idle (keep-alive) connection will remain idle before closing itself. Zero means no limit."
         },
         "responseHeaderTimeout": {
           "oneOf": [
@@ -345,7 +382,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Response header timeout, if non-zero, specifies the amount of time to wait for a server's response headers after fully writing the request (including its body, if any).\nThis time does not include the time to read the response body.\nThis timeout is used to cover cases where the tcp connection works but the server never answers."
         },
         "tlsHandshakeTimeout": {
           "oneOf": [
@@ -355,7 +393,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "TLS handshake timeout is the maximum amount of time to wait for a TLS handshake. Zero means no timeout."
         },
         "expectContinueTimeout": {
           "oneOf": [
@@ -365,12 +404,14 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "Expect continue timeout, if non-zero, specifies the amount of time to wait for a server's first response headers after fully writing the request headers if the request has an \"Expect: 100-continue\" header."
         },
         "maxIdleConns": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "MaxIdleConns controls the maximum number of idle (keep-alive) connections across all hosts. Zero means no limit."
             },
             {
               "type": "null"
@@ -380,7 +421,8 @@
         "maxIdleConnsPerHost": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "MaxIdleConnsPerHost, if non-zero, controls the maximum idle (keep-alive) connections to keep per-host."
             },
             {
               "type": "null"
@@ -390,7 +432,8 @@
         "maxConnsPerHost": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "MaxConnsPerHost optionally limits the total number of connections per host, including connections in the dialing, active, and idle states.\nOn limit violation, dials will block. Zero means no limit."
             },
             {
               "type": "null"
@@ -400,7 +443,8 @@
         "maxResponseHeaderBytes": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "MaxResponseHeaderBytes specifies a limit on how many response bytes are allowed in the server's response header.\nZero means to use a default limit."
             },
             {
               "type": "null"
@@ -410,7 +454,8 @@
         "readBufferSize": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "ReadBufferSize specifies the size of the read buffer used when reading from the transport.\nIf zero, a default (currently 4KB) is used."
             },
             {
               "type": "null"
@@ -420,7 +465,8 @@
         "writeBufferSize": {
           "oneOf": [
             {
-              "type": "integer"
+              "type": "integer",
+              "description": "WriteBufferSize specifies the size of the write buffer used when writing to the transport.\nIf zero, a default (currently 4KB) is used."
             },
             {
               "type": "null"
@@ -428,11 +474,17 @@
           ]
         },
         "disableKeepAlives": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "DisableKeepAlives, if true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request.\nThis is unrelated to the similarly named TCP keep-alives."
+        },
+        "forceAttemptHTTP2": {
+          "type": "boolean",
+          "description": "ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero Dial, DialTLS, or DialContext func or TLSClientConfig is provided.\nDefault is true."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "HTTPTransportConfig stores the http.Transport configuration for the http client."
     },
     "OAuth2Config": {
       "properties": {
@@ -443,13 +495,16 @@
           ]
         },
         "flows": {
-          "$ref": "#/$defs/OAuth2Flows"
+          "$ref": "#/$defs/OAuth2Flows",
+          "description": "An object containing configuration information for the flow types supported."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A description for security scheme."
         },
         "tokenLocation": {
-          "$ref": "#/$defs/TokenLocation"
+          "$ref": "#/$defs/TokenLocation",
+          "description": "The location where the auth credential will be injected."
         }
       },
       "additionalProperties": false,
@@ -457,37 +512,45 @@
       "required": [
         "type",
         "flows"
-      ]
+      ],
+      "description": "OAuth2Config contains configurations for OAuth 2.0 with client_credentials type."
     },
     "OAuth2Flows": {
       "properties": {
         "clientCredentials": {
-          "$ref": "#/$defs/ClientCredentialsOAuthFlow"
+          "$ref": "#/$defs/ClientCredentialsOAuthFlow",
+          "description": "OAuth2 flow for client_credentials"
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
         "clientCredentials"
-      ]
+      ],
+      "description": "OAuth2Flows contain configuration information for the flow types supported."
     },
     "TLSClientCertificate": {
       "properties": {
         "certFile": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "CertFile is the path to the TLS cert to use for TLS required connections."
         },
         "certPem": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "CertPem is alternative to certFile. Provide the certificate contents as a base64-encoded string instead of a filepath."
         },
         "keyFile": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "KeyFile is the path to the TLS key to use for TLS required connections."
         },
         "keyPem": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "KeyPem is the alternative to keyFile. Provide the key contents as a base64-encoded string instead of a filepath."
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "TLSClientCertificate represents a cert and key pair certificate."
     },
     "TLSConfig": {
       "properties": {
@@ -495,56 +558,68 @@
           "items": {
             "$ref": "#/$defs/EnvString"
           },
-          "type": "array"
+          "type": "array",
+          "description": "RootCAFile represents paths to root certificates. For a client this verifies the server certificate. For a server this verifies client certificates.\nIf empty uses system root CA."
         },
         "rootCAPem": {
           "items": {
             "$ref": "#/$defs/EnvString"
           },
-          "type": "array"
+          "type": "array",
+          "description": "RootCAPem is the alternative to rootCAFile. Provide the CA cert contents as a base64-encoded string instead of a filepath."
         },
         "caFile": {
           "items": {
             "$ref": "#/$defs/EnvString"
           },
-          "type": "array"
+          "type": "array",
+          "description": "CAFile is the path to the CA cert. For a client this verifies the server certificate. For a server this verifies client certificates.\nIf empty uses system root CA."
         },
         "caPem": {
           "items": {
             "$ref": "#/$defs/EnvString"
           },
-          "type": "array"
+          "type": "array",
+          "description": "CAPem is alternative to caFile. Provide the CA cert contents as a base64-encoded string instead of a filepath."
         },
         "certificates": {
           "items": {
             "$ref": "#/$defs/TLSClientCertificate"
           },
-          "type": "array"
+          "type": "array",
+          "description": "Certificates contains the list of client certificates."
         },
         "insecureSkipVerify": {
-          "$ref": "#/$defs/EnvBool"
+          "$ref": "#/$defs/EnvBool",
+          "description": "InsecureSkipVerify you can configure TLS to be enabled but skip verifying the server's certificate chain."
         },
         "includeSystemCACertsPool": {
-          "$ref": "#/$defs/EnvBool"
+          "$ref": "#/$defs/EnvBool",
+          "description": "IncludeSystemCACertsPool whether to load the system certificate authorities pool alongside the certificate authority."
         },
         "minVersion": {
-          "type": "string"
+          "type": "string",
+          "description": "Minimum acceptable TLS version."
         },
         "maxVersion": {
-          "type": "string"
+          "type": "string",
+          "description": "Maximum acceptable TLS version."
         },
         "cipherSuites": {
           "items": {
             "type": "string"
           },
-          "type": "array"
+          "type": "array",
+          "description": "Explicit cipher suites can be set. If left blank, a safe default list is used.\nSee https://go.dev/src/crypto/tls/cipher_suites.go for a list of supported cipher suites."
         },
         "serverName": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "ServerName requested by client for virtual hosting.\nThis sets the ServerName in the TLSConfig. Please refer to\nhttps://godoc.org/crypto/tls#Config for more information. (optional)"
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "description": "TLSConfig represents the transport layer security (LTS) configuration for the mutualTLS authentication."
     },
     "TokenLocation": {
       "properties": {
@@ -553,10 +628,12 @@
           "description": "The location enum for setting authentication value"
         },
         "name": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the field to validate, for example, Authorization header."
         },
         "scheme": {
-          "type": "string"
+          "type": "string",
+          "description": "The name of the HTTP Authentication scheme to be used in the Authorization header as defined in RFC7235.\nThe values used SHOULD be registered in the IANA Authentication Scheme registry. https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml\nThe value is case-insensitive, as defined in RFC7235."
         }
       },
       "additionalProperties": false,
@@ -564,7 +641,8 @@
       "required": [
         "in",
         "name"
-      ]
+      ],
+      "description": "TokenLocation contains the configuration for the location of the access token."
     }
   }
 }

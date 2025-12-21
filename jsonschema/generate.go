@@ -30,6 +30,11 @@ func jsonSchemaConfiguration() error {
 		return err
 	}
 
+	err = r.AddGoComments("github.com/relychan/gohttpc", "../", jsonschema.WithFullComment())
+	if err != nil {
+		return err
+	}
+
 	reflectSchema := r.Reflect(httpconfig.HTTPClientConfig{})
 
 	for _, externalType := range []any{
