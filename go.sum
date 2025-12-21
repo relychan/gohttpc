@@ -6,6 +6,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/failsafe-go/failsafe-go v0.9.3 h1:Iw+kKMA+jMCjWsWOksQ9aJPF+1WKsWgfFCiT1DGdYGI=
 github.com/failsafe-go/failsafe-go v0.9.3/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
+github.com/failsafe-go/failsafe-go v0.9.4 h1:dSIZYxXvRqh+PndhTb6LMeMXPz8iC21LfmwxSofMHSw=
+github.com/failsafe-go/failsafe-go v0.9.4/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
@@ -38,6 +40,8 @@ github.com/relychan/goutils v0.0.0-20251213140534-a1500ae5972b h1:xtBIboJ8rD8qVG
 github.com/relychan/goutils v0.0.0-20251213140534-a1500ae5972b/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
 github.com/relychan/goutils v0.0.0-20251213144555-58fea62853f9 h1:hQCDEvviXy7bdbUdbcTcghxu/uzzjeJpqSBzic+RJNY=
 github.com/relychan/goutils v0.0.0-20251213144555-58fea62853f9/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
+github.com/relychan/goutils v0.0.0-20251214090424-aad6497ba9b4 h1:W5y0juddqcxLa621Phv3rI0yeZrIJ9UVYhXqoaJjA6I=
+github.com/relychan/goutils v0.0.0-20251214090424-aad6497ba9b4/go.mod h1:EujSfQanq+VjRhVkUEek+WtsIvmnrVMHgmrdIe1FnxM=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
