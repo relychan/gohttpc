@@ -1,21 +1,41 @@
 package authscheme
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestTokenLocation_InjectRequest_Header(t *testing.T) {
+	t.Run("empty token location name", func(t *testing.T) {
+		err := TokenLocation{In: InHeader}.Validate()
+		if err == nil || err.Error() != "required field name for the token location" {
+			t.Errorf("expected empty name error, got %v", err)
+		}
+	})
+
 	t.Run("injects token into header", func(t *testing.T) {
 		location := TokenLocation{
 			In:   InHeader,
 			Name: "Authorization",
 		}
 
+		if location.IsZero() {
+			t.Errorf("expected non-zero, for zero")
+		}
+
+		if !location.Equal(location) {
+			t.Errorf("expected equal, got not equal")
+		}
+
+		err := location.Validate()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 		injected, err := location.InjectRequest(req, "test-token", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -39,7 +59,6 @@ func TestTokenLocation_InjectRequest_Header(t *testing.T) {
 		req.Header.Set("Authorization", "existing-token")
 
 		injected, err := location.InjectRequest(req, "new-token", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -63,7 +82,6 @@ func TestTokenLocation_InjectRequest_Header(t *testing.T) {
 		req.Header.Set("Authorization", "existing-token")
 
 		injected, err := location.InjectRequest(req, "new-token", true)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -85,7 +103,6 @@ func TestTokenLocation_InjectRequest_Header(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 		injected, err := location.InjectRequest(req, "", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -109,7 +126,6 @@ func TestTokenLocation_InjectRequest_Query(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com/api", nil)
 		injected, err := location.InjectRequest(req, "test-token", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -131,7 +147,6 @@ func TestTokenLocation_InjectRequest_Query(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com/api", nil)
 		injected, err := location.InjectRequest(req, "", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -153,7 +168,6 @@ func TestTokenLocation_InjectRequest_Query(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com/api?foo=bar", nil)
 		injected, err := location.InjectRequest(req, "test-token", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -183,7 +197,6 @@ func TestTokenLocation_InjectRequest_Cookie(t *testing.T) {
 		req.AddCookie(&http.Cookie{Name: "session", Value: "existing-value"})
 
 		injected, err := location.InjectRequest(req, "new-value", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -202,7 +215,6 @@ func TestTokenLocation_InjectRequest_Cookie(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 
 		injected, err := location.InjectRequest(req, "new-value", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -229,6 +241,11 @@ func TestTokenLocation_addTokenSchemeToValue(t *testing.T) {
 	t.Run("adds Basic scheme", func(t *testing.T) {
 		location := TokenLocation{
 			Scheme: "basic",
+		}
+
+		err := location.Validate()
+		if err.Error() != fmt.Sprintf("%s; got: ", errInvalidAuthLocation) {
+			t.Errorf("expected invalid auth location error, got '%s'", err.Error())
 		}
 
 		result := location.addTokenSchemeToValue("test-token")
@@ -271,7 +288,6 @@ func TestTokenLocation_addTokenSchemeToValue(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 		injected, err := location.InjectRequest(req, "test-token", false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
