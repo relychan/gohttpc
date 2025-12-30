@@ -9,6 +9,7 @@ import (
 //
 // [basic]: https://swagger.io/docs/specification/authentication/basic-authentication
 type BasicAuthConfig struct {
+	// Type of the basic authenticator.
 	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=basic" yaml:"type"`
 	// Header where the credential will be set.
 	Header string `json:"header,omitempty" yaml:"header,omitempty"`

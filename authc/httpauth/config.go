@@ -12,6 +12,7 @@ import (
 type HTTPAuthConfig struct {
 	authscheme.TokenLocation `yaml:",inline"`
 
+	// Type of the http authenticator.
 	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=http" yaml:"type"`
 	// Value of the access token.
 	Value goenvconf.EnvString `json:"value" yaml:"value"`
