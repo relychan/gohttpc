@@ -23,6 +23,7 @@ var (
 
 // OAuth2Config contains configurations for OAuth 2.0 with client_credentials type.
 type OAuth2Config struct {
+	// Type of the oauth2 authenticator.
 	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=oauth2" yaml:"type"`
 	// An object containing configuration information for the flow types supported.
 	Flows OAuth2Flows `json:"flows" yaml:"flows"`
@@ -96,9 +97,12 @@ type ClientCredentialsOAuthFlow struct {
 	// The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS.
 	RefreshURL *goenvconf.EnvString `json:"refreshUrl,omitempty" yaml:"refreshUrl,omitempty"`
 	// The available scopes for the OAuth2 security scheme. A map between the scope name and a short description for it. The map MAY be empty.
-	Scopes         map[string]string              `json:"scopes,omitempty"         yaml:"scopes,omitempty"`
-	ClientID       *goenvconf.EnvString           `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
-	ClientSecret   *goenvconf.EnvString           `json:"clientSecret,omitempty"   yaml:"clientSecret,omitempty"`
+	Scopes map[string]string `json:"scopes,omitempty"         yaml:"scopes,omitempty"`
+	// Client ID of the OAuth2 client.
+	ClientID *goenvconf.EnvString `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
+	// Client secret of the OAuth2 client.
+	ClientSecret *goenvconf.EnvString `json:"clientSecret,omitempty"   yaml:"clientSecret,omitempty"`
+	// Optional query parameters for the endpoint.
 	EndpointParams map[string]goenvconf.EnvString `json:"endpointParams,omitempty" yaml:"endpointParams,omitempty"`
 }
 

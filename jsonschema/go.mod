@@ -5,7 +5,7 @@ go 1.25.5
 require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/relychan/gohttpc v0.0.1
-	github.com/relychan/goutils v0.0.0-20251214090424-aad6497ba9b4
+	github.com/relychan/goutils v0.0.0-20251230062103-93a30b1ea43d
 )
 
 require (
@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hasura/goenvconf v0.5.1 // indirect
+	github.com/hasura/goenvconf v0.6.1 // indirect
 	github.com/hasura/gotel v0.5.0 // indirect
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.2 // indirect

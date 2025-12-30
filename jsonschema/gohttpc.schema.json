@@ -18,7 +18,8 @@
           "type": "string",
           "enum": [
             "basic"
-          ]
+          ],
+          "description": "Type of the basic authenticator."
         },
         "header": {
           "type": "string",
@@ -64,16 +65,19 @@
           "description": "The available scopes for the OAuth2 security scheme. A map between the scope name and a short description for it. The map MAY be empty."
         },
         "clientId": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "Client ID of the OAuth2 client."
         },
         "clientSecret": {
-          "$ref": "#/$defs/EnvString"
+          "$ref": "#/$defs/EnvString",
+          "description": "Client secret of the OAuth2 client."
         },
         "endpointParams": {
           "additionalProperties": {
             "$ref": "#/$defs/EnvString"
           },
-          "type": "object"
+          "type": "object",
+          "description": "Optional query parameters for the endpoint."
         }
       },
       "additionalProperties": false,
@@ -102,10 +106,12 @@
       ],
       "properties": {
         "value": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Default literal value if the env is empty"
         },
         "env": {
-          "type": "string"
+          "type": "string",
+          "description": "Environment variable to be evaluated"
         }
       },
       "additionalProperties": false,
@@ -128,10 +134,12 @@
       ],
       "properties": {
         "value": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Default literal value if the env is empty"
         },
         "env": {
-          "type": "string"
+          "type": "string",
+          "description": "Environment variable to be evaluated"
         }
       },
       "additionalProperties": false,
@@ -154,10 +162,12 @@
       ],
       "properties": {
         "value": {
-          "type": "string"
+          "type": "string",
+          "description": "Default literal value if the env is empty"
         },
         "env": {
-          "type": "string"
+          "type": "string",
+          "description": "Environment variable to be evaluated"
         }
       },
       "additionalProperties": false,
@@ -171,7 +181,8 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the field to validate, for example, Authorization header."
+          "description": "Name of the field to validate, for example, Authorization header.",
+          "default": "Authorization"
         },
         "scheme": {
           "type": "string",
@@ -181,7 +192,8 @@
           "type": "string",
           "enum": [
             "http"
-          ]
+          ],
+          "description": "Type of the http authenticator."
         },
         "value": {
           "$ref": "#/$defs/EnvString",
@@ -492,7 +504,8 @@
           "type": "string",
           "enum": [
             "oauth2"
-          ]
+          ],
+          "description": "Type of the oauth2 authenticator."
         },
         "flows": {
           "$ref": "#/$defs/OAuth2Flows",
@@ -629,7 +642,8 @@
         },
         "name": {
           "type": "string",
-          "description": "Name of the field to validate, for example, Authorization header."
+          "description": "Name of the field to validate, for example, Authorization header.",
+          "default": "Authorization"
         },
         "scheme": {
           "type": "string",
