@@ -12,6 +12,7 @@ import (
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
 	"github.com/relychan/gohttpc/httpconfig"
+	"github.com/relychan/gohttpc/loadbalancer"
 	"github.com/relychan/goutils"
 )
 
@@ -42,6 +43,7 @@ func jsonSchemaConfiguration() error {
 		httpauth.HTTPAuthConfig{},
 		authscheme.TokenLocation{},
 		oauth2scheme.OAuth2Config{},
+		loadbalancer.HTTPHealthCheckConfig{},
 	} {
 		externalSchema := r.Reflect(externalType)
 

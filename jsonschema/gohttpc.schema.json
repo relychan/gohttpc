@@ -331,6 +331,69 @@
       "type": "object",
       "description": "HTTPDialerConfig contains options the http.Dialer to connect to an address."
     },
+    "HTTPHealthCheckConfig": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Health check path, e.g, /healthz."
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST"
+          ],
+          "description": "Health check method. Default to GET",
+          "default": "GET"
+        },
+        "body": {
+          "description": "Request body is used if the method is POST."
+        },
+        "headers": {
+          "additionalProperties": {
+            "$ref": "#/$defs/EnvString"
+          },
+          "type": "object",
+          "description": "Request headers to be sent to health check requests."
+        },
+        "interval": {
+          "type": "integer",
+          "description": "Health check interval in seconds. Disabled if the interval is negative or equals 0. Default to 60 seconds",
+          "default": 60
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout in seconds. Disabled if the timeout is negative or equals 0. Default to 5 seconds",
+          "default": 5
+        },
+        "successStatus": {
+          "type": "integer",
+          "enum": [
+            200,
+            201,
+            204
+          ],
+          "description": "SuccessStatus is expected successful HTTP status. Default to HTTP 200 OK.",
+          "default": 200
+        },
+        "successThreshold": {
+          "type": "integer",
+          "description": "SuccessThreshold is the minimum consecutive successes for the probe to be considered successful after having failed. Defaults to 1. Minimum value is 1.",
+          "default": 1
+        },
+        "failureThreshold": {
+          "type": "integer",
+          "description": "Failure threshold. After a probe fails threshold times in a row, the HTTP client considers that the overall check has failed. Default to 5. Minimum value is 1",
+          "default": 3
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "description": "HTTPHealthCheckConfig holds configurations for health checking the server and recovery."
+    },
     "HTTPRetryConfig": {
       "properties": {
         "maxAttempts": {
