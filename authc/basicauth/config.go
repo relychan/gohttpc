@@ -3,6 +3,7 @@ package basicauth
 import (
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 // BasicAuthConfig contains configurations for the [basic] authentication.
@@ -14,9 +15,9 @@ type BasicAuthConfig struct {
 	// Header where the credential will be set.
 	Header string `json:"header,omitempty" yaml:"header,omitempty"`
 	// Username to authenticate.
-	Username goenvconf.EnvString `json:"username" yaml:"username"`
+	Username *goenvconf.EnvString `json:"username" yaml:"username" jsonschema:"anyof_required=username"`
 	// Password to authenticate.
-	Password goenvconf.EnvString `json:"password" yaml:"password"`
+	Password *goenvconf.EnvString `json:"password" yaml:"password" jsonschema:"anyof_required=password"`
 	// A description for security scheme.
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
@@ -24,7 +25,7 @@ type BasicAuthConfig struct {
 var _ authscheme.HTTPClientAuthenticatorConfig = (*BasicAuthConfig)(nil)
 
 // NewBasicAuthConfig creates a new BasicAuthConfig instance.
-func NewBasicAuthConfig(username, password goenvconf.EnvString) *BasicAuthConfig {
+func NewBasicAuthConfig(username, password *goenvconf.EnvString) *BasicAuthConfig {
 	return &BasicAuthConfig{
 		Type:     authscheme.BasicAuthScheme,
 		Username: username,
@@ -36,8 +37,8 @@ func NewBasicAuthConfig(username, password goenvconf.EnvString) *BasicAuthConfig
 func (bac BasicAuthConfig) IsZero() bool {
 	return bac.Type == "" &&
 		bac.Header == "" &&
-		bac.Username.IsZero() &&
-		bac.Password.IsZero() &&
+		(bac.Username == nil || bac.Username.IsZero()) &&
+		(bac.Password == nil || bac.Password.IsZero()) &&
 		bac.Description == ""
 }
 
@@ -45,8 +46,8 @@ func (bac BasicAuthConfig) IsZero() bool {
 func (bac BasicAuthConfig) Equal(target BasicAuthConfig) bool {
 	return bac.Type == target.Type &&
 		bac.Header == target.Header &&
-		bac.Username.Equal(target.Username) &&
-		bac.Password.Equal(target.Password)
+		goutils.EqualPtr(bac.Username, target.Username) &&
+		goutils.EqualPtr(bac.Password, target.Password)
 }
 
 // Validate if the current instance is valid.
@@ -61,12 +62,9 @@ func (bac BasicAuthConfig) Validate(strict bool) error {
 		return nil
 	}
 
-	if bac.Username.IsZero() {
-		return authscheme.NewRequiredSecurityFieldError(authType, "username")
-	}
-
-	if bac.Password.IsZero() {
-		return authscheme.NewRequiredSecurityFieldError(authType, "password")
+	if (bac.Username == nil || bac.Username.IsZero()) &&
+		(bac.Password == nil || bac.Password.IsZero()) {
+		return authscheme.NewRequiredSecurityFieldError(authType, "username or password")
 	}
 
 	return nil

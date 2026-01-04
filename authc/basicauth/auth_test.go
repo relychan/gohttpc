@@ -15,8 +15,8 @@ func TestNewBasicCredential(t *testing.T) {
 	t.Run("creates credential with valid config", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue("testpass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -49,8 +49,8 @@ func TestNewBasicCredential(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
 			Header:   "X-Custom-Auth",
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue("testpass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -66,8 +66,8 @@ func TestNewBasicCredential(t *testing.T) {
 	t.Run("returns error when username resolution fails", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringVariable("NONEXISTENT_VAR"),
-			Password: goenvconf.NewEnvStringValue("testpass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringVariable("NONEXISTENT_VAR")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 		}
 
 		_, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -80,8 +80,8 @@ func TestNewBasicCredential(t *testing.T) {
 	t.Run("returns error when password resolution fails", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringVariable("NONEXISTENT_VAR"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringVariable("NONEXISTENT_VAR")),
 		}
 
 		_, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -96,8 +96,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 	t.Run("authenticates with standard Authorization header", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue("testpass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -127,8 +127,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
 			Header:   "X-Custom-Auth",
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue("testpass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -157,8 +157,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 	t.Run("returns error when both username and password are empty", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue(""),
-			Password: goenvconf.NewEnvStringValue(""),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("")),
 		}
 
 		_, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -170,8 +170,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 	t.Run("authenticates with username only (no password)", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue(""),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -195,8 +195,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
 			Header:   "X-Custom-Auth",
-			Username: goenvconf.NewEnvStringValue("testuser"),
-			Password: goenvconf.NewEnvStringValue(""),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
@@ -225,8 +225,8 @@ func TestBasicCredential_Authenticate(t *testing.T) {
 	t.Run("authenticates with special characters in credentials", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("user@example.com"),
-			Password: goenvconf.NewEnvStringValue("p@ss:w0rd!"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user@example.com")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("p@ss:w0rd!")),
 		}
 
 		cred, err := NewBasicCredential(config, authscheme.NewHTTPClientAuthenticatorOptions())
