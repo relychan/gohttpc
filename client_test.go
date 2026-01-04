@@ -76,7 +76,7 @@ func TestClient(t *testing.T) {
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
-				gohttpc.WithCustomEnvGetter(authscheme.NewHTTPClientAuthenticatorOptions().CustomEnvGetter),
+				gohttpc.WithGetEnvFunc(authscheme.NewHTTPClientAuthenticatorOptions().GetEnv),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())

@@ -2,7 +2,6 @@
 package httpauth
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,7 +19,6 @@ var _ authscheme.HTTPClientAuthenticator = (*HTTPCredential)(nil)
 
 // NewHTTPCredential creates a new HTTPCredential instance.
 func NewHTTPCredential(
-	ctx context.Context,
 	config *HTTPAuthConfig,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*HTTPCredential, error) {
@@ -36,13 +34,11 @@ func NewHTTPCredential(
 
 	scheme := strings.TrimSpace(config.Scheme)
 
-	if options == nil || options.CustomEnvGetter == nil {
+	if options == nil {
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	getter := options.CustomEnvGetter(ctx)
-
-	value, err := config.Value.GetCustom(getter)
+	value, err := config.Value.GetCustom(options.GetEnvFunc())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get HTTP credential: %w", err)
 	}

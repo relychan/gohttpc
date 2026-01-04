@@ -1,7 +1,6 @@
 package authc
 
 import (
-	"context"
 	"testing"
 
 	"github.com/hasura/goenvconf"
@@ -27,8 +26,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 			},
 		}
 
-		authenticator, err := NewAuthenticatorFromConfig(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
-
+		authenticator, err := NewAuthenticatorFromConfig(config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -54,8 +52,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 			},
 		}
 
-		authenticator, err := NewAuthenticatorFromConfig(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
-
+		authenticator, err := NewAuthenticatorFromConfig(config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -83,8 +80,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 			},
 		}
 
-		authenticator, err := NewAuthenticatorFromConfig(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
-
+		authenticator, err := NewAuthenticatorFromConfig(config, authscheme.NewHTTPClientAuthenticatorOptions())
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -104,7 +100,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 			HTTPClientAuthenticatorConfig: &mockUnsupportedConfig{},
 		}
 
-		authenticator, err := NewAuthenticatorFromConfig(context.TODO(), config, authscheme.NewHTTPClientAuthenticatorOptions())
+		authenticator, err := NewAuthenticatorFromConfig(config, authscheme.NewHTTPClientAuthenticatorOptions())
 
 		if err == nil {
 			t.Error("expected error for unsupported auth type")

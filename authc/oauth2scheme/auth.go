@@ -2,7 +2,6 @@
 package oauth2scheme
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,7 +24,6 @@ var _ authscheme.HTTPClientAuthenticator = (*OAuth2Credential)(nil)
 
 // NewOAuth2Credential creates an OAuth2 client from the security scheme.
 func NewOAuth2Credential(
-	ctx context.Context,
 	config *OAuth2Config,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*OAuth2Credential, error) {
@@ -37,11 +35,11 @@ func NewOAuth2Credential(
 		}
 	}
 
-	if options == nil || options.CustomEnvGetter == nil {
+	if options == nil {
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	oauth2Config, err := newClientCredentialsConfig(ctx, config, options)
+	oauth2Config, err := newClientCredentialsConfig(config, options)
 	if err != nil {
 		return nil, err
 	}
@@ -128,11 +126,10 @@ func EqualClientCredentialsConfig(a, b *clientcredentials.Config) bool {
 }
 
 func newClientCredentialsConfig(
-	ctx context.Context,
 	config *OAuth2Config,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*clientcredentials.Config, error) {
-	getter := options.CustomEnvGetter(ctx)
+	getter := options.GetEnvFunc()
 	flow := config.Flows.ClientCredentials
 
 	rawTokenURL, err := flow.TokenURL.GetCustom(getter)

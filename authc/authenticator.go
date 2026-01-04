@@ -1,7 +1,6 @@
 package authc
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
@@ -12,17 +11,16 @@ import (
 
 // NewAuthenticatorFromConfig creates an authenticator from the configuration.
 func NewAuthenticatorFromConfig(
-	ctx context.Context,
 	config *HTTPClientAuthConfig,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (authscheme.HTTPClientAuthenticator, error) {
 	switch conf := config.HTTPClientAuthenticatorConfig.(type) {
 	case *basicauth.BasicAuthConfig:
-		return basicauth.NewBasicCredential(ctx, conf, options)
+		return basicauth.NewBasicCredential(conf, options)
 	case *httpauth.HTTPAuthConfig:
-		return httpauth.NewHTTPCredential(ctx, conf, options)
+		return httpauth.NewHTTPCredential(conf, options)
 	case *oauth2scheme.OAuth2Config:
-		return oauth2scheme.NewOAuth2Credential(ctx, conf, options)
+		return oauth2scheme.NewOAuth2Credential(conf, options)
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnsupportedSecurityScheme, config.GetType())
 	}
