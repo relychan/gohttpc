@@ -1,7 +1,6 @@
 package httpconfig
 
 import (
-	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -261,8 +260,7 @@ func TestNewClientFromConfig(t *testing.T) {
 	t.Run("creates client with empty config", func(t *testing.T) {
 		config := &HTTPClientConfig{}
 
-		client, err := NewClientFromConfig(context.TODO(), config)
-
+		client, err := NewClientFromConfig(config)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -280,8 +278,7 @@ func TestNewClientFromConfig(t *testing.T) {
 			Timeout: &timeout,
 		}
 
-		client, err := NewClientFromConfig(context.TODO(), config)
-
+		client, err := NewClientFromConfig(config)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -301,8 +298,7 @@ func TestNewClientFromConfig(t *testing.T) {
 			},
 		}
 
-		client, err := NewClientFromConfig(context.TODO(), config)
-
+		client, err := NewClientFromConfig(config)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -322,7 +318,7 @@ func TestNewClientFromConfig(t *testing.T) {
 			},
 		}
 
-		client, err := NewClientFromConfig(context.TODO(), config)
+		client, err := NewClientFromConfig(config)
 
 		if err == nil {
 			t.Error("expected error for invalid retry policy")
@@ -344,8 +340,7 @@ func TestNewClientFromConfig(t *testing.T) {
 			},
 		}
 
-		client, err := NewClientFromConfig(context.TODO(), config)
-
+		client, err := NewClientFromConfig(config)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -361,12 +356,10 @@ func TestNewClientFromConfig(t *testing.T) {
 		config := &HTTPClientConfig{}
 
 		client, err := NewClientFromConfig(
-			context.TODO(),
 			config,
 			gohttpc.WithHTTPClient(http.DefaultClient),
 			gohttpc.WithTimeout(time.Second*10),
 		)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -389,7 +382,6 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 		config := &HTTPClientConfig{}
 
 		client, err := NewHTTPClientFromConfig(config, options)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -410,7 +402,6 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 		options := gohttpc.NewClientOptions()
 
 		client, err := NewHTTPClientFromConfig(config, options)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -439,7 +430,6 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 		options := gohttpc.NewClientOptions()
 
 		client, err := NewHTTPClientFromConfig(config, options)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -494,7 +484,6 @@ func TestNewHTTPClientFromConfig(t *testing.T) {
 		}
 
 		client, err := NewHTTPClientFromConfig(config, options)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

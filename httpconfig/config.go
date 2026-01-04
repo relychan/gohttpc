@@ -1,7 +1,6 @@
 package httpconfig
 
 import (
-	"context"
 	"net/http"
 	"time"
 
@@ -44,7 +43,6 @@ func (j HTTPClientConfig) Equal(target HTTPClientConfig) bool {
 
 // NewClientFromConfig creates a HTTP client wrapper with configuration.
 func NewClientFromConfig(
-	ctx context.Context,
 	config *HTTPClientConfig,
 	options ...gohttpc.ClientOption,
 ) (*gohttpc.Client, error) {

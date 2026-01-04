@@ -64,7 +64,6 @@ func TestClient(t *testing.T) {
 			}
 
 			client, err := httpconfig.NewClientFromConfig(
-				context.TODO(),
 				config,
 				gohttpc.WithAuthenticator(nil),
 				gohttpc.WithCustomAttributesFunc(func(r *gohttpc.Request) []attribute.KeyValue {
@@ -212,7 +211,7 @@ func TestTLS(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
+			client, err := httpconfig.NewClientFromConfig(config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
@@ -255,7 +254,7 @@ func TestTLSInsecure(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			client, err := httpconfig.NewClientFromConfig(context.TODO(), config)
+			client, err := httpconfig.NewClientFromConfig(config)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
