@@ -1,7 +1,6 @@
 package oauth2scheme
 
 import (
-	"context"
 	"testing"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
@@ -28,7 +27,7 @@ func TestNewOAuth2Credential(t *testing.T) {
 			t.Error("expected TokenURL to be set")
 		}
 
-		cred, err := NewOAuth2Credential(context.TODO(), config, nil)
+		cred, err := NewOAuth2Credential(config, nil)
 		if err != nil {
 			t.Errorf("expected nil error, got: %s", err)
 		}

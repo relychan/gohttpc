@@ -1,7 +1,6 @@
 package gohttpc
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -199,13 +198,13 @@ func WithUserAgent(userAgent string) ClientOption {
 	}
 }
 
-// WithCustomEnvGetter returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
-func WithCustomEnvGetter(getter func(ctx context.Context) goenvconf.GetEnvFunc) ClientOption {
+// WithGetEnvFunc returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
+func WithGetEnvFunc(getter goenvconf.GetEnvFunc) ClientOption {
 	return func(co *ClientOptions) {
 		if getter == nil {
 			return
 		}
 
-		co.CustomEnvGetter = getter
+		co.GetEnv = getter
 	}
 }

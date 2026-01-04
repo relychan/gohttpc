@@ -69,7 +69,6 @@ func NewClientFromConfig(
 
 	if config.Authentication != nil {
 		authenticator, err := authc.NewAuthenticatorFromConfig(
-			ctx,
 			config.Authentication,
 			&opts.HTTPClientAuthenticatorOptions,
 		)

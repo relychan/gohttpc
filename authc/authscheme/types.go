@@ -2,10 +2,8 @@
 package authscheme
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"slices"
 
 	"github.com/hasura/goenvconf"
@@ -129,16 +127,14 @@ func WithAuthenticationName(name string) AuthenticateOption {
 
 // HTTPClientAuthenticatorOptions define common options for the authenticator client.
 type HTTPClientAuthenticatorOptions struct {
-	CustomEnvGetter func(ctx context.Context) goenvconf.GetEnvFunc
+	GetEnv goenvconf.GetEnvFunc
 }
 
 // NewHTTPClientAuthenticatorOptions creates a new [HTTPClientAuthenticatorOptions] instance.
 func NewHTTPClientAuthenticatorOptions(
 	options ...HTTPClientAuthenticatorOption,
 ) *HTTPClientAuthenticatorOptions {
-	result := &HTTPClientAuthenticatorOptions{
-		CustomEnvGetter: osEnvGetter,
-	}
+	result := &HTTPClientAuthenticatorOptions{}
 
 	for _, opt := range options {
 		opt(result)
@@ -147,29 +143,27 @@ func NewHTTPClientAuthenticatorOptions(
 	return result
 }
 
+// GetEnvFunc returns the getEnv function. Fallback to GetOSEnv.
+func (hcao HTTPClientAuthenticatorOptions) GetEnvFunc() goenvconf.GetEnvFunc {
+	if hcao.GetEnv == nil {
+		return goenvconf.GetOSEnv
+	}
+
+	return hcao.GetEnv
+}
+
 // HTTPClientAuthenticatorOption defines a function to modify [HTTPClientAuthenticatorOptions].
 type HTTPClientAuthenticatorOption func(*HTTPClientAuthenticatorOptions)
 
-// WithCustomEnvGetter returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
-func WithCustomEnvGetter(
-	getter func(ctx context.Context) goenvconf.GetEnvFunc,
+// WithGetEnvFunc returns a function to set the GetEnvFunc getter to [HTTPClientAuthenticatorOptions].
+func WithGetEnvFunc(
+	getFunc goenvconf.GetEnvFunc,
 ) HTTPClientAuthenticatorOption {
 	return func(hao *HTTPClientAuthenticatorOptions) {
-		if getter == nil {
+		if getFunc == nil {
 			return
 		}
 
-		hao.CustomEnvGetter = getter
-	}
-}
-
-func osEnvGetter(_ context.Context) goenvconf.GetEnvFunc {
-	return func(s string) (string, error) {
-		value, ok := os.LookupEnv(s)
-		if !ok {
-			return value, goenvconf.ErrEnvironmentVariableValueRequired
-		}
-
-		return value, nil
+		hao.GetEnv = getFunc
 	}
 }

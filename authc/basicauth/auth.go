@@ -2,7 +2,6 @@
 package basicauth
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -22,22 +21,21 @@ var _ authscheme.HTTPClientAuthenticator = (*BasicCredential)(nil)
 
 // NewBasicCredential creates a new BasicCredential instance.
 func NewBasicCredential(
-	ctx context.Context,
 	config *BasicAuthConfig,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*BasicCredential, error) {
-	if options == nil || options.CustomEnvGetter == nil {
+	if options == nil {
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
 	}
 
-	getter := options.CustomEnvGetter(ctx)
+	getEnv := options.GetEnvFunc()
 
-	user, err := config.Username.GetCustom(getter)
+	user, err := config.Username.GetCustom(getEnv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
 	}
 
-	password, err := config.Password.GetCustom(getter)
+	password, err := config.Password.GetCustom(getEnv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
 	}
