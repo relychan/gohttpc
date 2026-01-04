@@ -13,6 +13,20 @@
       "description": "Defines the location enum for setting authentication value"
     },
     "BasicAuthConfig": {
+      "anyOf": [
+        {
+          "required": [
+            "username"
+          ],
+          "title": "username"
+        },
+        {
+          "required": [
+            "password"
+          ],
+          "title": "password"
+        }
+      ],
       "properties": {
         "type": {
           "type": "string",
