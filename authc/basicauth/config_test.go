@@ -5,6 +5,7 @@ import (
 
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils"
 )
 
 func TestNewBasicAuthConfig(t *testing.T) {
@@ -12,7 +13,7 @@ func TestNewBasicAuthConfig(t *testing.T) {
 		username := goenvconf.NewEnvStringValue("user")
 		password := goenvconf.NewEnvStringValue("pass")
 
-		config := NewBasicAuthConfig(username, password)
+		config := NewBasicAuthConfig(&username, &password)
 
 		if config.Type != authscheme.BasicAuthScheme {
 			t.Errorf("expected type %s, got %s", authscheme.BasicAuthScheme, config.Type)
@@ -44,12 +45,11 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("validates successfully with valid config in non-strict mode", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("user"),
-			Password: goenvconf.NewEnvStringValue("pass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -58,12 +58,11 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("validates successfully with valid config in strict mode", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("user"),
-			Password: goenvconf.NewEnvStringValue("pass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(true)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -72,8 +71,8 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("returns error when type does not match", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.HTTPAuthScheme,
-			Username: goenvconf.NewEnvStringValue("user"),
-			Password: goenvconf.NewEnvStringValue("pass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(false)
@@ -86,8 +85,8 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("returns error when username is empty in strict mode", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.EnvString{},
-			Password: goenvconf.NewEnvStringValue("pass"),
+			Username: &goenvconf.EnvString{},
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(true)
@@ -100,8 +99,8 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("returns error when password is empty in strict mode", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.NewEnvStringValue("user"),
-			Password: goenvconf.EnvString{},
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password: &goenvconf.EnvString{},
 		}
 
 		err := config.Validate(true)
@@ -114,12 +113,11 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("allows empty username and password in non-strict mode", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
-			Username: goenvconf.EnvString{},
-			Password: goenvconf.EnvString{},
+			Username: &goenvconf.EnvString{},
+			Password: &goenvconf.EnvString{},
 		}
 
 		err := config.Validate(false)
-
 		if err != nil {
 			t.Errorf("unexpected error in non-strict mode: %v", err)
 		}
@@ -129,12 +127,11 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:     authscheme.BasicAuthScheme,
 			Header:   "X-Custom-Auth",
-			Username: goenvconf.NewEnvStringValue("user"),
-			Password: goenvconf.NewEnvStringValue("pass"),
+			Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(true)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -143,13 +140,12 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 	t.Run("validates config with description", func(t *testing.T) {
 		config := &BasicAuthConfig{
 			Type:        authscheme.BasicAuthScheme,
-			Username:    goenvconf.NewEnvStringValue("user"),
-			Password:    goenvconf.NewEnvStringValue("pass"),
+			Username:    goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+			Password:    goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 			Description: "Basic authentication for API",
 		}
 
 		err := config.Validate(true)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

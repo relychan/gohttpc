@@ -8,6 +8,7 @@ import (
 	"github.com/relychan/gohttpc/authc/basicauth"
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
+	"github.com/relychan/goutils"
 )
 
 // Helper function to create a pointer to EnvString
@@ -21,8 +22,8 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 		config := &HTTPClientAuthConfig{
 			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 				Type:     authscheme.BasicAuthScheme,
-				Username: goenvconf.NewEnvStringValue("testuser"),
-				Password: goenvconf.NewEnvStringValue("testpass"),
+				Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+				Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 			},
 		}
 

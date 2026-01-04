@@ -203,8 +203,8 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 		authConfig := &authc.HTTPClientAuthConfig{
 			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 				Type:     authscheme.BasicAuthScheme,
-				Username: goenvconf.NewEnvStringValue("user"),
-				Password: goenvconf.NewEnvStringValue("pass"),
+				Username: goutils.ToPtr(goenvconf.NewEnvStringValue("user")),
+				Password: goutils.ToPtr(goenvconf.NewEnvStringValue("pass")),
 			},
 		}
 		config1 := HTTPClientConfig{
@@ -334,8 +334,8 @@ func TestNewClientFromConfig(t *testing.T) {
 			Authentication: &authc.HTTPClientAuthConfig{
 				HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 					Type:     authscheme.BasicAuthScheme,
-					Username: goenvconf.NewEnvStringValue("testuser"),
-					Password: goenvconf.NewEnvStringValue("testpass"),
+					Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+					Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 				},
 			},
 		}

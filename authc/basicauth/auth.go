@@ -30,24 +30,30 @@ func NewBasicCredential(
 
 	getEnv := options.GetEnvFunc()
 
-	user, err := config.Username.GetCustom(getEnv)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
-	}
-
-	password, err := config.Password.GetCustom(getEnv)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
-	}
-
-	if user == "" && password == "" {
-		return nil, authscheme.ErrAuthCredentialEmpty
-	}
-
 	result := &BasicCredential{
-		header:   config.Header,
-		username: user,
-		password: password,
+		header: config.Header,
+	}
+
+	if config.Username != nil {
+		user, err := config.Username.GetCustom(getEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load basic credential. Invalid username: %w", err)
+		}
+
+		result.username = user
+	}
+
+	if config.Password != nil {
+		password, err := config.Password.GetCustom(getEnv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load basic credential. Invalid password: %w", err)
+		}
+
+		result.password = password
+	}
+
+	if result.username == "" && result.password == "" {
+		return nil, authscheme.ErrAuthCredentialEmpty
 	}
 
 	return result, nil

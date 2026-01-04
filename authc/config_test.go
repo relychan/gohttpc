@@ -10,6 +10,7 @@ import (
 	"github.com/relychan/gohttpc/authc/basicauth"
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
+	"github.com/relychan/goutils"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -23,7 +24,6 @@ func TestHTTPClientAuthConfig_UnmarshalJSON(t *testing.T) {
 
 		var config HTTPClientAuthConfig
 		err := json.Unmarshal([]byte(jsonData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -54,7 +54,6 @@ func TestHTTPClientAuthConfig_UnmarshalJSON(t *testing.T) {
 
 		var config HTTPClientAuthConfig
 		err := json.Unmarshal([]byte(jsonData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -88,7 +87,6 @@ func TestHTTPClientAuthConfig_UnmarshalJSON(t *testing.T) {
 
 		var config HTTPClientAuthConfig
 		err := json.Unmarshal([]byte(jsonData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -151,13 +149,12 @@ func TestHTTPClientAuthConfig_MarshalJSON(t *testing.T) {
 		config := HTTPClientAuthConfig{
 			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 				Type:     authscheme.BasicAuthScheme,
-				Username: goenvconf.NewEnvStringValue("testuser"),
-				Password: goenvconf.NewEnvStringValue("testpass"),
+				Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+				Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 			},
 		}
 
 		data, err := json.Marshal(config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -186,7 +183,6 @@ func TestHTTPClientAuthConfig_MarshalJSON(t *testing.T) {
 		}
 
 		data, err := json.Marshal(config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -215,7 +211,6 @@ password:
 
 		var config HTTPClientAuthConfig
 		err := yaml.Unmarshal([]byte(yamlData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -247,7 +242,6 @@ value:
 
 		var config HTTPClientAuthConfig
 		err := yaml.Unmarshal([]byte(yamlData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -272,7 +266,6 @@ flows:
 
 		var config HTTPClientAuthConfig
 		err := yaml.Unmarshal([]byte(yamlData), &config)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -315,13 +308,12 @@ func TestHTTPClientAuthConfig_Validate(t *testing.T) {
 		config := &HTTPClientAuthConfig{
 			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 				Type:     authscheme.BasicAuthScheme,
-				Username: goenvconf.NewEnvStringValue("testuser"),
-				Password: goenvconf.NewEnvStringValue("testpass"),
+				Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+				Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 			},
 		}
 
 		err := config.Validate(false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -373,8 +365,8 @@ func TestHTTPClientAuthConfig_IsZero(t *testing.T) {
 		config := &HTTPClientAuthConfig{
 			HTTPClientAuthenticatorConfig: &basicauth.BasicAuthConfig{
 				Type:     authscheme.BasicAuthScheme,
-				Username: goenvconf.NewEnvStringValue("testuser"),
-				Password: goenvconf.NewEnvStringValue("testpass"),
+				Username: goutils.ToPtr(goenvconf.NewEnvStringValue("testuser")),
+				Password: goutils.ToPtr(goenvconf.NewEnvStringValue("testpass")),
 			},
 		}
 
