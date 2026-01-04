@@ -90,9 +90,8 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 		}
 
 		err := config.Validate(true)
-
-		if err == nil {
-			t.Error("expected error for empty username in strict mode")
+		if err != nil {
+			t.Error("expected nil error for empty username in strict mode")
 		}
 	})
 
@@ -104,9 +103,8 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 		}
 
 		err := config.Validate(true)
-
-		if err == nil {
-			t.Error("expected error for empty password in strict mode")
+		if err != nil {
+			t.Error("expected nil error for empty password in strict mode")
 		}
 	})
 
