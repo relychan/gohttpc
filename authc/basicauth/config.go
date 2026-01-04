@@ -64,7 +64,7 @@ func (bac BasicAuthConfig) Validate(strict bool) error {
 
 	if (bac.Username == nil || bac.Username.IsZero()) &&
 		(bac.Password == nil || bac.Password.IsZero()) {
-		authscheme.NewRequiredSecurityFieldError(authType, "username or password")
+		return authscheme.NewRequiredSecurityFieldError(authType, "username or password")
 	}
 
 	return nil
