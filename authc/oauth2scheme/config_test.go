@@ -60,7 +60,6 @@ func TestOAuth2Config_Validate(t *testing.T) {
 		}
 
 		err := config.Validate(false)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -112,7 +111,6 @@ func TestClientCredentialsOAuthFlow_Validate(t *testing.T) {
 		}
 
 		err := flow.Validate()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -124,17 +122,13 @@ func TestClientCredentialsOAuthFlow_Validate(t *testing.T) {
 			RefreshURL:   ptrEnvString("https://example.com/refresh"),
 			ClientID:     ptrEnvString("client-id"),
 			ClientSecret: ptrEnvString("client-secret"),
-			Scopes: map[string]string{
-				"read":  "Read access",
-				"write": "Write access",
-			},
+			Scopes:       []string{"read", "write"},
 			EndpointParams: map[string]goenvconf.EnvString{
 				"audience": goenvconf.NewEnvStringValue("https://api.example.com"),
 			},
 		}
 
 		err := flow.Validate()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

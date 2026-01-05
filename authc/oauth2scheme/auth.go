@@ -142,11 +142,6 @@ func newClientCredentialsConfig(
 		return nil, fmt.Errorf("tokenUrl: %w", err)
 	}
 
-	scopes := make([]string, 0, len(flow.Scopes))
-	for scope := range flow.Scopes {
-		scopes = append(scopes, scope)
-	}
-
 	clientID, err := flow.ClientID.GetCustom(getter)
 	if err != nil {
 		return nil, fmt.Errorf("clientId: %w", err)
@@ -173,7 +168,7 @@ func newClientCredentialsConfig(
 	return &clientcredentials.Config{
 		ClientID:       clientID,
 		ClientSecret:   clientSecret,
-		Scopes:         scopes,
+		Scopes:         flow.Scopes,
 		TokenURL:       tokenURL.String(),
 		EndpointParams: endpointParams,
 	}, nil
