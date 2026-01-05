@@ -96,7 +96,7 @@ type ClientCredentialsOAuthFlow struct {
 	TokenURL *goenvconf.EnvString `json:"tokenUrl,omitempty" yaml:"tokenUrl,omitempty"`
 	// The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS.
 	RefreshURL *goenvconf.EnvString `json:"refreshUrl,omitempty" yaml:"refreshUrl,omitempty"`
-	// The available scopes for the OAuth2 security scheme. A map between the scope name and a short description for it. The map MAY be empty.
+	// The available scopes for the OAuth2 security scheme.
 	Scopes []string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 	// Client ID of the OAuth2 client.
 	ClientID *goenvconf.EnvString `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
