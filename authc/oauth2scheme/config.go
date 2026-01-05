@@ -97,7 +97,7 @@ type ClientCredentialsOAuthFlow struct {
 	// The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL. The OAuth2 standard requires the use of TLS.
 	RefreshURL *goenvconf.EnvString `json:"refreshUrl,omitempty" yaml:"refreshUrl,omitempty"`
 	// The available scopes for the OAuth2 security scheme. A map between the scope name and a short description for it. The map MAY be empty.
-	Scopes map[string]string `json:"scopes,omitempty"         yaml:"scopes,omitempty"`
+	Scopes []string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 	// Client ID of the OAuth2 client.
 	ClientID *goenvconf.EnvString `json:"clientId,omitempty"       yaml:"clientId,omitempty"`
 	// Client secret of the OAuth2 client.
@@ -119,7 +119,7 @@ func (ss ClientCredentialsOAuthFlow) IsZero() bool {
 func (ss ClientCredentialsOAuthFlow) Equal(target ClientCredentialsOAuthFlow) bool {
 	return goutils.EqualPtr(ss.TokenURL, target.TokenURL) &&
 		goutils.EqualPtr(ss.RefreshURL, target.RefreshURL) &&
-		goutils.EqualMap(ss.Scopes, target.Scopes, true) &&
+		goutils.EqualSliceSorted(ss.Scopes, target.Scopes) &&
 		goutils.EqualPtr(ss.ClientID, target.ClientID) &&
 		goutils.EqualPtr(ss.ClientSecret, target.ClientSecret) &&
 		goutils.EqualMap(ss.EndpointParams, target.EndpointParams, true)
