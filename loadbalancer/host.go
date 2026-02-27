@@ -76,7 +76,7 @@ func NewHost(
 // SetURL sets the base URL of this host.
 // NOTE: the name won't be updated if it is not empty.
 func (s *Host) SetURL(baseURL string) (*url.URL, error) {
-	u, err := goutils.ParseHTTPURL(baseURL)
+	u, err := goutils.ParseHTTPURL(baseURL, goutils.ValidateHTTPURLOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		req.Header.Set(key, header)
 	}
 
-	resp, err := s.httpClient.Do(req) //nolint:bodyclose
+	resp, err := s.httpClient.Do(req) //nolint:bodyclose,gosec
 	if resp == nil {
 		s.healthCheckPolicy.RecordError(err)
 
@@ -263,7 +263,7 @@ func (s *Host) NewRequest(
 // Do sends an HTTP request and returns an HTTP response, following policy
 // (such as redirects, cookies, auth) as configured on the client.
 func (s *Host) Do(req *http.Request) (*http.Response, error) {
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.httpClient.Do(req) //nolint:gosec
 
 	if s.healthCheckPolicy == nil {
 		return resp, err
