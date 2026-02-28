@@ -80,7 +80,7 @@ func (c *Client) NewRequest(
 // Do sends an HTTP request and returns an HTTP response, following policy
 // (such as redirects, cookies, auth) as configured on the client.
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	return c.options.HTTPClient.Do(req)
+	return c.options.HTTPClient.Do(req) //nolint:gosec
 }
 
 // Clone creates a new client with properties copied.

@@ -58,7 +58,7 @@ func TestClient(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
-			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](tc.ConfigPath)
+			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](context.TODO(), tc.ConfigPath)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -206,7 +206,7 @@ func TestTLS(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
-			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](tc.ConfigPath)
+			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](context.TODO(), tc.ConfigPath)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -249,7 +249,7 @@ func TestTLSInsecure(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
-			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](tc.ConfigPath)
+			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](context.TODO(), tc.ConfigPath)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
