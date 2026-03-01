@@ -282,7 +282,7 @@ username: [invalid
 `
 
 		var config HTTPClientAuthConfig
-		err := yaml.Unmarshal([]byte(yamlData), &config)
+		err := yaml.Load([]byte(yamlData), &config)
 
 		if err == nil {
 			t.Error("expected error for invalid YAML")
@@ -295,7 +295,7 @@ type: unsupported
 `
 
 		var config HTTPClientAuthConfig
-		err := yaml.Unmarshal([]byte(yamlData), &config)
+		err := yaml.Load([]byte(yamlData), &config)
 
 		if err == nil {
 			t.Error("expected error for unsupported auth type")
