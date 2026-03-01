@@ -53,7 +53,6 @@ func main() {
 	gohttpc.SetHTTPClientMetrics(clientMetrics)
 
 	client, err := httpconfig.NewClientFromConfig(
-		context.TODO(),
 		&httpconfig.HTTPClientConfig{},
 		gohttpc.WithTracer(exporters.Tracer),
 		gohttpc.EnableClientTrace(true),
