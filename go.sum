@@ -30,6 +30,8 @@ github.com/relychan/gocompress v0.1.2 h1:IQfmMM/acGOm2YZde0GVK8/2Spl6p6FnHwyBHJj
 github.com/relychan/gocompress v0.1.2/go.mod h1:CjeGuDGHFAT8wNIOGunjJyDbtl13txB7wscu+a2SvLw=
 github.com/relychan/goutils v0.0.0-20260301074023-2eb673a4894e h1:gSp+Mc+MtjbvsWOZZstrplo1RaHO35Cso/jgRbCy94c=
 github.com/relychan/goutils v0.0.0-20260301074023-2eb673a4894e/go.mod h1:i9/x+EVb7KARsLykxKAF8f+gC8/NdGRa7JU+CG9tRlw=
+github.com/relychan/goutils v0.0.0-20260302082857-81daa3c6a49a h1:8e1G6v0sS3sQHqOQMz5U7nSzFaAsVHUPLWb0OVjkNc0=
+github.com/relychan/goutils v0.0.0-20260302082857-81daa3c6a49a/go.mod h1:i9/x+EVb7KARsLykxKAF8f+gC8/NdGRa7JU+CG9tRlw=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=

@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/relychan/gohttpc v0.0.1
-	github.com/relychan/goutils v0.0.0-20260301074023-2eb673a4894e
+	github.com/relychan/goutils v0.0.0-20260302082857-81daa3c6a49a
 )
 
 require (

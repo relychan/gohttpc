@@ -10,12 +10,16 @@ import (
 	"github.com/relychan/gohttpc/authc/basicauth"
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
+	"github.com/relychan/goutils"
 	"go.yaml.in/yaml/v4"
 )
 
 var (
 	errSecuritySchemeDefinitionRequired = errors.New("security scheme definition is required")
 	errUnsupportedSecurityScheme        = errors.New("unsupported security scheme")
+	errAuthConfigTypeRequired           = errors.New(
+		"invalid http client auth config: type is required",
+	)
 )
 
 // HTTPClientAuthConfig contains authentication configurations.
@@ -86,19 +90,21 @@ func (j HTTPClientAuthConfig) MarshalJSON() ([]byte, error) {
 
 // UnmarshalYAML implements yaml.Unmarshaler.
 func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
-	var rawScheme httpClientAuthConfig
-
-	err := value.Decode(&rawScheme)
+	rawAuthType, err := goutils.GetStringValueFromYAMLMap(value, "type")
 	if err != nil {
 		return err
 	}
 
-	err = rawScheme.Type.Validate()
+	if rawAuthType == nil {
+		return errAuthConfigTypeRequired
+	}
+
+	authType, err := authscheme.ParseHTTPClientAuthType(*rawAuthType)
 	if err != nil {
 		return err
 	}
 
-	switch rawScheme.Type {
+	switch authType {
 	case authscheme.BasicAuthScheme:
 		var config basicauth.BasicAuthConfig
 
@@ -127,7 +133,7 @@ func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
 
 		j.HTTPClientAuthenticatorConfig = &config
 	default:
-		return fmt.Errorf("%w: %s", errUnsupportedSecurityScheme, rawScheme.Type)
+		return fmt.Errorf("%w: %s", errUnsupportedSecurityScheme, *rawAuthType)
 	}
 
 	return nil
