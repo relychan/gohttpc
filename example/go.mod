@@ -5,8 +5,8 @@ go 1.26
 require (
 	github.com/hasura/gotel v0.6.0
 	github.com/relychan/gohttpc v0.0.0-20251212171847-fc5b37d35f8c
-	github.com/relychan/goutils v0.0.0-20260302082857-81daa3c6a49a
-	go.opentelemetry.io/otel v1.40.0
+	github.com/relychan/goutils v0.0.0-20260303101739-0530dc9e1fb4
+	go.opentelemetry.io/otel v1.41.0
 )
 
 require (
@@ -41,11 +41,11 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.40.0 // indirect
 	go.opentelemetry.io/otel/exporters/prometheus v0.62.0 // indirect
 	go.opentelemetry.io/otel/log v0.16.0 // indirect
-	go.opentelemetry.io/otel/metric v1.40.0 // indirect
+	go.opentelemetry.io/otel/metric v1.41.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.40.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.16.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0 // indirect
-	go.opentelemetry.io/otel/trace v1.40.0 // indirect
+	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260301020847-9162c2211af3 // indirect
