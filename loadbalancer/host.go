@@ -76,7 +76,7 @@ func NewHost(
 // SetURL sets the base URL of this host.
 // NOTE: the name won't be updated if it is not empty.
 func (s *Host) SetURL(baseURL string) (*url.URL, error) {
-	u, err := goutils.ParseHTTPURL(baseURL, goutils.ValidateHTTPURLOptions{})
+	u, err := goutils.ParseHTTPURL(baseURL)
 	if err != nil {
 		return nil, err
 	}
