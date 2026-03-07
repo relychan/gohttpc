@@ -226,7 +226,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		r.body = bytes.NewReader(body)
 	}
 
-	endpoint, err := goutils.ParseRelativeOrHTTPURL(r.URL())
+	endpoint, err := goutils.ParsePathOrHTTPURL(r.url)
 	if err != nil {
 		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.url))
 		logger.Error(

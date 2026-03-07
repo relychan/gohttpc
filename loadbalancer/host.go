@@ -217,7 +217,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		req.Header.Set(key, header)
 	}
 
-	resp, err := s.httpClient.Do(req) //nolint:bodyclose,gosec
+	resp, err := s.httpClient.Do(req) //nolint:bodyclose
 	if resp == nil {
 		s.healthCheckPolicy.RecordError(err)
 

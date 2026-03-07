@@ -137,7 +137,7 @@ func newClientCredentialsConfig(
 		return nil, fmt.Errorf("tokenUrl: %w", err)
 	}
 
-	tokenURL, err := goutils.ParseRelativeOrHTTPURL(rawTokenURL)
+	tokenURL, err := goutils.ParsePathOrHTTPURL(rawTokenURL)
 	if err != nil {
 		return nil, fmt.Errorf("tokenUrl: %w", err)
 	}
