@@ -11,8 +11,8 @@ import (
 
 // HTTPClientConfig contains configurations to create client.
 type HTTPClientConfig struct {
-	// Default maximum timeout duration that is applied for all requests.
-	Timeout *goutils.Duration `json:"timeout,omitempty" jsonschema:"oneof_ref=#/$defs/Duration,oneof_type=null" yaml:"timeout,omitempty"`
+	// Default maximum timeout in seconds that is applied for all requests.
+	Timeout int `json:"timeout,omitempty" jsonschema:"minimum=0" yaml:"timeout"`
 	// Transport stores the http.Transport configuration for the http client.
 	Transport *gohttpc.HTTPTransportConfig `json:"transport,omitempty" yaml:"transport,omitempty"`
 	// The transport layer security (LTS) configuration for the mutualTLS authentication.
@@ -25,7 +25,7 @@ type HTTPClientConfig struct {
 
 // IsZero if the current instance is empty.
 func (c *HTTPClientConfig) IsZero() bool {
-	return (c.Timeout == nil || *c.Timeout <= 0) &&
+	return c.Timeout <= 0 &&
 		goutils.IsZeroPtr(c.Transport) &&
 		goutils.IsZeroPtr(c.TLS) &&
 		goutils.IsZeroPtr(c.Retry) &&
@@ -34,7 +34,7 @@ func (c *HTTPClientConfig) IsZero() bool {
 
 // Equal checks if the target value is equal.
 func (j HTTPClientConfig) Equal(target HTTPClientConfig) bool {
-	return goutils.EqualComparablePtr(j.Timeout, target.Timeout) &&
+	return j.Timeout == target.Timeout &&
 		goutils.EqualPtr(j.Transport, target.Transport) &&
 		goutils.EqualPtr(j.TLS, target.TLS) &&
 		goutils.EqualPtr(j.Retry, target.Retry) &&
@@ -50,8 +50,8 @@ func NewClientFromConfig(
 		config = &HTTPClientConfig{}
 	}
 
-	if config.Timeout != nil && *config.Timeout > 0 {
-		options = append(options, gohttpc.WithTimeout(time.Duration(*config.Timeout)))
+	if config.Timeout > 0 {
+		options = append(options, gohttpc.WithTimeout(time.Duration(config.Timeout)*time.Second))
 	}
 
 	opts := gohttpc.NewClientOptions(options...)

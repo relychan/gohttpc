@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=../jsonschema/gohttpc.schema.json
-timeout: 60s
+timeout: 60
 transport: {}
 authentication:
   in: header
