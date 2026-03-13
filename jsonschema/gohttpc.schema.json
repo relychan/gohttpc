@@ -248,15 +248,9 @@
     "HTTPClientConfig": {
       "properties": {
         "timeout": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/Duration"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Default maximum timeout duration that is applied for all requests."
+          "type": "integer",
+          "minimum": 0,
+          "description": "Default maximum timeout in seconds that is applied for all requests."
         },
         "transport": {
           "$ref": "#/$defs/HTTPTransportConfig",

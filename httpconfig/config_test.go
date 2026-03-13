@@ -23,9 +23,9 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 	})
 
 	t.Run("returns false when Timeout is set", func(t *testing.T) {
-		timeout := goutils.Duration(time.Second * 30)
+		timeout := 30
 		config := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 
 		if config.IsZero() {
@@ -34,9 +34,9 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 	})
 
 	t.Run("returns true when Timeout is zero", func(t *testing.T) {
-		timeout := goutils.Duration(0)
+		timeout := 0
 		config := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 
 		if !config.IsZero() {
@@ -109,12 +109,12 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns true for identical configs with timeout", func(t *testing.T) {
-		timeout := goutils.Duration(time.Second * 30)
+		timeout := 30
 		config1 := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 		config2 := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 
 		if !config1.Equal(config2) {
@@ -123,13 +123,13 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns false for different timeout values", func(t *testing.T) {
-		timeout1 := goutils.Duration(time.Second * 30)
-		timeout2 := goutils.Duration(time.Second * 60)
+		timeout1 := 30
+		timeout2 := 60
 		config1 := HTTPClientConfig{
-			Timeout: &timeout1,
+			Timeout: timeout1,
 		}
 		config2 := HTTPClientConfig{
-			Timeout: &timeout2,
+			Timeout: timeout2,
 		}
 
 		if config1.Equal(config2) {
@@ -138,9 +138,9 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns false when one has timeout and other doesn't", func(t *testing.T) {
-		timeout := goutils.Duration(time.Second * 30)
+		timeout := 30
 		config1 := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 		config2 := HTTPClientConfig{}
 
@@ -220,12 +220,12 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns true for fully identical configs", func(t *testing.T) {
-		timeout := goutils.Duration(time.Second * 30)
+		timeout := 30
 		maxIdleConns := 50
 		maxAttempts := goenvconf.NewEnvIntValue(3)
 
 		config1 := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 			Transport: &gohttpc.HTTPTransportConfig{
 				MaxIdleConns: &maxIdleConns,
 			},
@@ -238,7 +238,7 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 		}
 
 		config2 := HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 			Transport: &gohttpc.HTTPTransportConfig{
 				MaxIdleConns: &maxIdleConns,
 			},
@@ -273,9 +273,9 @@ func TestNewClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("creates client with timeout", func(t *testing.T) {
-		timeout := goutils.Duration(time.Second * 30)
+		timeout := 30
 		config := &HTTPClientConfig{
-			Timeout: &timeout,
+			Timeout: timeout,
 		}
 
 		client, err := NewClientFromConfig(config)
