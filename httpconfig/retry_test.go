@@ -4,8 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"testing"
-
-	"github.com/hasura/goenvconf"
 )
 
 func TestHTTPRetryConfig_IsZero(t *testing.T) {
@@ -18,9 +16,8 @@ func TestHTTPRetryConfig_IsZero(t *testing.T) {
 	})
 
 	t.Run("returns false when MaxAttempts is set", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 		}
 
 		if config.IsZero() {
@@ -105,7 +102,7 @@ func TestHTTPRetryConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns true for identical configs with all fields", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
+		maxAttempts := 3
 		delay := int64(1000)
 		maxDelay := int64(5000)
 		multiplier := 1.5
@@ -113,7 +110,7 @@ func TestHTTPRetryConfig_Equal(t *testing.T) {
 		jitterFactor := 0.25
 
 		config1 := HTTPRetryConfig{
-			MaxAttempts:  &maxAttempts,
+			MaxAttempts:  maxAttempts,
 			Delay:        &delay,
 			MaxDelay:     &maxDelay,
 			HTTPStatus:   []int{500, 502, 503},
@@ -123,7 +120,7 @@ func TestHTTPRetryConfig_Equal(t *testing.T) {
 		}
 
 		config2 := HTTPRetryConfig{
-			MaxAttempts:  &maxAttempts,
+			MaxAttempts:  maxAttempts,
 			Delay:        &delay,
 			MaxDelay:     &maxDelay,
 			HTTPStatus:   []int{500, 502, 503},
@@ -138,14 +135,14 @@ func TestHTTPRetryConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns false for different MaxAttempts", func(t *testing.T) {
-		maxAttempts1 := goenvconf.NewEnvIntValue(3)
-		maxAttempts2 := goenvconf.NewEnvIntValue(5)
+		maxAttempts1 := 3
+		maxAttempts2 := 5
 
 		config1 := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts1,
+			MaxAttempts: maxAttempts1,
 		}
 		config2 := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts2,
+			MaxAttempts: maxAttempts2,
 		}
 
 		if config1.Equal(config2) {
@@ -260,10 +257,10 @@ func TestHTTPRetryConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns false when one has field and other doesn't", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
+		maxAttempts := 3
 
 		config1 := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: maxAttempts,
 		}
 		config2 := HTTPRetryConfig{}
 
@@ -278,7 +275,6 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 		config := HTTPRetryConfig{}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -289,20 +285,18 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("creates retry policy with valid config", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		delay := int64(1000)
 		maxDelay := int64(5000)
 		multiplier := 1.5
 
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			Delay:       &delay,
 			MaxDelay:    &maxDelay,
 			Multiplier:  &multiplier,
 		}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -313,10 +307,8 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("returns error when MaxAttempts is negative", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(-1)
-
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: -1,
 		}
 
 		policy, err := config.ToRetryPolicy()
@@ -335,11 +327,10 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("returns error when Delay is negative", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		delay := int64(-100)
 
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			Delay:       &delay,
 		}
 
@@ -355,11 +346,10 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("returns error when Multiplier is less than 1", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		multiplier := 0.5
 
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			Multiplier:  &multiplier,
 		}
 
@@ -375,10 +365,8 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("returns error when HTTPStatus contains invalid status code", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
-
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			HTTPStatus:  []int{200, 500}, // 200 is invalid for retry
 		}
 
@@ -394,16 +382,14 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("creates policy with jitter", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		jitter := int64(100)
 
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			Jitter:      &jitter,
 		}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -414,16 +400,14 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("creates policy with jitter factor", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		jitterFactor := 0.25
 
 		config := HTTPRetryConfig{
-			MaxAttempts:  &maxAttempts,
+			MaxAttempts:  3,
 			JitterFactor: &jitterFactor,
 		}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -434,15 +418,12 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("creates policy with custom HTTP status codes", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
-
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			HTTPStatus:  []int{408, 429, 503},
 		}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -453,18 +434,16 @@ func TestHTTPRetryConfig_ToRetryPolicy(t *testing.T) {
 	})
 
 	t.Run("creates policy with constant delay when maxDelay <= delay", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		delay := int64(1000)
 		maxDelay := int64(1000)
 
 		config := HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 			Delay:       &delay,
 			MaxDelay:    &maxDelay,
 		}
 
 		policy, err := config.ToRetryPolicy()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}

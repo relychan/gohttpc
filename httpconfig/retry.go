@@ -13,7 +13,6 @@ import (
 
 	"github.com/failsafe-go/failsafe-go/failsafehttp"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
-	"github.com/hasura/goenvconf"
 	"github.com/relychan/goutils"
 )
 
@@ -29,18 +28,18 @@ var stoppedAfterRedirects = regexp.MustCompile(`stopped after \d+ redirects\z`)
 // HTTPRetryConfig represents retry policy settings.
 type HTTPRetryConfig struct {
 	// Maximum number of retry attempts.
-	MaxAttempts *goenvconf.EnvInt `json:"maxAttempts,omitempty" mapstructure:"maxAttempts" yaml:"maxAttempts,omitempty"`
+	MaxAttempts int `json:"maxAttempts,omitempty" jsonschema:"minimum=0" mapstructure:"maxAttempts" yaml:"maxAttempts"`
 	// The initial wait time in milliseconds before a retry is attempted.
 	// Must be >0. Defaults to 1 second.
-	Delay *int64 `json:"delay,omitempty" mapstructure:"delay" yaml:"delay,omitempty"`
+	Delay *int64 `json:"delay,omitempty" jsonschema:"minimum=1,default=1" mapstructure:"delay" yaml:"delay,omitempty"`
 	// The max delay in milliseconds of the exponentially backing off.
 	// If the max delay is smaller or equal the base delay. The delay is constant.
-	MaxDelay *int64 `json:"maxDelay,omitempty" mapstructure:"maxDelay" yaml:"maxDelay,omitempty"`
+	MaxDelay *int64 `json:"maxDelay,omitempty" jsonschema:"minimum=1" mapstructure:"maxDelay" yaml:"maxDelay,omitempty"`
 	// HTTPStatus retries if the remote service returns one of these http status
 	HTTPStatus []int `json:"httpStatus,omitempty" mapstructure:"httpStatus" yaml:"httpStatus,omitempty"`
 	// How much should the reconnection time grow on subsequent attempts.
 	// Must be >=1; 1 = constant interval. Defaults to 1.5.
-	Multiplier *float64 `json:"multiplier,omitempty" jsonschema:"min=1" mapstructure:"multiplier" yaml:"multiplier,omitempty"`
+	Multiplier *float64 `json:"multiplier,omitempty" jsonschema:"minimum=1" mapstructure:"multiplier" yaml:"multiplier,omitempty"`
 	// For each retry delay, a random portion of the jitter will be added or subtracted to the delay.
 	// For example: a jitter of 100 milliseconds will randomly add between -100 and 100 milliseconds to each retry delay.
 	// Replaces any previously configured jitter factor.
@@ -53,7 +52,7 @@ type HTTPRetryConfig struct {
 
 // IsZero if the current instance is empty.
 func (rs HTTPRetryConfig) IsZero() bool {
-	return rs.MaxAttempts == nil &&
+	return rs.MaxAttempts <= 0 &&
 		rs.Delay == nil &&
 		rs.MaxDelay == nil &&
 		len(rs.HTTPStatus) == 0 &&
@@ -70,7 +69,7 @@ func (rs HTTPRetryConfig) Equal(target HTTPRetryConfig) bool {
 		goutils.EqualComparablePtr(rs.Jitter, target.Jitter) &&
 		goutils.EqualComparablePtr(rs.JitterFactor, target.JitterFactor) &&
 		goutils.EqualSliceSorted(rs.HTTPStatus, target.HTTPStatus) &&
-		goutils.EqualPtr(rs.MaxAttempts, target.MaxAttempts)
+		rs.MaxAttempts == target.MaxAttempts
 }
 
 // ToRetryPolicy validates and create the retry policy.
@@ -79,25 +78,18 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 ) {
 	var (
 		errs       []error
-		err        error
 		delay      int64 = 1000
 		maxDelay   int64
 		multiplier = 1.5
 	)
 
-	if rs.MaxAttempts == nil {
+	if rs.MaxAttempts == 0 {
 		return nil, nil //nolint:nilnil
 	}
 
-	maxAttempts, err := rs.MaxAttempts.Get()
-	if err != nil {
-		errs = append(errs, err)
-	} else if maxAttempts < 0 {
+	if rs.MaxAttempts < 0 {
 		errs = append(errs, errRetryPolicyTimesPositive)
 	}
-
-	builder := retrypolicy.NewBuilder[*http.Response]().
-		WithMaxAttempts(int(maxAttempts))
 
 	if rs.Delay != nil {
 		if *rs.Delay < 0 {
@@ -119,10 +111,6 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 		}
 	}
 
-	if rs.Jitter != nil && *rs.Jitter != 0 {
-		builder = builder.WithJitter(time.Duration(*rs.Jitter) * time.Millisecond)
-	}
-
 	for _, status := range rs.HTTPStatus {
 		if status < 400 || status >= 600 {
 			errs = append(errs, errRetryPolicyInvalidHTTPStatus)
@@ -133,6 +121,13 @@ func (rs HTTPRetryConfig) ToRetryPolicy() ( //nolint:funlen
 
 	if len(errs) > 0 {
 		return nil, errors.Join(errs...)
+	}
+
+	builder := retrypolicy.NewBuilder[*http.Response]().
+		WithMaxAttempts(rs.MaxAttempts)
+
+	if rs.Jitter != nil && *rs.Jitter != 0 {
+		builder = builder.WithJitter(time.Duration(*rs.Jitter) * time.Millisecond)
 	}
 
 	if rs.JitterFactor != nil {

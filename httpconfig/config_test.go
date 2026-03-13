@@ -75,10 +75,9 @@ func TestHTTPClientConfig_IsZero(t *testing.T) {
 	})
 
 	t.Run("returns false when Retry is set with values", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		config := HTTPClientConfig{
 			Retry: &HTTPRetryConfig{
-				MaxAttempts: &maxAttempts,
+				MaxAttempts: 3,
 			},
 		}
 
@@ -183,9 +182,8 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	})
 
 	t.Run("returns true for identical retry configs", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		retryConfig := &HTTPRetryConfig{
-			MaxAttempts: &maxAttempts,
+			MaxAttempts: 3,
 		}
 		config1 := HTTPClientConfig{
 			Retry: retryConfig,
@@ -222,7 +220,6 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 	t.Run("returns true for fully identical configs", func(t *testing.T) {
 		timeout := 30
 		maxIdleConns := 50
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 
 		config1 := HTTPClientConfig{
 			Timeout: timeout,
@@ -233,7 +230,7 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 				MinVersion: "1.2",
 			},
 			Retry: &HTTPRetryConfig{
-				MaxAttempts: &maxAttempts,
+				MaxAttempts: 3,
 			},
 		}
 
@@ -246,7 +243,7 @@ func TestHTTPClientConfig_Equal(t *testing.T) {
 				MinVersion: "1.2",
 			},
 			Retry: &HTTPRetryConfig{
-				MaxAttempts: &maxAttempts,
+				MaxAttempts: 3,
 			},
 		}
 
@@ -291,10 +288,9 @@ func TestNewClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("creates client with retry policy", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(3)
 		config := &HTTPClientConfig{
 			Retry: &HTTPRetryConfig{
-				MaxAttempts: &maxAttempts,
+				MaxAttempts: 3,
 			},
 		}
 
@@ -311,10 +307,9 @@ func TestNewClientFromConfig(t *testing.T) {
 	})
 
 	t.Run("returns error when retry policy is invalid", func(t *testing.T) {
-		maxAttempts := goenvconf.NewEnvIntValue(-1)
 		config := &HTTPClientConfig{
 			Retry: &HTTPRetryConfig{
-				MaxAttempts: &maxAttempts,
+				MaxAttempts: -1,
 			},
 		}
 
