@@ -9,5 +9,4 @@ authentication:
   value:
     env: BEARER_TOKEN
 retry:
-  maxAttempts:
-    value: 2
+  maxAttempts: 2

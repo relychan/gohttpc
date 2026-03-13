@@ -131,34 +131,6 @@
       "additionalProperties": false,
       "type": "object"
     },
-    "EnvInt": {
-      "anyOf": [
-        {
-          "required": [
-            "value"
-          ],
-          "title": "value"
-        },
-        {
-          "required": [
-            "env"
-          ],
-          "title": "env"
-        }
-      ],
-      "properties": {
-        "value": {
-          "type": "integer",
-          "description": "Default literal value if the env is empty"
-        },
-        "env": {
-          "type": "string",
-          "description": "Environment variable to be evaluated"
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
     "EnvString": {
       "anyOf": [
         {
@@ -405,15 +377,19 @@
     "HTTPRetryConfig": {
       "properties": {
         "maxAttempts": {
-          "$ref": "#/$defs/EnvInt",
+          "type": "integer",
+          "minimum": 0,
           "description": "Maximum number of retry attempts."
         },
         "delay": {
           "type": "integer",
-          "description": "The initial wait time in milliseconds before a retry is attempted.\nMust be \u003e0. Defaults to 1 second."
+          "minimum": 1,
+          "description": "The initial wait time in milliseconds before a retry is attempted.\nMust be \u003e0. Defaults to 1 second.",
+          "default": 1
         },
         "maxDelay": {
           "type": "integer",
+          "minimum": 1,
           "description": "The max delay in milliseconds of the exponentially backing off.\nIf the max delay is smaller or equal the base delay. The delay is constant."
         },
         "httpStatus": {
@@ -425,6 +401,7 @@
         },
         "multiplier": {
           "type": "number",
+          "minimum": 1,
           "description": "How much should the reconnection time grow on subsequent attempts.\nMust be \u003e=1; 1 = constant interval. Defaults to 1.5."
         },
         "jitter": {
