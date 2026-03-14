@@ -1,3 +1,17 @@
+// Copyright 2026 RelyChan Pte. Ltd
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package httpconfig
 
 import (
@@ -146,7 +160,6 @@ func TestTLSConfig_GetMinVersion(t *testing.T) {
 		config := TLSConfig{}
 
 		version, err := config.GetMinVersion()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -174,7 +187,6 @@ func TestTLSConfig_GetMinVersion(t *testing.T) {
 				}
 
 				version, err := config.GetMinVersion()
-
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
@@ -208,7 +220,6 @@ func TestTLSConfig_GetMaxVersion(t *testing.T) {
 		config := TLSConfig{}
 
 		version, err := config.GetMaxVersion()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -224,7 +235,6 @@ func TestTLSConfig_GetMaxVersion(t *testing.T) {
 		}
 
 		version, err := config.GetMaxVersion()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -240,7 +250,6 @@ func TestTLSConfig_Validate(t *testing.T) {
 		config := TLSConfig{}
 
 		err := config.Validate()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -294,7 +303,6 @@ func TestTLSConfig_Validate(t *testing.T) {
 		}
 
 		err := config.Validate()
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -354,7 +362,6 @@ func TestLoadCertificateString(t *testing.T) {
 		certEnv := goenvconf.NewEnvStringValue("")
 
 		data, err := loadCertificateString(certEnv)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -370,7 +377,6 @@ func TestLoadCertificateString(t *testing.T) {
 		certEnv := goenvconf.NewEnvStringValue(encoded)
 
 		data, err := loadCertificateString(certEnv)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -398,7 +404,6 @@ func TestLoadCertificateString(t *testing.T) {
 func TestConvertCipherSuites(t *testing.T) {
 	t.Run("returns empty slice for empty input", func(t *testing.T) {
 		result, err := convertCipherSuites([]string{})
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -418,7 +423,6 @@ func TestConvertCipherSuites(t *testing.T) {
 		suiteName := supportedSuites[0].Name
 
 		result, err := convertCipherSuites([]string{suiteName})
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -468,7 +472,6 @@ func TestLoadEitherCertPemOrFile(t *testing.T) {
 		certPem := goenvconf.NewEnvStringValue(encoded)
 
 		data, err := loadEitherCertPemOrFile(&certPem, nil)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -493,7 +496,6 @@ func TestLoadEitherCertPemOrFile(t *testing.T) {
 		emptyPem := goenvconf.NewEnvStringValue("")
 
 		data, err := loadEitherCertPemOrFile(&emptyPem, &certFileEnv)
-
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
