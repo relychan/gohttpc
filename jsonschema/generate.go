@@ -1,3 +1,17 @@
+// Copyright 2026 RelyChan Pte. Ltd
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
@@ -23,10 +37,14 @@ func main() {
 	}
 }
 
-func jsonSchemaConfiguration() error {
+func jsonSchemaConfiguration() error { //nolint:funlen
 	r := new(jsonschema.Reflector)
 
-	err := r.AddGoComments("github.com/relychan/gohttpc/httpconfig", "httpconfig", jsonschema.WithFullComment())
+	err := r.AddGoComments(
+		"github.com/relychan/gohttpc/httpconfig",
+		"httpconfig",
+		jsonschema.WithFullComment(),
+	)
 	if err != nil {
 		return err
 	}
@@ -95,5 +113,9 @@ func jsonSchemaConfiguration() error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join("jsonschema", "gohttpc.schema.json"), schemaBytes, 0o644) //nolint:gosec
+	return os.WriteFile( //nolint:gosec
+		filepath.Join("jsonschema", "gohttpc.schema.json"),
+		schemaBytes,
+		0o644,
+	)
 }
