@@ -36,7 +36,7 @@ var (
 )
 
 // httpErrorFromResponse creates an error from the HTTP response.
-func httpErrorFromResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensions {
+func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensions {
 	if resp.Body == nil {
 		return httpErrorFromNoContentResponse(resp)
 	}
@@ -61,7 +61,7 @@ func httpErrorFromResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensio
 
 		httpError.Extensions["headers"] = goutils.ExtractHeaders(resp.Header)
 
-		return httpError
+		return &httpError
 	}
 
 	result := httpErrorFromNoContentResponse(resp)
@@ -76,8 +76,8 @@ func httpErrorFromResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensio
 	return result
 }
 
-func httpErrorFromNoContentResponse(resp *http.Response) goutils.RFC9457ErrorWithExtensions {
-	return goutils.RFC9457ErrorWithExtensions{
+func httpErrorFromNoContentResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensions {
+	return &goutils.RFC9457ErrorWithExtensions{
 		RFC9457Error: goutils.RFC9457Error{
 			Status: resp.StatusCode,
 			Title:  resp.Status,
