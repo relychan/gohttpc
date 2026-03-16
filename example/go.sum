@@ -50,8 +50,8 @@ github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEy
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
 github.com/relychan/gocompress v0.1.2 h1:IQfmMM/acGOm2YZde0GVK8/2Spl6p6FnHwyBHJj8+Nw=
 github.com/relychan/gocompress v0.1.2/go.mod h1:CjeGuDGHFAT8wNIOGunjJyDbtl13txB7wscu+a2SvLw=
-github.com/relychan/goutils v0.0.0-20260315184030-c614e58d5a59 h1:+r6Je1XghVdziTi4a5x+DJ4aj9wwj6EFclxCqUpV6N8=
-github.com/relychan/goutils v0.0.0-20260315184030-c614e58d5a59/go.mod h1:dQsp/ZcUuC5gyzhPaAvtpAdZXo6Qw5THpCjXMCao5Lk=
+github.com/relychan/goutils v0.0.0-20260316024051-c075e96441e5 h1:CmopXTPAU4KUnrV+hdeTomNz8Z9Zj2qAH6k1D0AoKaU=
+github.com/relychan/goutils v0.0.0-20260316024051-c075e96441e5/go.mod h1:dQsp/ZcUuC5gyzhPaAvtpAdZXo6Qw5THpCjXMCao5Lk=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
