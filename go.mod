@@ -6,7 +6,7 @@ require (
 	github.com/failsafe-go/failsafe-go v0.9.6
 	github.com/google/uuid v1.6.0
 	github.com/hasura/goenvconf v0.6.2
-	github.com/hasura/gotel v0.6.3
+	github.com/hasura/gotel v0.7.1
 	github.com/relychan/gocompress v0.1.2
 	github.com/relychan/goutils v0.0.0-20260320085159-a456d46cc0d9
 	go.opentelemetry.io/otel v1.42.0
@@ -24,4 +24,5 @@ require (
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
+	gonum.org/v1/gonum v0.16.0 // indirect
 )

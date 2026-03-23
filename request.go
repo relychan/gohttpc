@@ -254,7 +254,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		return nil, err
 	}
 
-	spanContext, span := r.options.Tracer.Start(
+	spanContext, span := clientTracer.Start(
 		ctx,
 		"request",
 		trace.WithSpanKind(trace.SpanKindInternal),
@@ -337,6 +337,8 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 	responseLogAttrs := make([]slog.Attr, 0, 4)
 
 	if resp != nil {
+		responseLogAttrs = append(responseLogAttrs, slog.Int("status", resp.StatusCode))
+
 		if endpoint.Host == "" {
 			requestURL := resp.Request.URL.String()
 			requestLogAttrs = append(requestLogAttrs, slog.String("url", requestURL))
@@ -344,27 +346,26 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		}
 
 		if r.options.IsTraceRequestHeadersEnabled() {
-			requestHeaders := otelutils.NewTelemetryHeaders(
+			requestHeaders := otelutils.ExtractTelemetryHeaders(
 				resp.Request.Header,
 				r.options.AllowedTraceRequestHeaders...,
 			)
-			otelutils.SetSpanHeaderAttributes(span, "http.request.header", requestHeaders)
+			otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
 			requestLogAttrs = append(
 				requestLogAttrs,
-				otelutils.NewHeaderLogGroupAttrs("headers", requestHeaders),
+				otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
 			)
 		}
 
 		if r.options.IsTraceResponseHeadersEnabled() {
-			responseHeaders := otelutils.NewTelemetryHeaders(
+			responseHeaders := otelutils.ExtractTelemetryHeaders(
 				resp.Header,
 				r.options.AllowedTraceResponseHeaders...,
 			)
-			otelutils.SetSpanHeaderAttributes(span, "http.response.header", responseHeaders)
+			otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
 			responseLogAttrs = append(
 				responseLogAttrs,
-				slog.Int("status", resp.StatusCode),
-				otelutils.NewHeaderLogGroupAttrs("headers", responseHeaders),
+				otelutils.NewHeaderMatrixLogGroupAttrs("headers", responseHeaders),
 			)
 		}
 
@@ -453,14 +454,17 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		return resp, err
 	}
 
-	logger.LogAttrs(
-		ctx,
-		r.options.LogLevel,
-		resp.Status,
-		slog.GroupAttrs("request", requestLogAttrs...),
-		slog.GroupAttrs("response", responseLogAttrs...),
-		slog.Float64("latency", time.Since(startTime).Seconds()),
-	)
+	if logger.Enabled(ctx, r.options.LogLevel) {
+		logger.LogAttrs(
+			ctx,
+			r.options.LogLevel,
+			resp.Status,
+			slog.GroupAttrs("request", requestLogAttrs...),
+			slog.GroupAttrs("response", responseLogAttrs...),
+			slog.Float64("latency", time.Since(startTime).Seconds()),
+		)
+	}
+
 	span.SetStatus(codes.Ok, "")
 
 	return resp, nil
@@ -566,14 +570,12 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 		span = startClientTrace(
 			parentContext,
 			spanName,
-			r.options.Tracer,
 			logger,
 		)
 	} else {
 		span = startSimpleClientTrace(
 			parentContext,
 			spanName,
-			r.options.Tracer,
 		)
 	}
 
@@ -723,7 +725,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	if remoteAddr != "" {
 		peerAddress, peerPort, err := otelutils.SplitHostPort(remoteAddr, endpoint.Scheme)
 		if err != nil {
-			r.options.Logger.
+			logger.
 				Warn(
 					"failed to split hostname and port from remote address",
 					slog.String("remote_addr", remoteAddr),
@@ -822,15 +824,15 @@ func (r *Request) logRequestAttempt(
 		return
 	}
 
-	requestHeaders := otelutils.NewTelemetryHeaders(req.Header)
-	otelutils.SetSpanHeaderAttributes(span, "http.request.header", requestHeaders)
+	requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
+	otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
 
 	totalTime := span.TotalTime()
 
 	requestLogAttrs := []slog.Attr{
 		slog.String("url", r.url),
 		slog.String("method", r.method),
-		otelutils.NewHeaderLogGroupAttrs("headers", requestHeaders),
+		otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
 	}
 
 	logAttrs := []any{
@@ -843,14 +845,14 @@ func (r *Request) logRequestAttempt(
 	}
 
 	if resp != nil {
-		responseHeaders := otelutils.NewTelemetryHeaders(resp.Header)
+		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header)
 
-		otelutils.SetSpanHeaderAttributes(span, "http.response.header", responseHeaders)
+		otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
 
 		responseLogAttrs := []slog.Attr{
 			slog.Int("status", resp.StatusCode),
 			slog.Int64("size", resp.ContentLength),
-			otelutils.NewHeaderLogGroupAttrs("headers", responseHeaders),
+			otelutils.NewHeaderMatrixLogGroupAttrs("headers", responseHeaders),
 		}
 
 		logAttrs = append(logAttrs, slog.GroupAttrs("response", responseLogAttrs...))
@@ -908,8 +910,7 @@ func (r *Request) getLogger(ctx context.Context) *slog.Logger {
 		requestID = uuid.NewString()
 	}
 
-	return r.options.Logger.
-		With(typeAttr, slog.String("request_id", requestID))
+	return slog.Default().With(typeAttr, slog.String("request_id", requestID))
 }
 
 // RequestWithClient embeds the [Request] with an [HTTPClient] to make the Execute method shorter.

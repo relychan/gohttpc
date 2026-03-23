@@ -24,7 +24,6 @@ import (
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // RequestOptionsGetter abstracts an interface to get the [RequestOptions].
@@ -34,8 +33,6 @@ type RequestOptionsGetter interface {
 
 // RequestOptions defines options for the request.
 type RequestOptions struct {
-	Logger                      *slog.Logger
-	Tracer                      trace.Tracer
 	CustomAttributesFunc        CustomAttributesFunc
 	Retry                       retrypolicy.RetryPolicy[*http.Response]
 	Timeout                     time.Duration
@@ -78,8 +75,6 @@ type ClientOptions struct {
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	opts := ClientOptions{
 		RequestOptions: RequestOptions{
-			Logger:             slog.Default(),
-			Tracer:             clientTracer,
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
 			LogLevel:           slog.LevelDebug,
@@ -125,22 +120,6 @@ type RequestOption func(*RequestOptions)
 func WithHTTPClient(httpClient *http.Client) ClientOption {
 	return func(co *ClientOptions) {
 		co.HTTPClient = httpClient
-	}
-}
-
-// WithLogger create an option to set the logger.
-func WithLogger(logger *slog.Logger) ClientOption {
-	return func(co *ClientOptions) {
-		if logger != nil {
-			co.Logger = logger
-		}
-	}
-}
-
-// WithTracer create an option to set the tracer.
-func WithTracer(tracer trace.Tracer) ClientOption {
-	return func(co *ClientOptions) {
-		co.Tracer = tracer
 	}
 }
 

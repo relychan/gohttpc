@@ -3,6 +3,7 @@ module github.com/relychan/gohttpc/example
 go 1.26
 
 require (
+	github.com/hasura/gotel v0.7.1
 	github.com/relychan/gohttpc v0.0.0-20260313152233-b703fc170be0
 	resty.dev/v3 v3.0.0-beta.6
 )
@@ -15,7 +16,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hasura/goenvconf v0.6.2 // indirect
-	github.com/hasura/gotel v0.6.3 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/relychan/gocompress v0.1.2 // indirect
 	github.com/relychan/goutils v0.0.0-20260320085159-a456d46cc0d9 // indirect
