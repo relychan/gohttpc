@@ -402,7 +402,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		}
 
 		if isDebug && resp.Body != nil &&
-			isContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
+			otelutils.IsContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				logger.Error(
