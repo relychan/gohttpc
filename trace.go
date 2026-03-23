@@ -24,10 +24,8 @@ import (
 	"net/textproto"
 	"net/url"
 	"runtime/debug"
-	"strings"
 	"time"
 
-	"github.com/relychan/goutils/httpheader"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -503,13 +501,6 @@ func newMetricAttributes(method string, endpoint *url.URL, port int) []attribute
 		semconv.URLScheme(endpoint.Scheme),
 		httpRequestMethodAttr(method),
 	}
-}
-
-func isContentTypeDebuggable(contentType string) bool {
-	return strings.HasPrefix(contentType, httpheader.ContentTypeJSON) ||
-		strings.HasPrefix(contentType, "text/") ||
-		strings.HasPrefix(contentType, "application/xml") ||
-		strings.HasPrefix(contentType, "multipart/form-data")
 }
 
 func getBuildVersion() string {
