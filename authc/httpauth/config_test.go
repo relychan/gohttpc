@@ -35,12 +35,12 @@ func TestNewHTTPAuthConfig(t *testing.T) {
 			t.Errorf("expected type %s, got %s", authscheme.HTTPAuthScheme, config.Type)
 		}
 
-		if config.In != authscheme.InHeader {
-			t.Errorf("expected location In to be %s, got %s", authscheme.InHeader, config.In)
+		if config.TokenLocation.In != authscheme.InHeader {
+			t.Errorf("expected location In to be %s, got %s", authscheme.InHeader, config.TokenLocation.In)
 		}
 
-		if config.Name != "Authorization" {
-			t.Errorf("expected location Name to be 'Authorization', got '%s'", config.Name)
+		if config.TokenLocation.Name != "Authorization" {
+			t.Errorf("expected location Name to be 'Authorization', got '%s'", config.TokenLocation.Name)
 		}
 	})
 }
@@ -105,28 +105,11 @@ func TestHTTPAuthConfig_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("returns error when name is empty", func(t *testing.T) {
-		config := &HTTPAuthConfig{
-			Type: authscheme.HTTPAuthScheme,
-			TokenLocation: authscheme.TokenLocation{
-				In:   authscheme.InHeader,
-				Name: "",
-			},
-			Value: goenvconf.NewEnvStringValue("test-token"),
-		}
-
-		err := config.Validate(false)
-
-		if err == nil {
-			t.Error("expected error for empty name")
-		}
-	})
-
 	t.Run("returns error when location is invalid", func(t *testing.T) {
 		config := &HTTPAuthConfig{
 			Type: authscheme.HTTPAuthScheme,
 			TokenLocation: authscheme.TokenLocation{
-				In:   authscheme.AuthLocation("invalid"),
+				In:   authscheme.AuthLocation(255),
 				Name: "Authorization",
 			},
 			Value: goenvconf.NewEnvStringValue("test-token"),

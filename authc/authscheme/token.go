@@ -15,7 +15,6 @@
 package authscheme
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -33,7 +32,7 @@ type TokenLocation struct {
 
 // IsZero if the current instance is empty.
 func (tl TokenLocation) IsZero() bool {
-	return tl.In == "" && tl.Name == "" && tl.Scheme == ""
+	return tl.In == 0 && tl.Name == "" && tl.Scheme == ""
 }
 
 // Equal checks if the target value is equal.
@@ -45,13 +44,8 @@ func (tl TokenLocation) Equal(target TokenLocation) bool {
 
 // Validate if the current instance is valid.
 func (tl TokenLocation) Validate() error {
-	err := tl.In.Validate()
-	if err != nil {
-		return err
-	}
-
-	if tl.Name == "" {
-		return fmt.Errorf("%w name for the token location", errRequiredSecurityField)
+	if !tl.In.IsValid() {
+		return errInvalidAuthLocation
 	}
 
 	return nil

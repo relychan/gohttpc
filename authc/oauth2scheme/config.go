@@ -41,8 +41,6 @@ type OAuth2Config struct {
 	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=oauth2" yaml:"type"`
 	// An object containing configuration information for the flow types supported.
 	Flows OAuth2Flows `json:"flows" yaml:"flows"`
-	// A description for security scheme.
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// The location where the auth credential will be injected.
 	TokenLocation *authscheme.TokenLocation `json:"tokenLocation,omitempty" yaml:"tokenLocation,omitempty"`
 }
@@ -64,9 +62,8 @@ func (ss OAuth2Config) GetType() authscheme.HTTPClientAuthType {
 
 // IsZero if the current instance is empty.
 func (ss OAuth2Config) IsZero() bool {
-	return ss.Type == "" &&
+	return ss.Type == 0 &&
 		ss.Flows.IsZero() &&
-		ss.Description == "" &&
 		ss.TokenLocation == nil
 }
 

@@ -150,10 +150,9 @@ func TestBasicAuthConfig_Validate(t *testing.T) {
 
 	t.Run("validates config with description", func(t *testing.T) {
 		config := &BasicAuthConfig{
-			Type:        authscheme.BasicAuthScheme,
-			Username:    new(goenvconf.NewEnvStringValue("user")),
-			Password:    new(goenvconf.NewEnvStringValue("pass")),
-			Description: "Basic authentication for API",
+			Type:     authscheme.BasicAuthScheme,
+			Username: new(goenvconf.NewEnvStringValue("user")),
+			Password: new(goenvconf.NewEnvStringValue("pass")),
 		}
 
 		err := config.Validate(true)

@@ -130,7 +130,7 @@ func TestNewAuthenticatorFromConfig(t *testing.T) {
 type mockUnsupportedConfig struct{}
 
 func (m *mockUnsupportedConfig) GetType() authscheme.HTTPClientAuthType {
-	return "unsupported"
+	return 255
 }
 
 // IsZero if the current instance is empty.
