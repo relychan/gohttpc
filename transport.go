@@ -92,12 +92,12 @@ type HTTPTransportConfig struct {
 	// WriteBufferSize specifies the size of the write buffer used when writing to the transport.
 	// If zero, a default (currently 4KB) is used.
 	WriteBufferSize *int `json:"writeBufferSize,omitempty" jsonschema:"nullable,min=0" yaml:"writeBufferSize"`
-	// DisableKeepAlives, if true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request.
-	// This is unrelated to the similarly named TCP keep-alives.
-	DisableKeepAlives bool `json:"disableKeepAlives,omitempty" yaml:"disableKeepAlives"`
 	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
 	// Default is true.
 	ForceAttemptHTTP2 *bool `json:"forceAttemptHTTP2,omitempty" yaml:"forceAttemptHTTP2"`
+	// DisableKeepAlives, if true, disables HTTP keep-alives and will only use the connection to the server for a single HTTP request.
+	// This is unrelated to the similarly named TCP keep-alives.
+	DisableKeepAlives bool `json:"disableKeepAlives,omitempty" yaml:"disableKeepAlives"`
 }
 
 // IsZero if the current instance is empty.

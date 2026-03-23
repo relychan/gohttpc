@@ -212,12 +212,13 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)
 
-	requestLogAttrs := make([]slog.Attr, 2, 5)
+	requestLogAttrs := make([]slog.Attr, 0, 5)
 	requestLogAttrs = append(requestLogAttrs, slog.String("method", r.method))
 
 	var requestBodyStr string
 
-	if isDebug && r.body != nil && isContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
+	if isDebug && r.body != nil &&
+		otelutils.IsContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
 		body, err := io.ReadAll(r.body)
 		if err != nil {
 			logger.Error(
@@ -452,7 +453,9 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		return resp, err
 	}
 
-	logger.Info(
+	logger.LogAttrs(
+		ctx,
+		r.options.LogLevel,
 		resp.Status,
 		slog.GroupAttrs("request", requestLogAttrs...),
 		slog.GroupAttrs("response", responseLogAttrs...),

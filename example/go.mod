@@ -3,9 +3,9 @@ module github.com/relychan/gohttpc/example
 go 1.26
 
 require (
-	github.com/hasura/gotel v0.6.2
+	github.com/hasura/gotel v0.6.3
 	github.com/relychan/gohttpc v0.0.0-20260313152233-b703fc170be0
-	github.com/relychan/goutils v0.0.0-20260316024051-c075e96441e5
+	github.com/relychan/goutils v0.0.0-20260320085159-a456d46cc0d9
 	go.opentelemetry.io/otel v1.42.0
 )
 
@@ -21,7 +21,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/hasura/goenvconf v0.6.2 // indirect
 	github.com/influxdata/tdigest v0.0.1 // indirect
-	github.com/klauspost/compress v1.18.4 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -53,9 +53,9 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
-	google.golang.org/grpc v1.79.2 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect
+	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 

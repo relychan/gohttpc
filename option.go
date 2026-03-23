@@ -36,16 +36,17 @@ type RequestOptionsGetter interface {
 type RequestOptions struct {
 	Logger                      *slog.Logger
 	Tracer                      trace.Tracer
-	TraceHighCardinalityPath    bool
-	MetricHighCardinalityPath   bool
 	CustomAttributesFunc        CustomAttributesFunc
 	Retry                       retrypolicy.RetryPolicy[*http.Response]
 	Timeout                     time.Duration
 	Authenticator               authscheme.HTTPClientAuthenticator
-	ClientTraceEnabled          bool
 	UserAgent                   string
 	AllowedTraceRequestHeaders  []string
 	AllowedTraceResponseHeaders []string
+	LogLevel                    slog.Level
+	TraceHighCardinalityPath    bool
+	MetricHighCardinalityPath   bool
+	ClientTraceEnabled          bool
 }
 
 var _ RequestOptionsGetter = (*RequestOptions)(nil)
@@ -81,6 +82,7 @@ func NewClientOptions(options ...ClientOption) *ClientOptions {
 			Tracer:             clientTracer,
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
+			LogLevel:           slog.LevelDebug,
 		},
 		HTTPClientAuthenticatorOptions: *authscheme.NewHTTPClientAuthenticatorOptions(),
 	}
@@ -174,6 +176,13 @@ func WithRetry(retry retrypolicy.RetryPolicy[*http.Response]) ClientOption {
 func WithTimeout(timeout time.Duration) ClientOption {
 	return func(co *ClientOptions) {
 		co.Timeout = timeout
+	}
+}
+
+// WithLogLevel creates an option to set the level for printing logs.
+func WithLogLevel(level slog.Level) ClientOption {
+	return func(co *ClientOptions) {
+		co.LogLevel = level
 	}
 }
 
