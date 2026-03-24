@@ -17,7 +17,6 @@ package authscheme
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/hasura/goenvconf"
@@ -67,7 +66,7 @@ func (j HTTPClientAuthType) String() string {
 		return ""
 	}
 
-	return enumValueHTTPClientAuthTypes[j]
+	return enumValueHTTPClientAuthTypes[j-1]
 }
 
 // MarshalText encodes the receiver into UTF-8-encoded text and returns the result.
@@ -81,8 +80,6 @@ func (j *HTTPClientAuthType) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-
-	log.Println("test", result)
 
 	*j = result
 

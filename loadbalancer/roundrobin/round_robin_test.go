@@ -70,11 +70,11 @@ func TestWeightedRoundRobin(t *testing.T) {
 		}
 
 		if len(expected) != len(result) {
-			t.Fatal("server results aren't equal")
+			t.Fatalf("server results aren't equal: %d <> %d", len(expected), len(result))
 		}
 
 		if fmt.Sprint(expected) != fmt.Sprint(result) {
-			t.Fatal("server results aren't equal")
+			t.Fatalf("server results aren't equal: %s <> %s", fmt.Sprint(expected), fmt.Sprint(result))
 		}
 	})
 

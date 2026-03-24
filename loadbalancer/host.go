@@ -38,16 +38,16 @@ type Host struct {
 	url string
 	// Defines custom headers to be injected to incoming requests.
 	headers map[string]string
+	// Defines the weight of the server endpoint for load balancing.
+	weight int
 	// The HTTP client is used for this server.
 	httpClient *http.Client
 	// The custom authenticator for the current server.
 	authenticator authscheme.HTTPClientAuthenticator
 	// The health check policy.
 	healthCheckPolicy *HTTPHealthCheckPolicy
-	// Defines the weight of the server endpoint for load balancing.
-	weight uint16
 	// The current weight of the server.
-	currentWeight uint16
+	currentWeight int
 	// Cache the last HTTP Error status of the host.
 	lastHTTPErrorStatus atomic.Int32
 }
@@ -134,12 +134,12 @@ func (s *Host) SetHeaders(headers map[string]string) *Host {
 }
 
 // Weight returns the weight of this host.
-func (s *Host) Weight() uint16 {
+func (s *Host) Weight() int {
 	return s.weight
 }
 
 // SetWeight sets the weight of this host.
-func (s *Host) SetWeight(weight uint16) *Host {
+func (s *Host) SetWeight(weight int) *Host {
 	s.weight = weight
 
 	return s
@@ -151,12 +151,12 @@ func (s *Host) AddCurrentWeight() {
 }
 
 // ResetCurrentWeight resets the current weight.
-func (s *Host) ResetCurrentWeight(totalWeight uint16) {
+func (s *Host) ResetCurrentWeight(totalWeight int) {
 	s.currentWeight -= totalWeight
 }
 
 // CurrentWeight adds the weight to the current weight.
-func (s *Host) CurrentWeight() uint16 {
+func (s *Host) CurrentWeight() int {
 	return s.currentWeight
 }
 
@@ -384,7 +384,7 @@ type ServerMetrics struct {
 }
 
 type hostOptions struct {
-	weight                   uint16
+	weight                   int
 	healthCheckPolicyBuilder *HTTPHealthCheckPolicyBuilder
 }
 
@@ -392,7 +392,7 @@ type hostOptions struct {
 type HostOption func(*hostOptions)
 
 // WithWeight sets the weight for the host.
-func WithWeight(weight uint16) HostOption {
+func WithWeight(weight int) HostOption {
 	return func(ho *hostOptions) {
 		if weight > 0 {
 			ho.weight = weight
