@@ -82,6 +82,13 @@ func (ss OAuth2Config) Validate(_ bool) error {
 		return authscheme.NewUnmatchedSecuritySchemeError(authType, ss.Type)
 	}
 
+	if ss.TokenLocation != nil {
+		err := ss.TokenLocation.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
 	return ss.Flows.ClientCredentials.Validate()
 }
 

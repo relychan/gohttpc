@@ -16,6 +16,7 @@ package authscheme
 
 import (
 	"net/http"
+	"strings"
 )
 
 // TokenLocation contains the configuration for the location of the access token.
@@ -45,10 +46,29 @@ func (tl TokenLocation) Equal(target TokenLocation) bool {
 // Validate if the current instance is valid.
 func (tl TokenLocation) Validate() error {
 	if !tl.In.IsValid() {
-		return errInvalidAuthLocation
+		return ErrInvalidAuthLocation
+	}
+
+	name := strings.TrimSpace(tl.Name)
+	if name == "" {
+		return ErrLocationNameRequired
 	}
 
 	return nil
+}
+
+// ValidateTokenLocation validates the token location.
+func ValidateTokenLocation(tokenLocation TokenLocation) (TokenLocation, error) {
+	err := tokenLocation.Validate()
+	if err != nil {
+		return tokenLocation, err
+	}
+
+	return TokenLocation{
+		In:     tokenLocation.In,
+		Name:   strings.TrimSpace(tokenLocation.Name),
+		Scheme: strings.TrimSpace(tokenLocation.Scheme),
+	}, nil
 }
 
 // InjectRequest injects the authentication token value into the request.

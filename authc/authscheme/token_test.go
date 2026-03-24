@@ -35,7 +35,7 @@ func TestTokenLocation_InjectRequest_Header(t *testing.T) {
 			t.Errorf("expected equal, got not equal")
 		}
 
-		err := location.Validate()
+		_, err := ValidateTokenLocation(location)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
