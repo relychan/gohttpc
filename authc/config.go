@@ -45,7 +45,7 @@ type HTTPClientAuthConfig struct {
 }
 
 type httpClientAuthConfig struct {
-	Type authscheme.HTTPClientAuthType `json:"type" yaml:"type"`
+	Type string `json:"type" yaml:"type"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
@@ -57,12 +57,12 @@ func (j *HTTPClientAuthConfig) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	err = rawScheme.Type.Validate()
+	authType, err := authscheme.ParseHTTPClientAuthType(rawScheme.Type)
 	if err != nil {
 		return err
 	}
 
-	switch rawScheme.Type {
+	switch authType {
 	case authscheme.BasicAuthScheme:
 		var config basicauth.BasicAuthConfig
 
@@ -122,7 +122,7 @@ func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
 	case authscheme.BasicAuthScheme:
 		var config basicauth.BasicAuthConfig
 
-		err := value.Decode(&config)
+		err := value.Load(&config)
 		if err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
 	case authscheme.HTTPAuthScheme:
 		var config httpauth.HTTPAuthConfig
 
-		err := value.Decode(&config)
+		err := value.Load(&config)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func (j *HTTPClientAuthConfig) UnmarshalYAML(value *yaml.Node) error {
 	case authscheme.OAuth2Scheme:
 		var config oauth2scheme.OAuth2Config
 
-		err := value.Decode(&config)
+		err := value.Load(&config)
 		if err != nil {
 			return err
 		}

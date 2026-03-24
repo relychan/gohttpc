@@ -29,6 +29,10 @@ var (
 		"invalid AuthLocation. Expected %v",
 		enumValuesAuthLocations,
 	)
+	errInvalidHTTPClientAuthType = fmt.Errorf(
+		"invalid HTTPClientAuthType. Expected %v",
+		enumValueHTTPClientAuthTypes,
+	)
 )
 
 // NewRequiredSecurityFieldError creates an error for required field in the security scheme config.

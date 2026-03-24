@@ -24,7 +24,6 @@ import (
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // RequestOptionsGetter abstracts an interface to get the [RequestOptions].
@@ -34,18 +33,17 @@ type RequestOptionsGetter interface {
 
 // RequestOptions defines options for the request.
 type RequestOptions struct {
-	Logger                      *slog.Logger
-	Tracer                      trace.Tracer
-	TraceHighCardinalityPath    bool
-	MetricHighCardinalityPath   bool
 	CustomAttributesFunc        CustomAttributesFunc
 	Retry                       retrypolicy.RetryPolicy[*http.Response]
 	Timeout                     time.Duration
 	Authenticator               authscheme.HTTPClientAuthenticator
-	ClientTraceEnabled          bool
 	UserAgent                   string
 	AllowedTraceRequestHeaders  []string
 	AllowedTraceResponseHeaders []string
+	LogLevel                    slog.Level
+	TraceHighCardinalityPath    bool
+	MetricHighCardinalityPath   bool
+	ClientTraceEnabled          bool
 }
 
 var _ RequestOptionsGetter = (*RequestOptions)(nil)
@@ -77,10 +75,9 @@ type ClientOptions struct {
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	opts := ClientOptions{
 		RequestOptions: RequestOptions{
-			Logger:             slog.Default(),
-			Tracer:             clientTracer,
 			UserAgent:          "gohttpc/" + getBuildVersion(),
 			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
+			LogLevel:           slog.LevelDebug,
 		},
 		HTTPClientAuthenticatorOptions: *authscheme.NewHTTPClientAuthenticatorOptions(),
 	}
@@ -126,22 +123,6 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 	}
 }
 
-// WithLogger create an option to set the logger.
-func WithLogger(logger *slog.Logger) ClientOption {
-	return func(co *ClientOptions) {
-		if logger != nil {
-			co.Logger = logger
-		}
-	}
-}
-
-// WithTracer create an option to set the tracer.
-func WithTracer(tracer trace.Tracer) ClientOption {
-	return func(co *ClientOptions) {
-		co.Tracer = tracer
-	}
-}
-
 // WithTraceHighCardinalityPath enables high cardinality path on traces.
 func WithTraceHighCardinalityPath(enabled bool) ClientOption {
 	return func(co *ClientOptions) {
@@ -174,6 +155,13 @@ func WithRetry(retry retrypolicy.RetryPolicy[*http.Response]) ClientOption {
 func WithTimeout(timeout time.Duration) ClientOption {
 	return func(co *ClientOptions) {
 		co.Timeout = timeout
+	}
+}
+
+// WithLogLevel creates an option to set the level for printing logs.
+func WithLogLevel(level slog.Level) ClientOption {
+	return func(co *ClientOptions) {
+		co.LogLevel = level
 	}
 }
 

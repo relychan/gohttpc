@@ -24,14 +24,12 @@ import (
 //
 // [bearer]: https://swagger.io/docs/specification/authentication/bearer-authentication
 type HTTPAuthConfig struct {
-	authscheme.TokenLocation `yaml:",inline"`
-
-	// Type of the http authenticator.
-	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=http" yaml:"type"`
+	// The location where the auth credential will be injected.
+	TokenLocation authscheme.TokenLocation `json:"tokenLocation" yaml:"tokenLocation"`
 	// Value of the access token.
 	Value goenvconf.EnvString `json:"value" yaml:"value"`
-	// A description for security scheme.
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	// Type of the http authenticator.
+	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"type=string,enum=http" yaml:"type"`
 }
 
 var _ authscheme.HTTPClientAuthenticatorConfig = (*HTTPAuthConfig)(nil)
@@ -50,10 +48,9 @@ func NewHTTPAuthConfig(
 
 // IsZero if the current instance is empty.
 func (bac HTTPAuthConfig) IsZero() bool {
-	return bac.Type == "" &&
+	return bac.Type == 0 &&
 		bac.Value.IsZero() &&
-		bac.TokenLocation.IsZero() &&
-		bac.Description == ""
+		bac.TokenLocation.IsZero()
 }
 
 // Equal checks if the target value is equal.
@@ -71,11 +68,7 @@ func (tac HTTPAuthConfig) Validate(strict bool) error {
 		return authscheme.NewUnmatchedSecuritySchemeError(authType, tac.Type)
 	}
 
-	if tac.Name == "" {
-		return authscheme.NewRequiredSecurityFieldError(authType, "name")
-	}
-
-	err := tac.In.Validate()
+	err := tac.TokenLocation.Validate()
 	if err != nil {
 		return err
 	}

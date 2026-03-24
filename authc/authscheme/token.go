@@ -15,14 +15,13 @@
 package authscheme
 
 import (
-	"fmt"
 	"net/http"
 )
 
 // TokenLocation contains the configuration for the location of the access token.
 type TokenLocation struct {
 	// Location where the api key is in.
-	In AuthLocation `json:"in" jsonschema:"enum=header,enum=query,enum=cookie,default=header" yaml:"in"`
+	In AuthLocation `json:"in" jsonschema:"type=string,enum=header,enum=query,enum=cookie,default=header" yaml:"in"`
 	// Name of the field to validate, for example, Authorization header.
 	Name string `json:"name" yaml:"name" jsonschema:"default=Authorization"`
 	// The name of the HTTP Authentication scheme to be used in the Authorization header as defined in RFC7235.
@@ -33,7 +32,7 @@ type TokenLocation struct {
 
 // IsZero if the current instance is empty.
 func (tl TokenLocation) IsZero() bool {
-	return tl.In == "" && tl.Name == "" && tl.Scheme == ""
+	return tl.In == 0 && tl.Name == "" && tl.Scheme == ""
 }
 
 // Equal checks if the target value is equal.
@@ -45,13 +44,8 @@ func (tl TokenLocation) Equal(target TokenLocation) bool {
 
 // Validate if the current instance is valid.
 func (tl TokenLocation) Validate() error {
-	err := tl.In.Validate()
-	if err != nil {
-		return err
-	}
-
-	if tl.Name == "" {
-		return fmt.Errorf("%w name for the token location", errRequiredSecurityField)
+	if !tl.In.IsValid() {
+		return errInvalidAuthLocation
 	}
 
 	return nil

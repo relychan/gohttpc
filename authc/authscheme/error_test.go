@@ -58,7 +58,6 @@ func TestNewRequiredSecurityFieldError(t *testing.T) {
 			{BasicAuthScheme, "password"},
 			{HTTPAuthScheme, "value"},
 			{OAuth2Scheme, "tokenUrl"},
-			{APIKeyScheme, "name"},
 		}
 
 		for _, tc := range testCases {
@@ -100,8 +99,7 @@ func TestNewUnmatchedSecuritySchemeError(t *testing.T) {
 		}{
 			{BasicAuthScheme, OAuth2Scheme},
 			{HTTPAuthScheme, BasicAuthScheme},
-			{OAuth2Scheme, APIKeyScheme},
-			{APIKeyScheme, HTTPAuthScheme},
+			{OAuth2Scheme, HTTPAuthScheme},
 		}
 
 		for _, tc := range testCases {

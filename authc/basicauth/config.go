@@ -25,15 +25,13 @@ import (
 // [basic]: https://swagger.io/docs/specification/authentication/basic-authentication
 type BasicAuthConfig struct {
 	// Type of the basic authenticator.
-	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=basic" yaml:"type"`
+	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"type=string,enum=basic" yaml:"type"`
 	// Header where the credential will be set.
 	Header string `json:"header,omitempty" yaml:"header,omitempty"`
 	// Username to authenticate.
 	Username *goenvconf.EnvString `json:"username" yaml:"username" jsonschema:"anyof_required=username"`
 	// Password to authenticate.
 	Password *goenvconf.EnvString `json:"password" yaml:"password" jsonschema:"anyof_required=password"`
-	// A description for security scheme.
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
 var _ authscheme.HTTPClientAuthenticatorConfig = (*BasicAuthConfig)(nil)
@@ -49,11 +47,10 @@ func NewBasicAuthConfig(username, password *goenvconf.EnvString) *BasicAuthConfi
 
 // IsZero if the current instance is empty.
 func (bac BasicAuthConfig) IsZero() bool {
-	return bac.Type == "" &&
+	return bac.Type == 0 &&
 		bac.Header == "" &&
 		(bac.Username == nil || bac.Username.IsZero()) &&
-		(bac.Password == nil || bac.Password.IsZero()) &&
-		bac.Description == ""
+		(bac.Password == nil || bac.Password.IsZero())
 }
 
 // Equal checks if the target value is equal.

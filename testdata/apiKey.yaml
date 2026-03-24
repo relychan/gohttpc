@@ -2,10 +2,11 @@
 timeout: 60
 transport: {}
 authentication:
-  in: header
-  name: x-hasura-admin-secret
+  tokenLocation:
+    in: header
+    name: x-hasura-admin-secret
+    scheme: bearer
   type: http
-  scheme: bearer
   value:
     env: BEARER_TOKEN
 retry:

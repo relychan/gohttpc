@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/relychan/goutils"
 	"github.com/relychan/goutils/httpheader"
@@ -43,7 +44,7 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 
 	defer goutils.CatchWarnErrorFunc(resp.Body.Close)
 
-	if resp.Header.Get(httpheader.ContentType) == httpheader.ContentTypeJSON {
+	if strings.HasPrefix(resp.Header.Get(httpheader.ContentType), httpheader.ContentTypeJSON) {
 		var httpError goutils.RFC9457ErrorWithExtensions
 
 		err := json.NewDecoder(resp.Body).Decode(&httpError)

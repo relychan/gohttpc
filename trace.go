@@ -24,10 +24,8 @@ import (
 	"net/textproto"
 	"net/url"
 	"runtime/debug"
-	"strings"
 	"time"
 
-	"github.com/relychan/goutils/httpheader"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -46,10 +44,8 @@ const millisecond = float64(time.Millisecond)
 type HTTPClientTracer interface {
 	trace.Span
 
-	// Context returns the internal context.
-	Context() context.Context
-	// TotalTime returns the total time.
-	TotalTime() time.Duration
+	// EndSpan extends the span.End method with metrics recording.
+	EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration
 	// RemoteAddress gets the remote address if exists.
 	RemoteAddress() string
 	// SetMetricAttributes sets common attributes for metrics.
@@ -59,11 +55,8 @@ type HTTPClientTracer interface {
 type simpleClientTrace struct {
 	trace.Span
 
-	context     context.Context //nolint:containedctx
-	tracer      trace.Tracer
 	metricAttrs []attribute.KeyValue
 	startTime   time.Time
-	totalTime   time.Duration
 }
 
 var _ HTTPClientTracer = (*simpleClientTrace)(nil)
@@ -71,27 +64,19 @@ var _ HTTPClientTracer = (*simpleClientTrace)(nil)
 func startSimpleClientTrace(
 	parentContext context.Context,
 	name string,
-	tracer trace.Tracer,
-) *simpleClientTrace {
+) (context.Context, *simpleClientTrace) {
 	t := &simpleClientTrace{
 		startTime: time.Now(),
-		tracer:    tracer,
 	}
 
-	spanContext, span := t.tracer.Start( //nolint:spancheck
+	spanContext, span := clientTracer.Start( //nolint:spancheck
 		parentContext,
 		name,
 		trace.WithSpanKind(trace.SpanKindClient),
 	)
-	t.context = spanContext
 	t.Span = span
 
-	return t //nolint:spancheck
-}
-
-// Context returns the internal context.
-func (sct *simpleClientTrace) Context() context.Context {
-	return sct.context
+	return spanContext, t //nolint:spancheck
 }
 
 // SetMetricAttributes sets common attributes for metrics.
@@ -104,25 +89,21 @@ func (*simpleClientTrace) RemoteAddress() string {
 	return ""
 }
 
-// TotalTime gets the start time.
-func (sct *simpleClientTrace) TotalTime() time.Duration {
-	return sct.totalTime
-}
-
-// End the tracer and record metrics.
-func (sct *simpleClientTrace) End(options ...trace.SpanEndOption) {
-	if sct.totalTime > 0 {
-		return
-	}
-
-	sct.Span.End(options...)
-	sct.totalTime = time.Since(sct.startTime)
+// EndSpan ends the tracer and record metrics.
+func (sct *simpleClientTrace) EndSpan(
+	ctx context.Context,
+	options ...trace.SpanEndOption,
+) time.Duration {
+	sct.End(options...)
+	totalTime := time.Since(sct.startTime)
 
 	GetHTTPClientMetrics().ServerDuration.Record(
-		sct.context,
-		sct.totalTime.Seconds(),
+		ctx,
+		totalTime.Seconds(),
 		metric.WithAttributeSet(attribute.NewSet(sct.metricAttrs...)),
 	)
+
+	return totalTime
 }
 
 // clientTrace struct maps the [httptrace.ClientTrace] hooks into Fields
@@ -131,19 +112,12 @@ func (sct *simpleClientTrace) End(options ...trace.SpanEndOption) {
 type clientTrace struct {
 	trace.Span
 
-	context              context.Context //nolint:containedctx
 	metricAttrs          []attribute.KeyValue
 	logger               *slog.Logger
 	startTime            time.Time
 	getConn              time.Time
-	dnsStart             time.Time
-	dnsDone              time.Time
-	connectDone          time.Time
-	tlsHandshakeStart    time.Time
-	tlsHandshakeDone     time.Time
 	gotConn              time.Time
 	gotFirstResponseByte time.Time
-	totalTime            time.Duration
 	host                 string
 	remoteAddr           string
 }
@@ -153,27 +127,20 @@ var _ HTTPClientTracer = (*clientTrace)(nil)
 func startClientTrace(
 	ctx context.Context,
 	name string,
-	tracer trace.Tracer,
 	logger *slog.Logger,
-) *clientTrace {
+) (context.Context, *clientTrace) {
 	ct := &clientTrace{
 		logger: logger,
 	}
 
-	spanContext, span := tracer.Start( //nolint:spancheck
+	spanContext, span := clientTracer.Start( //nolint:spancheck
 		ctx,
 		name,
 		trace.WithSpanKind(trace.SpanKindClient),
 	)
-	ct.context = ct.createContext(spanContext)
 	ct.Span = span
 
-	return ct //nolint:spancheck
-}
-
-// Context returns the internal context.
-func (t *clientTrace) Context() context.Context {
-	return t.context
+	return ct.createContext(spanContext), ct //nolint:spancheck
 }
 
 // SetMetricAttributes sets common attributes for metrics.
@@ -186,24 +153,12 @@ func (t *clientTrace) StartTime() time.Time {
 	return t.startTime
 }
 
-// TotalTime returns the total time.
-func (t *clientTrace) TotalTime() time.Duration {
-	return t.totalTime
-}
-
-// End the tracer and record metrics.
-func (t *clientTrace) End(options ...trace.SpanEndOption) {
-	if t.totalTime > 0 {
-		return
-	}
-
+// EndSpan ends the tracer and record metrics.
+func (t *clientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration {
 	requestStartTime := t.StartTime()
 	endTime := time.Now()
-
 	span := t.Span
-
-	t.totalTime = endTime.Sub(requestStartTime)
-
+	totalTime := endTime.Sub(requestStartTime)
 	metricAttrSet := metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...))
 
 	if t.gotFirstResponseByte.IsZero() {
@@ -212,7 +167,7 @@ func (t *clientTrace) End(options ...trace.SpanEndOption) {
 		}
 
 		GetHTTPClientMetrics().ServerDuration.Record(
-			t.context,
+			ctx,
 			endTime.Sub(requestStartTime).Seconds(),
 			metricAttrSet,
 		)
@@ -227,6 +182,8 @@ func (t *clientTrace) End(options ...trace.SpanEndOption) {
 	}
 
 	span.End(options...)
+
+	return totalTime
 }
 
 // RemoteAddress returns the remote address if exists.
@@ -240,6 +197,8 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 	t.startTime = time.Now()
 	isTraceLogLevelEnabled := t.logger.Enabled(ctx, LogLevelTrace)
 	metrics := GetHTTPClientMetrics()
+
+	var dnsStart, dnsDone, tlsHandshakeStart time.Time
 
 	ct := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
@@ -255,21 +214,21 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 			// Calculate the total time accordingly when connection is reused,
 			// and DNS start and get conn time may be zero if the request is invalid.
 			t.host = info.Host
-			t.dnsStart = time.Now()
-			t.startTime = t.dnsStart
+			dnsStart := time.Now()
+			t.startTime = dnsStart
 		},
 		DNSDone: func(info httptrace.DNSDoneInfo) {
 			if isTraceLogLevelEnabled {
 				t.logger.LogAttrs(ctx, LogLevelTrace, "DNSDone", slog.Any("info", info))
 			}
 
-			t.dnsDone = time.Now()
+			dnsDone = time.Now()
 
-			if t.dnsStart.IsZero() {
+			if dnsStart.IsZero() {
 				return
 			}
 
-			dnsLookupDuration := time.Since(t.dnsStart)
+			dnsLookupDuration := time.Since(dnsStart)
 
 			t.SetAttributes(
 				attribute.Float64(
@@ -306,12 +265,12 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			if t.dnsDone.IsZero() {
-				t.dnsDone = time.Now()
+			if dnsDone.IsZero() {
+				dnsDone = time.Now()
 			}
 
-			if t.dnsStart.IsZero() {
-				t.dnsStart = t.dnsDone
+			if dnsStart.IsZero() {
+				dnsStart = dnsDone
 			}
 		},
 		ConnectDone: func(network, addr string, err error) {
@@ -326,8 +285,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			t.connectDone = time.Now()
-			tcpConnTime := t.connectDone.Sub(t.dnsDone)
+			tcpConnTime := time.Since(dnsDone)
 
 			t.SetAttributes(
 				attribute.Float64(
@@ -418,7 +376,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeStart")
 			}
 
-			t.tlsHandshakeStart = time.Now()
+			tlsHandshakeStart = time.Now()
 		},
 		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
 			if isTraceLogLevelEnabled {
@@ -432,13 +390,11 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			t.tlsHandshakeDone = time.Now()
-
-			if t.tlsHandshakeStart.IsZero() {
+			if tlsHandshakeStart.IsZero() {
 				return
 			}
 
-			tlsHandshakeDuration := time.Since(t.tlsHandshakeStart)
+			tlsHandshakeDuration := time.Since(tlsHandshakeStart)
 
 			t.SetAttributes(
 				attribute.Float64(
@@ -503,13 +459,6 @@ func newMetricAttributes(method string, endpoint *url.URL, port int) []attribute
 		semconv.URLScheme(endpoint.Scheme),
 		httpRequestMethodAttr(method),
 	}
-}
-
-func isContentTypeDebuggable(contentType string) bool {
-	return strings.HasPrefix(contentType, httpheader.ContentTypeJSON) ||
-		strings.HasPrefix(contentType, "text/") ||
-		strings.HasPrefix(contentType, "application/xml") ||
-		strings.HasPrefix(contentType, "multipart/form-data")
 }
 
 func getBuildVersion() string {

@@ -15,20 +15,12 @@
 package authscheme
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestTokenLocation_InjectRequest_Header(t *testing.T) {
-	t.Run("empty token location name", func(t *testing.T) {
-		err := TokenLocation{In: InHeader}.Validate()
-		if err == nil || err.Error() != "required field name for the token location" {
-			t.Errorf("expected empty name error, got %v", err)
-		}
-	})
-
 	t.Run("injects token into header", func(t *testing.T) {
 		location := TokenLocation{
 			In:   InHeader,
@@ -249,23 +241,6 @@ func TestTokenLocation_addTokenSchemeToValue(t *testing.T) {
 
 		if result != "Bearer test-token" {
 			t.Errorf("expected 'Bearer test-token', got '%s'", result)
-		}
-	})
-
-	t.Run("adds Basic scheme", func(t *testing.T) {
-		location := TokenLocation{
-			Scheme: "basic",
-		}
-
-		err := location.Validate()
-		if err.Error() != fmt.Sprintf("%s; got: ", errInvalidAuthLocation) {
-			t.Errorf("expected invalid auth location error, got '%s'", err.Error())
-		}
-
-		result := location.addTokenSchemeToValue("test-token")
-
-		if result != "Basic test-token" {
-			t.Errorf("expected 'Basic test-token', got '%s'", result)
 		}
 	})
 

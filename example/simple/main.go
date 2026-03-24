@@ -18,7 +18,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-var tracer = otel.Tracer("gorestly")
+var tracer = otel.Tracer("http-client")
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
@@ -54,7 +54,6 @@ func main() {
 
 	client, err := httpconfig.NewClientFromConfig(
 		&httpconfig.HTTPClientConfig{},
-		gohttpc.WithTracer(exporters.Tracer),
 		gohttpc.EnableClientTrace(true),
 	)
 	if err != nil {

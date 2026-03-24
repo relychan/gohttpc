@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hasura/gotel/otelutils"
 	"github.com/relychan/gohttpc"
 	"resty.dev/v3"
 )
@@ -66,17 +67,19 @@ func BenchmarkRestyGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   19815	     58597 ns/op	   10731 B/op	     121 allocs/op
+// BenchmarkGoHTTPCGet-11    	   21900	     52323 ns/op	    9610 B/op	     113 allocs/op
 func BenchmarkGoHTTPCGet(b *testing.B) {
+	client := gohttpc.NewClient()
+	defer client.Close()
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	client := gohttpc.NewClient(gohttpc.WithLogger(logger))
-	defer client.Close()
+	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
 
 	for b.Loop() {
 		resp, err := client.R(http.MethodGet, serverURL).
-			Execute(context.TODO())
+			Execute(ctx)
 		if err != nil {
 			continue
 		}
@@ -93,7 +96,7 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkHTTPClientPost-11    	    3364	    342246 ns/op	   54066 B/op	     144 allocs/op
+// BenchmarkHTTPClientPost-11    	    3142	    343308 ns/op	   53783 B/op	     144 allocs/op
 func BenchmarkHTTPClientPost(b *testing.B) {
 	client := http.DefaultClient
 
@@ -140,18 +143,20 @@ func BenchmarkRestyPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    3295	    358356 ns/op	   61184 B/op	     228 allocs/op
+// BenchmarkGoHTTPCPost-11    	    3258	    354936 ns/op	   60135 B/op	     220 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
-	client := gohttpc.NewClient(gohttpc.WithLogger(logger))
+	client := gohttpc.NewClient()
 	defer client.Close()
+
+	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
 
 	for b.Loop() {
 		resp, err := client.R(http.MethodPost, serverURL).
 			SetBody(strings.NewReader(randomData)).
-			Execute(context.TODO(), client)
+			Execute(ctx, client)
 		if err != nil {
 			continue
 		}
@@ -168,20 +173,22 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPostWithClientTrace-11    	    3220	    359955 ns/op	   63893 B/op	     267 allocs/op
+// BenchmarkGoHTTPCPostWithClientTrace-11    	    3357	    346213 ns/op	   62490 B/op	     258 allocs/op
 func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 
-	client := gohttpc.NewClient(gohttpc.EnableClientTrace(true), gohttpc.WithLogger(logger))
+	client := gohttpc.NewClient(gohttpc.EnableClientTrace(true))
 	defer client.Close()
+
+	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
 
 	for b.Loop() {
 		req := client.R(http.MethodPost, serverURL)
 		req.SetBody(strings.NewReader(randomData))
 
-		resp, err := req.Execute(context.Background())
+		resp, err := req.Execute(ctx)
 		if err != nil {
 			continue
 		}

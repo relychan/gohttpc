@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"log"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -66,10 +65,6 @@ func TestClient(t *testing.T) {
 
 	gohttpc.SetHTTPClientMetrics(clientMetrics)
 
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
-
 	for _, tc := range testCases {
 		t.Run(tc.ConfigPath, func(t *testing.T) {
 			config, err := goutils.ReadJSONOrYAMLFile[httpconfig.HTTPClientConfig](context.TODO(), tc.ConfigPath)
@@ -84,10 +79,8 @@ func TestClient(t *testing.T) {
 					return nil
 				}),
 				gohttpc.WithHTTPClient(http.DefaultClient),
-				gohttpc.WithLogger(logger),
 				gohttpc.WithMetricHighCardinalityPath(true),
 				gohttpc.WithTraceHighCardinalityPath(true),
-				gohttpc.WithTracer(otel.Tracer("test")),
 				gohttpc.EnableClientTrace(true),
 				gohttpc.WithGetEnvFunc(authscheme.NewHTTPClientAuthenticatorOptions().GetEnv),
 			)

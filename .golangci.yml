@@ -77,6 +77,7 @@ linters:
       # A wildcard `*` can use as a struct name (ex: `*.MethodName`).
       # Default: []
       exclusions:
+        - "*.UnmarshalText"
         - "*.UnmarshalJSON"
         - "*.UnmarshalYAML"
         - "*.Equal"

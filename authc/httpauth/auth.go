@@ -36,17 +36,12 @@ func NewHTTPCredential(
 	config *HTTPAuthConfig,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*HTTPCredential, error) {
-	if config.In == "" {
-		config.In = authscheme.InHeader
-	}
-
-	header := config.Name
-
+	header := strings.TrimSpace(config.TokenLocation.Name)
 	if header == "" {
 		header = "Authorization"
 	}
 
-	scheme := strings.TrimSpace(config.Scheme)
+	scheme := strings.TrimSpace(config.TokenLocation.Scheme)
 
 	if options == nil {
 		options = authscheme.NewHTTPClientAuthenticatorOptions()
@@ -59,7 +54,7 @@ func NewHTTPCredential(
 
 	result := &HTTPCredential{
 		location: authscheme.TokenLocation{
-			In:     authscheme.InHeader,
+			In:     config.TokenLocation.In,
 			Name:   header,
 			Scheme: strings.ToLower(scheme),
 		},
