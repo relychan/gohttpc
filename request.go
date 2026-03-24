@@ -593,9 +593,9 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		)
 		span.SetStatus(codes.Error, msg)
 		span.RecordError(err)
-		span.EndSpan(ctx)
 
 		r.logRequestAttempt(
+			ctx,
 			span,
 			logger,
 			req,
@@ -632,7 +632,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 	)
 
 	defer func() {
-		span.EndSpan(ctx)
 		metrics.ActiveRequests.Add(
 			ctx,
 			-1,
@@ -669,6 +668,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		span.RecordError(err)
 
 		r.logRequestAttempt(
+			ctx,
 			span,
 			logger,
 			req,
@@ -690,7 +690,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		span.SetStatus(codes.Error, msg)
 		span.RecordError(err)
 
-		r.logRequestAttempt(span, logger, req, rawResp, err, msg)
+		r.logRequestAttempt(ctx, span, logger, req, rawResp, err, msg)
 
 		return nil, err
 	}
@@ -745,14 +745,14 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		if rawResp.StatusCode >= http.StatusBadRequest {
 			span.SetStatus(codes.Error, rawResp.Status)
 
-			r.logRequestAttempt(span, logger, req, rawResp, nil, rawResp.Status)
+			r.logRequestAttempt(ctx, span, logger, req, rawResp, nil, rawResp.Status)
 
 			return rawResp, httpErrorFromNoContentResponse(rawResp)
 		}
 
 		span.SetStatus(codes.Ok, "")
 
-		r.logRequestAttempt(span, logger, req, rawResp, nil, rawResp.Status)
+		r.logRequestAttempt(ctx, span, logger, req, rawResp, nil, rawResp.Status)
 
 		return rawResp, nil
 	}
@@ -772,6 +772,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 			span.RecordError(err)
 
 			r.logRequestAttempt(
+				ctx,
 				span,
 				logger,
 				req,
@@ -790,7 +791,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		span.SetStatus(codes.Error, rawResp.Status)
 
 		err := httpErrorFromResponse(rawResp)
-		r.logRequestAttempt(span, logger, req, rawResp, err, rawResp.Status)
+		r.logRequestAttempt(ctx, span, logger, req, rawResp, err, rawResp.Status)
 
 		return rawResp, err
 	}
@@ -798,6 +799,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 	span.SetStatus(codes.Ok, "")
 
 	r.logRequestAttempt(
+		ctx,
 		span,
 		logger,
 		req,
@@ -810,6 +812,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 }
 
 func (r *Request) logRequestAttempt(
+	ctx context.Context,
 	span HTTPClientTracer,
 	logger *slog.Logger,
 	req *http.Request,
@@ -817,16 +820,14 @@ func (r *Request) logRequestAttempt(
 	err error,
 	message string,
 ) {
-	defer span.End()
+	if !logger.Enabled(ctx, slog.LevelDebug) {
+		span.EndSpan(ctx)
 
-	if !logger.Enabled(req.Context(), slog.LevelDebug) {
 		return
 	}
 
 	requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
 	otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
-
-	totalTime := span.TotalTime()
 
 	requestLogAttrs := []slog.Attr{
 		slog.String("url", r.url),
@@ -834,14 +835,7 @@ func (r *Request) logRequestAttempt(
 		otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
 	}
 
-	logAttrs := []any{
-		slog.GroupAttrs("request", requestLogAttrs...),
-		slog.Float64("latency", totalTime.Seconds()),
-	}
-
-	if err != nil {
-		logAttrs = append(logAttrs, slog.Any("error", err))
-	}
+	logAttrs := make([]any, 0, 4)
 
 	if resp != nil {
 		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header)
@@ -855,6 +849,17 @@ func (r *Request) logRequestAttempt(
 		}
 
 		logAttrs = append(logAttrs, slog.GroupAttrs("response", responseLogAttrs...))
+	}
+
+	totalTime := span.EndSpan(ctx)
+
+	logAttrs = append(logAttrs,
+		slog.GroupAttrs("request", requestLogAttrs...),
+		slog.Float64("latency", totalTime.Seconds()),
+	)
+
+	if err != nil {
+		logAttrs = append(logAttrs, slog.Any("error", err))
 	}
 
 	logger.Debug(message, logAttrs...)

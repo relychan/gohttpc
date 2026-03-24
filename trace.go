@@ -45,9 +45,7 @@ type HTTPClientTracer interface {
 	trace.Span
 
 	// EndSpan extends the span.End method with metrics recording.
-	EndSpan(ctx context.Context, options ...trace.SpanEndOption)
-	// TotalTime returns the total time.
-	TotalTime() time.Duration
+	EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration
 	// RemoteAddress gets the remote address if exists.
 	RemoteAddress() string
 	// SetMetricAttributes sets common attributes for metrics.
@@ -59,7 +57,6 @@ type simpleClientTrace struct {
 
 	metricAttrs []attribute.KeyValue
 	startTime   time.Time
-	totalTime   time.Duration
 }
 
 var _ HTTPClientTracer = (*simpleClientTrace)(nil)
@@ -92,25 +89,18 @@ func (*simpleClientTrace) RemoteAddress() string {
 	return ""
 }
 
-// TotalTime gets the start time.
-func (sct *simpleClientTrace) TotalTime() time.Duration {
-	return sct.totalTime
-}
-
 // EndSpan ends the tracer and record metrics.
-func (sct *simpleClientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) {
-	if sct.totalTime > 0 {
-		return
-	}
-
+func (sct *simpleClientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration {
 	sct.End(options...)
-	sct.totalTime = time.Since(sct.startTime)
+	totalTime := time.Since(sct.startTime)
 
 	GetHTTPClientMetrics().ServerDuration.Record(
 		ctx,
-		sct.totalTime.Seconds(),
+		totalTime.Seconds(),
 		metric.WithAttributeSet(attribute.NewSet(sct.metricAttrs...)),
 	)
+
+	return totalTime
 }
 
 // clientTrace struct maps the [httptrace.ClientTrace] hooks into Fields
@@ -123,14 +113,8 @@ type clientTrace struct {
 	logger               *slog.Logger
 	startTime            time.Time
 	getConn              time.Time
-	dnsStart             time.Time
-	dnsDone              time.Time
-	connectDone          time.Time
-	tlsHandshakeStart    time.Time
-	tlsHandshakeDone     time.Time
 	gotConn              time.Time
 	gotFirstResponseByte time.Time
-	totalTime            time.Duration
 	host                 string
 	remoteAddr           string
 }
@@ -166,24 +150,12 @@ func (t *clientTrace) StartTime() time.Time {
 	return t.startTime
 }
 
-// TotalTime returns the total time.
-func (t *clientTrace) TotalTime() time.Duration {
-	return t.totalTime
-}
-
 // EndSpan ends the tracer and record metrics.
-func (t *clientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) {
-	if t.totalTime > 0 {
-		return
-	}
-
+func (t *clientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration {
 	requestStartTime := t.StartTime()
 	endTime := time.Now()
-
 	span := t.Span
-
-	t.totalTime = endTime.Sub(requestStartTime)
-
+	totalTime := endTime.Sub(requestStartTime)
 	metricAttrSet := metric.WithAttributeSet(attribute.NewSet(t.metricAttrs...))
 
 	if t.gotFirstResponseByte.IsZero() {
@@ -207,6 +179,8 @@ func (t *clientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOptio
 	}
 
 	span.End(options...)
+
+	return totalTime
 }
 
 // RemoteAddress returns the remote address if exists.
@@ -220,6 +194,8 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 	t.startTime = time.Now()
 	isTraceLogLevelEnabled := t.logger.Enabled(ctx, LogLevelTrace)
 	metrics := GetHTTPClientMetrics()
+
+	var dnsStart, dnsDone, tlsHandshakeStart time.Time
 
 	ct := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
@@ -235,21 +211,21 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 			// Calculate the total time accordingly when connection is reused,
 			// and DNS start and get conn time may be zero if the request is invalid.
 			t.host = info.Host
-			t.dnsStart = time.Now()
-			t.startTime = t.dnsStart
+			dnsStart := time.Now()
+			t.startTime = dnsStart
 		},
 		DNSDone: func(info httptrace.DNSDoneInfo) {
 			if isTraceLogLevelEnabled {
 				t.logger.LogAttrs(ctx, LogLevelTrace, "DNSDone", slog.Any("info", info))
 			}
 
-			t.dnsDone = time.Now()
+			dnsDone = time.Now()
 
-			if t.dnsStart.IsZero() {
+			if dnsStart.IsZero() {
 				return
 			}
 
-			dnsLookupDuration := time.Since(t.dnsStart)
+			dnsLookupDuration := time.Since(dnsStart)
 
 			t.SetAttributes(
 				attribute.Float64(
@@ -286,12 +262,12 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			if t.dnsDone.IsZero() {
-				t.dnsDone = time.Now()
+			if dnsDone.IsZero() {
+				dnsDone = time.Now()
 			}
 
-			if t.dnsStart.IsZero() {
-				t.dnsStart = t.dnsDone
+			if dnsStart.IsZero() {
+				dnsStart = dnsDone
 			}
 		},
 		ConnectDone: func(network, addr string, err error) {
@@ -306,8 +282,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			t.connectDone = time.Now()
-			tcpConnTime := t.connectDone.Sub(t.dnsDone)
+			tcpConnTime := time.Since(dnsDone)
 
 			t.SetAttributes(
 				attribute.Float64(
@@ -398,7 +373,7 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				t.logger.LogAttrs(ctx, LogLevelTrace, "TLSHandshakeStart")
 			}
 
-			t.tlsHandshakeStart = time.Now()
+			tlsHandshakeStart = time.Now()
 		},
 		TLSHandshakeDone: func(connState tls.ConnectionState, err error) {
 			if isTraceLogLevelEnabled {
@@ -412,13 +387,11 @@ func (t *clientTrace) createContext( //nolint:gocognit,funlen,maintidx
 				)
 			}
 
-			t.tlsHandshakeDone = time.Now()
-
-			if t.tlsHandshakeStart.IsZero() {
+			if tlsHandshakeStart.IsZero() {
 				return
 			}
 
-			tlsHandshakeDuration := time.Since(t.tlsHandshakeStart)
+			tlsHandshakeDuration := time.Since(tlsHandshakeStart)
 
 			t.SetAttributes(
 				attribute.Float64(
