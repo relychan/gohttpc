@@ -90,7 +90,10 @@ func (*simpleClientTrace) RemoteAddress() string {
 }
 
 // EndSpan ends the tracer and record metrics.
-func (sct *simpleClientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) time.Duration {
+func (sct *simpleClientTrace) EndSpan(
+	ctx context.Context,
+	options ...trace.SpanEndOption,
+) time.Duration {
 	sct.End(options...)
 	totalTime := time.Since(sct.startTime)
 

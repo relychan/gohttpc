@@ -37,18 +37,26 @@ func transportDialContext(
 		}
 
 		_, port, _ := otelutils.SplitHostPort(address, "")
+		metrics := GetHTTPClientMetrics()
+		metricAttrSet := metric.WithAttributeSet(attribute.NewSet(
+			semconv.ServerAddress(address),
+			semconv.ServerPort(port),
+			semconv.NetworkPeerAddress(conn.RemoteAddr().String()),
+		))
 
 		connMetric := &connWithMetric{
-			Conn:        conn,
-			createdTime: createdTime,
-			metricAttrSet: metric.WithAttributeSet(attribute.NewSet(
-				semconv.ServerAddress(address),
-				semconv.ServerPort(port),
-				semconv.NetworkPeerAddress(conn.RemoteAddr().String()),
-			)),
+			Conn: conn,
+			End: func() {
+				metrics.OpenConnections.Add(ctx, -1, metricAttrSet)
+				metrics.ConnectionDuration.Record(
+					ctx,
+					time.Since(createdTime).Seconds(),
+					metricAttrSet,
+				)
+			},
 		}
 
-		GetHTTPClientMetrics().OpenConnections.Add(ctx, 1, connMetric.metricAttrSet)
+		metrics.OpenConnections.Add(ctx, 1, metricAttrSet)
 
 		return connMetric, nil
 	}
@@ -58,18 +66,11 @@ func transportDialContext(
 type connWithMetric struct {
 	net.Conn
 
-	createdTime   time.Time
-	metricAttrSet metric.MeasurementOption
+	End func()
 }
 
 func (c *connWithMetric) Close() error {
-	metrics := GetHTTPClientMetrics()
-	metrics.OpenConnections.Add(context.TODO(), -1, c.metricAttrSet)
-	metrics.ConnectionDuration.Record(
-		context.TODO(),
-		time.Since(c.createdTime).Seconds(),
-		c.metricAttrSet,
-	)
+	c.End()
 
 	return c.Conn.Close()
 }
