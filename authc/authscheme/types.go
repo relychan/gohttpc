@@ -16,6 +16,7 @@
 package authscheme
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
@@ -93,7 +94,7 @@ func (j HTTPClientAuthType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals a JSON description of themselves.
 func (j *HTTPClientAuthType) UnmarshalJSON(input []byte) error {
-	value := input[1 : len(input)-1]
+	value := bytes.Trim(input, `"`)
 
 	return j.UnmarshalText(value)
 }
@@ -170,7 +171,7 @@ func (j AuthLocation) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unmarshals a JSON description of themselves.
 func (j *AuthLocation) UnmarshalJSON(input []byte) error {
-	value := input[1 : len(input)-1]
+	value := bytes.Trim(input, `"`)
 
 	return j.UnmarshalText(value)
 }

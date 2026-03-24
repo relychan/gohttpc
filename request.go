@@ -826,16 +826,20 @@ func (r *Request) logRequestAttempt(
 		return
 	}
 
-	requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
-	otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
-
-	requestLogAttrs := []slog.Attr{
-		slog.String("url", r.url),
-		slog.String("method", r.method),
-		otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
-	}
-
 	logAttrs := make([]any, 0, 4)
+
+	if req != nil {
+		requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
+		otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
+
+		requestLogAttrs := []slog.Attr{
+			slog.String("url", r.url),
+			slog.String("method", r.method),
+			otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
+		}
+
+		logAttrs = append(logAttrs, slog.GroupAttrs("request", requestLogAttrs...))
+	}
 
 	if resp != nil {
 		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header)
@@ -853,10 +857,7 @@ func (r *Request) logRequestAttempt(
 
 	totalTime := span.EndSpan(ctx)
 
-	logAttrs = append(logAttrs,
-		slog.GroupAttrs("request", requestLogAttrs...),
-		slog.Float64("latency", totalTime.Seconds()),
-	)
+	logAttrs = append(logAttrs, slog.Float64("latency", totalTime.Seconds()))
 
 	if err != nil {
 		logAttrs = append(logAttrs, slog.Any("error", err))
