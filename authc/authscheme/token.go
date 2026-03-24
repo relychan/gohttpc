@@ -21,7 +21,7 @@ import (
 // TokenLocation contains the configuration for the location of the access token.
 type TokenLocation struct {
 	// Location where the api key is in.
-	In AuthLocation `json:"in" jsonschema:"enum=header,enum=query,enum=cookie,default=header" yaml:"in"`
+	In AuthLocation `json:"in" jsonschema:"type=string,enum=header,enum=query,enum=cookie,default=header" yaml:"in"`
 	// Name of the field to validate, for example, Authorization header.
 	Name string `json:"name" yaml:"name" jsonschema:"default=Authorization"`
 	// The name of the HTTP Authentication scheme to be used in the Authorization header as defined in RFC7235.

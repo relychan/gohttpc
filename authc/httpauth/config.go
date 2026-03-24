@@ -29,7 +29,7 @@ type HTTPAuthConfig struct {
 	// Value of the access token.
 	Value goenvconf.EnvString `json:"value" yaml:"value"`
 	// Type of the http authenticator.
-	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=http" yaml:"type"`
+	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"type=string,enum=http" yaml:"type"`
 }
 
 var _ authscheme.HTTPClientAuthenticatorConfig = (*HTTPAuthConfig)(nil)

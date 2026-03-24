@@ -38,7 +38,7 @@ var (
 // OAuth2Config contains configurations for OAuth 2.0 with client_credentials type.
 type OAuth2Config struct {
 	// Type of the oauth2 authenticator.
-	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"enum=oauth2" yaml:"type"`
+	Type authscheme.HTTPClientAuthType `json:"type" jsonschema:"type=string,enum=oauth2" yaml:"type"`
 	// An object containing configuration information for the flow types supported.
 	Flows OAuth2Flows `json:"flows" yaml:"flows"`
 	// The location where the auth credential will be injected.

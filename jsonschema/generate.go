@@ -26,7 +26,6 @@ import (
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/gohttpc/loadbalancer"
-	"github.com/relychan/goutils"
 	"github.com/relychan/jsonschema"
 )
 
@@ -95,18 +94,6 @@ func jsonSchemaConfiguration() error { //nolint:funlen
 			},
 		},
 	}
-
-	reflectSchema.Definitions["AuthLocation"] = &jsonschema.Schema{
-		Type:        "string",
-		Description: "Defines the location enum for setting authentication value",
-		Enum:        goutils.ToAnySlice(authscheme.GetSupportedAuthLocations()),
-	}
-	inSchema := &jsonschema.Schema{
-		Description: "The location enum for setting authentication value",
-		Ref:         "#/$defs/AuthLocation",
-	}
-	reflectSchema.Definitions["TokenLocation"].Properties.Set("in", inSchema)
-	reflectSchema.Definitions["HTTPAuthConfig"].Properties.Set("in", inSchema)
 
 	schemaBytes, err := json.MarshalIndent(reflectSchema, "", "  ")
 	if err != nil {
