@@ -546,8 +546,8 @@ func (r *Request) compressBody() (io.Reader, error) {
 	return &buf, nil
 }
 
-func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
-	parentContext context.Context,
+func (r *Request) doRequest( //nolint:funlen,maintidx
+	ctx context.Context,
 	clientGetter HTTPClientGetter,
 	endpoint *url.URL,
 	body io.Reader,
@@ -567,14 +567,14 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	}
 
 	if r.options.ClientTraceEnabled {
-		span = startClientTrace(
-			parentContext,
+		ctx, span = startClientTrace(
+			ctx,
 			spanName,
 			logger,
 		)
 	} else {
-		span = startSimpleClientTrace(
-			parentContext,
+		ctx, span = startSimpleClientTrace(
+			ctx,
 			spanName,
 		)
 	}
@@ -583,9 +583,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 		span.SetAttributes(semconv.HTTPRequestResendCount(r.retryAttempts))
 	}
 
-	ctx := span.Context()
-
-	req, err := client.NewRequest(ctx, r.method, r.url, body) //nolint:contextcheck
+	req, err := client.NewRequest(ctx, r.method, r.url, body)
 	if err != nil {
 		msg := "failed to create request"
 
@@ -595,6 +593,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 		)
 		span.SetStatus(codes.Error, msg)
 		span.RecordError(err)
+		span.EndSpan(ctx)
 
 		r.logRequestAttempt(
 			span,
@@ -626,14 +625,14 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 
 	metrics := GetHTTPClientMetrics()
 
-	metrics.ActiveRequests.Add( //nolint:contextcheck
+	metrics.ActiveRequests.Add(
 		ctx,
 		1,
 		activeRequestsAttrSet,
 	)
 
 	defer func() {
-		span.End()
+		span.EndSpan(ctx)
 		metrics.ActiveRequests.Add(
 			ctx,
 			-1,
@@ -682,7 +681,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	}
 
 	propagator := otel.GetTextMapPropagator()
-	propagator.Inject(ctx, propagation.HeaderCarrier(req.Header)) //nolint:contextcheck
+	propagator.Inject(ctx, propagation.HeaderCarrier(req.Header))
 	req.Header.Set(httpheader.UserAgent, r.options.UserAgent)
 
 	rawResp, err := client.Do(req)
@@ -703,7 +702,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	span.SetAttributes(statusCodeAttr)
 
 	if rawResp.Request.ContentLength > 0 {
-		metrics.RequestBodySize.Record( //nolint:contextcheck
+		metrics.RequestBodySize.Record(
 			ctx,
 			rawResp.Request.ContentLength,
 			commonAttrsSet)
@@ -713,7 +712,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx,contextcheck
 	}
 
 	if rawResp.ContentLength > 0 {
-		metrics.ResponseBodySize.Record( //nolint:contextcheck
+		metrics.ResponseBodySize.Record(
 			ctx,
 			rawResp.ContentLength,
 			commonAttrsSet)

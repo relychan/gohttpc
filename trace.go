@@ -44,8 +44,8 @@ const millisecond = float64(time.Millisecond)
 type HTTPClientTracer interface {
 	trace.Span
 
-	// Context returns the internal context.
-	Context() context.Context
+	// EndSpan extends the span.End method with metrics recording.
+	EndSpan(ctx context.Context, options ...trace.SpanEndOption)
 	// TotalTime returns the total time.
 	TotalTime() time.Duration
 	// RemoteAddress gets the remote address if exists.
@@ -57,7 +57,6 @@ type HTTPClientTracer interface {
 type simpleClientTrace struct {
 	trace.Span
 
-	context     context.Context //nolint:containedctx
 	metricAttrs []attribute.KeyValue
 	startTime   time.Time
 	totalTime   time.Duration
@@ -68,7 +67,7 @@ var _ HTTPClientTracer = (*simpleClientTrace)(nil)
 func startSimpleClientTrace(
 	parentContext context.Context,
 	name string,
-) *simpleClientTrace {
+) (context.Context, *simpleClientTrace) {
 	t := &simpleClientTrace{
 		startTime: time.Now(),
 	}
@@ -78,15 +77,9 @@ func startSimpleClientTrace(
 		name,
 		trace.WithSpanKind(trace.SpanKindClient),
 	)
-	t.context = spanContext
 	t.Span = span
 
-	return t //nolint:spancheck
-}
-
-// Context returns the internal context.
-func (sct *simpleClientTrace) Context() context.Context {
-	return sct.context
+	return spanContext, t //nolint:spancheck
 }
 
 // SetMetricAttributes sets common attributes for metrics.
@@ -104,17 +97,17 @@ func (sct *simpleClientTrace) TotalTime() time.Duration {
 	return sct.totalTime
 }
 
-// End the tracer and record metrics.
-func (sct *simpleClientTrace) End(options ...trace.SpanEndOption) {
+// EndSpan ends the tracer and record metrics.
+func (sct *simpleClientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) {
 	if sct.totalTime > 0 {
 		return
 	}
 
-	sct.Span.End(options...)
+	sct.End(options...)
 	sct.totalTime = time.Since(sct.startTime)
 
 	GetHTTPClientMetrics().ServerDuration.Record(
-		sct.context,
+		ctx,
 		sct.totalTime.Seconds(),
 		metric.WithAttributeSet(attribute.NewSet(sct.metricAttrs...)),
 	)
@@ -126,7 +119,6 @@ func (sct *simpleClientTrace) End(options ...trace.SpanEndOption) {
 type clientTrace struct {
 	trace.Span
 
-	context              context.Context //nolint:containedctx
 	metricAttrs          []attribute.KeyValue
 	logger               *slog.Logger
 	startTime            time.Time
@@ -149,7 +141,7 @@ func startClientTrace(
 	ctx context.Context,
 	name string,
 	logger *slog.Logger,
-) *clientTrace {
+) (context.Context, *clientTrace) {
 	ct := &clientTrace{
 		logger: logger,
 	}
@@ -159,15 +151,9 @@ func startClientTrace(
 		name,
 		trace.WithSpanKind(trace.SpanKindClient),
 	)
-	ct.context = ct.createContext(spanContext)
 	ct.Span = span
 
-	return ct //nolint:spancheck
-}
-
-// Context returns the internal context.
-func (t *clientTrace) Context() context.Context {
-	return t.context
+	return ct.createContext(spanContext), ct //nolint:spancheck
 }
 
 // SetMetricAttributes sets common attributes for metrics.
@@ -185,8 +171,8 @@ func (t *clientTrace) TotalTime() time.Duration {
 	return t.totalTime
 }
 
-// End the tracer and record metrics.
-func (t *clientTrace) End(options ...trace.SpanEndOption) {
+// EndSpan ends the tracer and record metrics.
+func (t *clientTrace) EndSpan(ctx context.Context, options ...trace.SpanEndOption) {
 	if t.totalTime > 0 {
 		return
 	}
@@ -206,7 +192,7 @@ func (t *clientTrace) End(options ...trace.SpanEndOption) {
 		}
 
 		GetHTTPClientMetrics().ServerDuration.Record(
-			t.context,
+			ctx,
 			endTime.Sub(requestStartTime).Seconds(),
 			metricAttrSet,
 		)

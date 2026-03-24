@@ -24,5 +24,5 @@ require (
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	gonum.org/v1/gonum v0.16.0 // indirect
+	gonum.org/v1/gonum v0.17.0 // indirect
 )

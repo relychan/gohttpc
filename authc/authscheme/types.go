@@ -45,7 +45,7 @@ type HTTPClientAuthenticatorConfig interface {
 type HTTPClientAuthType uint8
 
 const (
-	HTTPAuthScheme HTTPClientAuthType = iota
+	HTTPAuthScheme HTTPClientAuthType = iota + 1
 	BasicAuthScheme
 	OAuth2Scheme
 )
@@ -58,7 +58,7 @@ var enumValueHTTPClientAuthTypes = []string{
 
 // IsValid checks if the security scheme type is valid.
 func (j HTTPClientAuthType) IsValid() bool {
-	return j < 3
+	return j > 0 && j < 4
 }
 
 // String implements fmt.Stringer interface.
@@ -111,7 +111,7 @@ func ParseHTTPClientAuthType(value string) (HTTPClientAuthType, error) {
 	case "oauth2":
 		return OAuth2Scheme, nil
 	default:
-		return 255, fmt.Errorf(
+		return 0, fmt.Errorf(
 			"%w; got: %s",
 			errInvalidHTTPClientAuthType,
 			value,
