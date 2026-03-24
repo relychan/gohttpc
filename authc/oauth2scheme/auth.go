@@ -31,7 +31,7 @@ import (
 // OAuth2Credential represent the client of the OAuth2 client credentials.
 type OAuth2Credential struct {
 	oauth2Config *clientcredentials.Config
-	location     authscheme.TokenLocation
+	location     *authscheme.TokenLocation
 }
 
 var _ authscheme.HTTPClientAuthenticator = (*OAuth2Credential)(nil)
@@ -41,12 +41,20 @@ func NewOAuth2Credential(
 	config *OAuth2Config,
 	options *authscheme.HTTPClientAuthenticatorOptions,
 ) (*OAuth2Credential, error) {
-	location := config.TokenLocation
-	if location == nil {
+	var location *authscheme.TokenLocation
+
+	if config.TokenLocation == nil {
 		location = &authscheme.TokenLocation{
 			In:   authscheme.InHeader,
 			Name: "Authorization",
 		}
+	} else {
+		tokenLocation, err := authscheme.ValidateTokenLocation(*config.TokenLocation)
+		if err != nil {
+			return nil, err
+		}
+
+		location = &tokenLocation
 	}
 
 	if options == nil {
@@ -59,7 +67,7 @@ func NewOAuth2Credential(
 	}
 
 	client := &OAuth2Credential{
-		location:     *location,
+		location:     location,
 		oauth2Config: oauth2Config,
 	}
 
@@ -95,7 +103,7 @@ func (oc *OAuth2Credential) Authenticate(
 
 // Equal checks if the target value is equal.
 func (oc OAuth2Credential) Equal(target OAuth2Credential) bool {
-	return oc.location.Equal(target.location) &&
+	return goutils.EqualPtr(oc.location, target.location) &&
 		EqualClientCredentialsConfig(oc.oauth2Config, target.oauth2Config)
 }
 

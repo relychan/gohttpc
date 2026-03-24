@@ -188,7 +188,7 @@ func ParseAuthLocation(value string) (AuthLocation, error) {
 	default:
 		return 255, fmt.Errorf(
 			"%w; got: %s",
-			errInvalidAuthLocation,
+			ErrInvalidAuthLocation,
 			value,
 		)
 	}

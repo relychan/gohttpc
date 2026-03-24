@@ -23,16 +23,20 @@ import (
 var ErrAuthCredentialEmpty = errors.New("the auth credential is empty")
 
 var (
-	errUnmatchedSecurityScheme = errors.New("client auth type does not match")
-	errRequiredSecurityField   = errors.New("required field")
-	errInvalidAuthLocation     = fmt.Errorf(
-		"invalid AuthLocation. Expected %v",
-		enumValuesAuthLocations,
-	)
+	errUnmatchedSecurityScheme   = errors.New("client auth type does not match")
+	errRequiredSecurityField     = errors.New("required field")
 	errInvalidHTTPClientAuthType = fmt.Errorf(
 		"invalid HTTPClientAuthType. Expected %v",
 		enumValueHTTPClientAuthTypes,
 	)
+
+	// ErrInvalidAuthLocation occurs when the auth location enum is invalid.
+	ErrInvalidAuthLocation = fmt.Errorf(
+		"invalid AuthLocation. Expected %v",
+		enumValuesAuthLocations,
+	)
+	// ErrLocationNameRequired occurs when the name of the token location is empty.
+	ErrLocationNameRequired = errors.New("name of token location is required")
 )
 
 // NewRequiredSecurityFieldError creates an error for required field in the security scheme config.
