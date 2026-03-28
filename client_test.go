@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/relychan/gohttpc"
 	"github.com/relychan/gohttpc/authc/authscheme"
@@ -83,13 +85,15 @@ func TestClient(t *testing.T) {
 				gohttpc.WithTraceHighCardinalityPath(true),
 				gohttpc.EnableClientTrace(true),
 				gohttpc.WithGetEnvFunc(authscheme.NewHTTPClientAuthenticatorOptions().GetEnv),
+				gohttpc.WithTimeout(30*time.Second),
 			)
 			if err != nil {
 				t.Fatal("failed to create client: " + err.Error())
 			}
 			defer goutils.CatchWarnErrorFunc(client.Close)
 
-			resp, err := client.Clone().R(http.MethodGet, mockState.Server.URL+tc.Endpoint).
+			resp, err := client.Clone().
+				R(http.MethodGet, mockState.Server.URL+tc.Endpoint).
 				Execute(context.TODO())
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
@@ -98,6 +102,15 @@ func TestClient(t *testing.T) {
 
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode)
+			}
+
+			bodyBytes, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal("expected no error, got: " + err.Error())
+			}
+
+			if string(bodyBytes) != "OK" {
+				t.Fatal("expected response body=OK, got: " + string(bodyBytes))
 			}
 		})
 	}

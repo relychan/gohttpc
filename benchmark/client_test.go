@@ -67,7 +67,7 @@ func BenchmarkRestyGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   21900	     52323 ns/op	    9610 B/op	     113 allocs/op
+// BenchmarkGoHTTPCGet-11    	   22311	     51442 ns/op	    8583 B/op	     111 allocs/op
 func BenchmarkGoHTTPCGet(b *testing.B) {
 	client := gohttpc.NewClient()
 	defer client.Close()
@@ -143,7 +143,7 @@ func BenchmarkRestyPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    3258	    354936 ns/op	   60135 B/op	     220 allocs/op
+// BenchmarkGoHTTPCPost-11    	    3381	    340464 ns/op	   59031 B/op	     219 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -173,7 +173,7 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPostWithClientTrace-11    	    3357	    346213 ns/op	   62490 B/op	     258 allocs/op
+// BenchmarkGoHTTPCPostWithClientTrace-11    	    3403	    343264 ns/op	   61089 B/op	     257 allocs/op
 func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
