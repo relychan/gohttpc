@@ -459,22 +459,18 @@ func newNetworkProtocolVersion(protoMajor, protoMinor int) attribute.KeyValue {
 	)
 }
 
-func newRequestMetricAttributes(
-	capacity int,
+func addRequestMetricAttributes(
+	attrs []attribute.KeyValue,
 	method string,
 	endpoint *url.URL,
 	port int,
 ) []attribute.KeyValue {
-	results := make([]attribute.KeyValue, 0, capacity)
-
-	results = append(results,
+	return append(attrs,
 		semconv.ServerAddress(endpoint.Host),
 		semconv.ServerPort(port),
 		semconv.URLScheme(endpoint.Scheme),
 		httpRequestMethodAttr(method),
 	)
-
-	return results
 }
 
 func getBuildVersion() string {

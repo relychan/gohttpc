@@ -22,6 +22,7 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go"
@@ -39,7 +40,7 @@ import (
 )
 
 // Execute handles the HTTP request to the remote server.
-func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
+func (r *Request) Execute( //nolint:funlen
 	ctx context.Context,
 	client HTTPClientGetter,
 ) (*http.Response, error) {
@@ -52,9 +53,6 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 	logger := r.getLogger(ctx)
 	isDebug := logger.Enabled(ctx, slog.LevelDebug)
 
-	requestLogAttrs := make([]slog.Attr, 0, 5)
-	requestLogAttrs = append(requestLogAttrs, slog.String("method", r.method))
-
 	var requestBodyStr string
 
 	if isDebug && r.body != nil &&
@@ -62,32 +60,32 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		body, err := io.ReadAll(r.body)
 		if err != nil {
 			logger.Error(
-				"failed to read request body",
-				slog.String("error", err.Error()),
+				"failed to read request body: "+err.Error(),
 				slog.Float64("latency", time.Since(startTime).Seconds()),
-				slog.GroupAttrs("request", requestLogAttrs...),
+				slog.GroupAttrs(
+					"request",
+					slog.String("method", r.method),
+					slog.String("url", r.url),
+				),
 			)
 
 			return nil, err
 		}
 
 		requestBodyStr = string(body)
-		requestLogAttrs = append(
-			requestLogAttrs,
-			slog.Int("size", len(requestBodyStr)),
-			slog.String("body", requestBodyStr),
-		)
 
 		r.body = bytes.NewReader(body)
 	}
 
 	endpoint, err := goutils.ParsePathOrHTTPURL(r.url)
 	if err != nil {
-		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.url))
 		logger.Error(
-			"invalid request url",
-			slog.GroupAttrs("request", requestLogAttrs...),
-			slog.String("error", err.Error()),
+			"invalid request url: "+err.Error(),
+			slog.GroupAttrs("request", slog.GroupAttrs(
+				"request",
+				slog.String("method", r.method),
+				slog.String("url", r.url),
+			)),
 			slog.Float64("latency", time.Since(startTime).Seconds()),
 		)
 
@@ -96,65 +94,24 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 
 	spanContext, span := clientTracer.Start(
 		ctx,
-		"request",
+		"Request",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 
-	span.SetAttributes(httpRequestMethodAttr(r.method))
-
-	if requestBodyStr != "" {
-		span.SetAttributes(attribute.String("http.request.body", requestBodyStr))
-	}
-
-	commonAttrs := []attribute.KeyValue{
-		httpRequestMethodAttr(r.method),
-	}
-
-	if r.options.CustomAttributesFunc != nil {
-		commonAttrs = append(
-			commonAttrs,
-			r.options.CustomAttributesFunc(r)...,
-		)
-	}
-
-	// the request URL may not be a full URI.
-	if endpoint.Host != "" {
-		_, port, _ := otelutils.SplitHostPort(endpoint.Host, endpoint.Scheme)
-		commonAttrs = newRequestMetricAttributes(4, r.method, endpoint, port)
-		span.SetAttributes(commonAttrs...)
-		span.SetAttributes(semconv.URLFull(r.url))
-		requestLogAttrs = append(requestLogAttrs, slog.String("url", r.url))
-	} else {
-		requestLogAttrs = append(requestLogAttrs, slog.String("request_path", r.url))
-		span.SetAttributes(semconv.URLPath(r.url))
-	}
-
-	requestDurationAttrs := make([]attribute.KeyValue, 0, 9)
-	copy(requestDurationAttrs, commonAttrs)
-
-	defer func() {
-		span.End()
-		GetHTTPClientMetrics().RequestDuration.Record(
-			ctx,
-			time.Since(startTime).Seconds(),
-			metric.WithAttributeSet(attribute.NewSet(requestDurationAttrs...)),
-		)
-	}()
+	defer span.End()
 
 	body, err := r.compressBody()
 	if err != nil {
-		msg := "failed to compress request body"
-		logger.Error(
-			msg,
-			slog.GroupAttrs("request", requestLogAttrs...),
-			slog.String("error", err.Error()),
-			slog.Float64("latency", time.Since(startTime).Seconds()),
+		return nil, r.logExecution(
+			ctx,
+			logger,
+			span,
+			endpoint,
+			nil,
+			requestBodyStr,
+			startTime,
+			err,
 		)
-
-		span.SetStatus(codes.Error, msg)
-		span.RecordError(err)
-
-		return nil, err
 	}
 
 	var resp *http.Response
@@ -166,7 +123,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		span.SetAttributes(attribute.String("http.request.timeout", timeout.String()))
 		// The cancel function will be wrapped in the response body.
 		// Canceling the context before reading body may cause context canceled error.
-		spanContext, cancel = context.WithTimeout(spanContext, timeout) //nolint:govet
+		spanContext, cancel = context.WithTimeout(spanContext, timeout)
 	}
 
 	if r.getRetryPolicy() == nil {
@@ -175,150 +132,259 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 		resp, err = r.executeWithRetries(spanContext, client, endpoint, body, logger)
 	}
 
-	responseLogAttrs := make([]slog.Attr, 0, 4)
-
-	if resp != nil { //nolint:nestif
-		responseLogAttrs = append(responseLogAttrs, slog.Int("status", resp.StatusCode))
-
-		if endpoint.Host == "" {
-			requestURL := resp.Request.URL.String()
-			requestLogAttrs = append(requestLogAttrs, slog.String("url", requestURL))
-			span.SetAttributes(semconv.URLFull(requestURL))
+	if cancel != nil {
+		if resp != nil && resp.Body != nil {
+			resp.Body = &responseBodyWithCancel{
+				ReadCloser: resp.Body,
+				cancel:     cancel,
+			}
+		} else {
+			cancel()
 		}
+	}
 
+	return resp, r.logExecution(
+		ctx,
+		logger,
+		span,
+		endpoint,
+		resp,
+		requestBodyStr,
+		startTime,
+		err,
+	)
+}
+
+func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
+	ctx context.Context,
+	logger *slog.Logger,
+	span trace.Span,
+	endpoint *url.URL,
+	resp *http.Response,
+	reqBody string,
+	startTime time.Time,
+	err error,
+) error {
+	var requestHeaders, responseHeaders [][]string
+
+	var requestSize, responseSize int
+
+	var requestURL string
+
+	var requestDurationAttrs []attribute.KeyValue
+
+	if r.options.CustomAttributesFunc != nil {
+		requestDurationAttrs = r.options.CustomAttributesFunc(r)
+	}
+
+	requestDurationAttrs = slices.Grow(requestDurationAttrs, 4)
+
+	if resp != nil {
 		if r.options.IsTraceRequestHeadersEnabled() {
-			requestHeaders := otelutils.ExtractTelemetryHeaders(
+			requestHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Request.Header,
 				r.options.AllowedTraceRequestHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
-			requestLogAttrs = append(
-				requestLogAttrs,
-				otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
-			)
 		}
 
 		if r.options.IsTraceResponseHeadersEnabled() {
-			responseHeaders := otelutils.ExtractTelemetryHeaders(
+			responseHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Header,
 				r.options.AllowedTraceResponseHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
+		}
+
+		responseSize = int(resp.ContentLength)
+		if responseSize > 0 {
+			span.SetAttributes(semconv.HTTPResponseBodySize(responseSize))
+		}
+
+		if resp.Request != nil && resp.Request.ContentLength > 0 {
+			requestSize = int(resp.Request.ContentLength)
+		}
+
+		endpoint = resp.Request.URL
+		requestURL = resp.Request.URL.String()
+	} else {
+		requestURL = r.url
+	}
+
+	span.SetAttributes(semconv.URLPath(requestURL))
+
+	requestDurationAttrs = append(
+		requestDurationAttrs,
+		semconv.HTTPResponseStatusCode(resp.StatusCode),
+		newNetworkProtocolVersion(resp.ProtoMajor, resp.ProtoMinor),
+	)
+
+	if endpoint.Host == "" {
+		_, port, _ := otelutils.SplitHostPort(
+			endpoint.Host,
+			endpoint.Scheme,
+		)
+
+		requestDurationAttrs = addRequestMetricAttributes(
+			requestDurationAttrs,
+			r.method,
+			endpoint,
+			port,
+		)
+	}
+
+	span.SetAttributes(requestDurationAttrs...)
+
+	if reqBody != "" && requestSize <= 0 {
+		requestSize = len(reqBody)
+	}
+
+	if requestSize > 0 {
+		span.SetAttributes(
+			semconv.HTTPRequestBodySize(requestSize),
+		)
+	}
+
+	GetHTTPClientMetrics().RequestDuration.Record(
+		ctx,
+		time.Since(startTime).Seconds(),
+		metric.WithAttributeSet(attribute.NewSet(requestDurationAttrs...)),
+	)
+
+	isDebug := logger.Enabled(ctx, slog.LevelDebug)
+
+	canPrintLog := logger.Enabled(ctx, r.options.LogLevel)
+	if !canPrintLog && err == nil {
+		span.SetStatus(codes.Ok, "")
+
+		return nil
+	}
+
+	requestLogAttrs := make([]slog.Attr, 0, 5)
+	requestLogAttrs = append(
+		requestLogAttrs,
+		slog.String("method", r.method),
+		slog.String("url", requestURL),
+	)
+
+	if requestSize > 0 {
+		requestLogAttrs = append(requestLogAttrs, slog.Int("size", len(reqBody)))
+	}
+
+	if reqBody != "" {
+		requestLogAttrs = append(
+			requestLogAttrs,
+			slog.String("body", reqBody),
+		)
+
+		span.SetAttributes(attribute.String("http.request.body", reqBody))
+	}
+
+	if len(requestHeaders) > 0 {
+		requestLogAttrs = append(
+			requestLogAttrs,
+			otelutils.NewHeaderMatrixLogGroupAttrs("headers", requestHeaders),
+		)
+	}
+
+	logAttrs := make([]slog.Attr, 0, 4)
+	logAttrs = append(
+		logAttrs,
+		slog.GroupAttrs("request", requestLogAttrs...),
+		slog.Float64("latency", time.Since(startTime).Seconds()),
+	)
+
+	if resp != nil {
+		responseLogAttrs := make([]slog.Attr, 0, 4)
+		responseLogAttrs = append(responseLogAttrs, slog.Int("status", resp.StatusCode))
+
+		if len(responseHeaders) > 0 {
 			responseLogAttrs = append(
 				responseLogAttrs,
 				otelutils.NewHeaderMatrixLogGroupAttrs("headers", responseHeaders),
 			)
 		}
 
-		responseSize := resp.ContentLength
 		statusCodeAttr := semconv.HTTPResponseStatusCode(resp.StatusCode)
 
 		span.SetAttributes(statusCodeAttr)
 
-		requestDurationAttrs = append(
-			requestDurationAttrs,
-			statusCodeAttr,
-			newNetworkProtocolVersion(resp.ProtoMajor, resp.ProtoMinor),
-		)
+		if resp.Body != nil && isDebug &&
+			otelutils.IsContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
+			body, readErr := io.ReadAll(resp.Body)
 
-		if endpoint.Host == "" {
-			_, port, _ := otelutils.SplitHostPort(
-				resp.Request.URL.Host,
-				resp.Request.URL.Scheme,
+			goutils.CatchWarnErrorFunc(resp.Body.Close)
+
+			if readErr != nil {
+				logAttrs = append(logAttrs, slog.GroupAttrs("response", responseLogAttrs...))
+				logger.LogAttrs(
+					ctx,
+					slog.LevelError,
+					"failed to read response body: "+readErr.Error(),
+					logAttrs...,
+				)
+
+				span.SetStatus(codes.Error, "failed to read response body")
+				span.RecordError(readErr)
+
+				return readErr
+			}
+
+			respBodyString := string(body)
+			responseLogAttrs = append(
+				responseLogAttrs,
+				slog.String("body", respBodyString),
 			)
 
-			attrs := []attribute.KeyValue{
-				semconv.ServerAddress(resp.Request.URL.Host),
-				semconv.ServerPort(port),
-				semconv.URLScheme(resp.Request.URL.Scheme),
+			span.SetAttributes(attribute.String("http.response.body", respBodyString))
+
+			if responseSize <= 0 {
+				responseSize = len(respBodyString)
+				span.SetAttributes(semconv.HTTPResponseBodySize(responseSize))
 			}
 
-			requestDurationAttrs = append(requestDurationAttrs, attrs...)
-			span.SetAttributes(attrs...)
+			resp.Body = io.NopCloser(bytes.NewReader(body))
 		}
 
-		if resp.Body != nil {
-			if isDebug &&
-				otelutils.IsContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
-				body, err := io.ReadAll(resp.Body)
-
-				goutils.CatchWarnErrorFunc(resp.Body.Close)
-
-				if cancel != nil {
-					cancel()
-				}
-
-				if err != nil {
-					logger.Error(
-						"failed to read response body",
-						slog.GroupAttrs("request", requestLogAttrs...),
-						slog.GroupAttrs("response", responseLogAttrs...),
-						slog.String("error", err.Error()),
-						slog.Float64("latency", time.Since(startTime).Seconds()),
-					)
-
-					return nil, err
-				}
-
-				respBodyString := string(body)
-				responseLogAttrs = append(
-					responseLogAttrs,
-					slog.String("body", respBodyString),
-				)
-				responseSize = int64(len(respBodyString))
-				span.SetAttributes(attribute.String("http.response.body", respBodyString))
-
-				resp.Body = io.NopCloser(bytes.NewReader(body))
-			} else if cancel != nil {
-				resp.Body = &responseBodyWithCancel{
-					ReadCloser: resp.Body,
-					cancel:     cancel,
-				}
-			}
-		} else if cancel != nil {
-			cancel()
+		if responseSize >= 0 {
+			responseLogAttrs = append(
+				responseLogAttrs,
+				slog.Int("size", responseSize),
+			)
 		}
 
-		responseLogAttrs = append(
-			responseLogAttrs,
-			slog.Int64("size", responseSize),
-		)
+		logAttrs = append(logAttrs, slog.GroupAttrs("response", responseLogAttrs...))
 	}
 
-	if err != nil {
-		errMessage := "http request failed"
-		if resp != nil {
-			errMessage = resp.Status
-		}
-
-		logger.Error(
-			errMessage,
-			slog.GroupAttrs("request", requestLogAttrs...),
-			slog.GroupAttrs("response", responseLogAttrs...),
-			slog.Any("error", err),
-			slog.Float64("latency", time.Since(startTime).Seconds()),
-		)
-
-		span.SetStatus(codes.Error, errMessage)
-		span.RecordError(err)
-
-		return resp, err //nolint:govet
-	}
-
-	if logger.Enabled(ctx, r.options.LogLevel) {
+	if err == nil {
 		logger.LogAttrs(
 			ctx,
 			r.options.LogLevel,
 			resp.Status,
-			slog.GroupAttrs("request", requestLogAttrs...),
-			slog.GroupAttrs("response", responseLogAttrs...),
-			slog.Float64("latency", time.Since(startTime).Seconds()),
+			logAttrs...,
 		)
+
+		span.SetStatus(codes.Ok, "")
+
+		return nil
 	}
 
-	span.SetStatus(codes.Ok, "")
+	errMessage := "http request failed"
+	if resp != nil {
+		errMessage = resp.Status
+	}
 
-	return resp, nil
+	logger.LogAttrs(
+		ctx,
+		slog.LevelError,
+		errMessage,
+		logAttrs...,
+	)
+
+	span.SetStatus(codes.Error, errMessage)
+	span.RecordError(err)
+
+	return err
 }
 
 func (r *Request) executeWithRetries(
@@ -460,14 +526,14 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 
 	_, port, _ := otelutils.SplitHostPort(req.URL.Host, req.URL.Scheme)
 
-	commonAttrs := newRequestMetricAttributes(8, r.method, req.URL, port)
+	var commonAttrs []attribute.KeyValue
 
 	if r.options.CustomAttributesFunc != nil {
-		commonAttrs = append(
-			commonAttrs,
-			r.options.CustomAttributesFunc(r)...,
-		)
+		commonAttrs = r.options.CustomAttributesFunc(r)
 	}
+
+	commonAttrs = slices.Grow(commonAttrs, 8)
+	commonAttrs = addRequestMetricAttributes(commonAttrs, r.method, req.URL, port)
 
 	span.SetAttributes(commonAttrs...)
 	span.SetAttributes(semconv.URLFull(req.URL.String()))
@@ -551,9 +617,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 			ctx,
 			rawResp.Request.ContentLength,
 			commonAttrsSet)
-		span.SetAttributes(
-			semconv.HTTPRequestBodySize(int(rawResp.Request.ContentLength)),
-		)
 	}
 
 	if rawResp.ContentLength > 0 {
