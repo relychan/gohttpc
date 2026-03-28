@@ -23,7 +23,7 @@ type responseBodyWithCancel struct {
 	cancel func()
 }
 
-// Close closes the body reader and cancel the context.
+// Close closes the body reader and cancels the context.
 func (rb *responseBodyWithCancel) Close() error {
 	err := rb.ReadCloser.Close()
 
