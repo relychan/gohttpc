@@ -123,7 +123,7 @@ func (r *Request) Execute( //nolint:funlen
 		span.SetAttributes(attribute.String("http.request.timeout", timeout.String()))
 		// The cancel function will be wrapped in the response body.
 		// Canceling the context before reading body may cause context canceled error.
-		spanContext, cancel = context.WithTimeout(spanContext, timeout) //nolint:govet
+		spanContext, cancel = context.WithTimeout(spanContext, timeout)
 	}
 
 	if r.getRetryPolicy() == nil {
