@@ -23,7 +23,7 @@ jobs:
       - name: Format
         run: diff -u <(echo -n) <(gofmt -d -s .)
       - name: Vet
-        run: go vet -lostcancel=false ./...
+        run: go vet ./...
       - name: Lint
         uses: golangci/golangci-lint-action@v8
         with:
