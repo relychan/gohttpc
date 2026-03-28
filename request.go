@@ -42,6 +42,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// Requester abstracts an interface of a request instance.
+type Requester interface {
+	URL() string
+	Method() string
+	Header() http.Header
+}
+
 // Request represents the details and configuration for an individual HTTP(S)
 // request. It encompasses URL, headers, method, body, proxy settings,
 // timeouts, and other configurations necessary for customizing the request
