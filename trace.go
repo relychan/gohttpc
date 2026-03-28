@@ -24,6 +24,7 @@ import (
 	"net/textproto"
 	"net/url"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -452,13 +453,24 @@ func httpRequestMethodAttr(method string) attribute.KeyValue {
 	return attribute.String("http.request.method", method)
 }
 
-func newMetricAttributes(method string, endpoint *url.URL, port int) []attribute.KeyValue {
-	return []attribute.KeyValue{
+func newNetworkProtocolVersion(protoMajor, protoMinor int) attribute.KeyValue {
+	return semconv.NetworkProtocolVersion(
+		strconv.Itoa(protoMajor) + "." + strconv.Itoa(protoMinor),
+	)
+}
+
+func addRequestMetricAttributes(
+	attrs []attribute.KeyValue,
+	method string,
+	endpoint *url.URL,
+	port int,
+) []attribute.KeyValue {
+	return append(attrs,
 		semconv.ServerAddress(endpoint.Host),
 		semconv.ServerPort(port),
 		semconv.URLScheme(endpoint.Scheme),
 		httpRequestMethodAttr(method),
-	}
+	)
 }
 
 func getBuildVersion() string {
@@ -484,9 +496,8 @@ func getBuildVersion() string {
 // Returns "host_not_found" for DNS not found errors, "timeout" for DNS timeout errors,
 // and "_OTHER" for all other errors.
 func classifyDNSError(err error) string {
-	var dnsError *net.DNSError
-
-	if errors.As(err, &dnsError) {
+	dnsError, ok := errors.AsType[*net.DNSError](err)
+	if ok {
 		switch {
 		case dnsError.IsNotFound:
 			return "host_not_found"

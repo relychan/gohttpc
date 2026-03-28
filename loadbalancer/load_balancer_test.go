@@ -353,7 +353,7 @@ func TestLoadBalancerClient_Integration(t *testing.T) {
 		lb := &mockLoadBalancer{
 			hosts: []*Host{server},
 		}
-		client := NewLoadBalancerClient(lb)
+		client := NewLoadBalancerClient(lb, gohttpc.WithTimeout(30*time.Second))
 
 		httpClient, err := client.HTTPClient()
 		if err != nil {
@@ -385,7 +385,7 @@ func TestLoadBalancerClient_Integration(t *testing.T) {
 		lb := &mockLoadBalancer{
 			hosts: servers,
 		}
-		client := NewLoadBalancerClient(lb)
+		client := NewLoadBalancerClient(lb, gohttpc.WithTimeout(30*time.Second))
 
 		if len(lb.Hosts()) != 3 {
 			t.Errorf("expected 3 servers, got %d", len(lb.Hosts()))
