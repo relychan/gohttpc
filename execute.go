@@ -243,7 +243,10 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 				body, err := io.ReadAll(resp.Body)
 
 				goutils.CatchWarnErrorFunc(resp.Body.Close)
-				cancel()
+
+				if cancel != nil {
+					cancel()
+				}
 
 				if err != nil {
 					logger.Error(
@@ -272,7 +275,7 @@ func (r *Request) Execute( //nolint:gocognit,funlen,maintidx
 					cancel:     cancel,
 				}
 			}
-		} else {
+		} else if cancel != nil {
 			cancel()
 		}
 
