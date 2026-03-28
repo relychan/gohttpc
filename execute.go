@@ -81,11 +81,11 @@ func (r *Request) Execute( //nolint:funlen
 	if err != nil {
 		logger.Error(
 			"invalid request url: "+err.Error(),
-			slog.GroupAttrs("request", slog.GroupAttrs(
+			slog.GroupAttrs(
 				"request",
 				slog.String("method", r.method),
 				slog.String("url", r.url),
-			)),
+			),
 			slog.Float64("latency", time.Since(startTime).Seconds()),
 		)
 
@@ -123,7 +123,7 @@ func (r *Request) Execute( //nolint:funlen
 		span.SetAttributes(attribute.String("http.request.timeout", timeout.String()))
 		// The cancel function will be wrapped in the response body.
 		// Canceling the context before reading body may cause context canceled error.
-		spanContext, cancel = context.WithTimeout(spanContext, timeout)
+		spanContext, cancel = context.WithTimeout(spanContext, timeout) //nolint:govet
 	}
 
 	if r.getRetryPolicy() == nil {
@@ -177,7 +177,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 		requestDurationAttrs = r.options.CustomAttributesFunc(r)
 	}
 
-	requestDurationAttrs = slices.Grow(requestDurationAttrs, 4)
+	requestDurationAttrs = slices.Grow(requestDurationAttrs, 6)
 
 	if resp != nil {
 		if r.options.IsTraceRequestHeadersEnabled() {
@@ -207,17 +207,17 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 
 		endpoint = resp.Request.URL
 		requestURL = resp.Request.URL.String()
+
+		requestDurationAttrs = append(
+			requestDurationAttrs,
+			semconv.HTTPResponseStatusCode(resp.StatusCode),
+			newNetworkProtocolVersion(resp.ProtoMajor, resp.ProtoMinor),
+		)
 	} else {
 		requestURL = r.url
 	}
 
 	span.SetAttributes(semconv.URLPath(requestURL))
-
-	requestDurationAttrs = append(
-		requestDurationAttrs,
-		semconv.HTTPResponseStatusCode(resp.StatusCode),
-		newNetworkProtocolVersion(resp.ProtoMajor, resp.ProtoMinor),
-	)
 
 	if endpoint.Host == "" {
 		_, port, _ := otelutils.SplitHostPort(
@@ -268,7 +268,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 	)
 
 	if requestSize > 0 {
-		requestLogAttrs = append(requestLogAttrs, slog.Int("size", len(reqBody)))
+		requestLogAttrs = append(requestLogAttrs, slog.Int("size", requestSize))
 	}
 
 	if reqBody != "" {
@@ -506,8 +506,9 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 
 		span.SetAttributes(
 			httpRequestMethodAttr(r.method),
-			semconv.URLFull(req.URL.String()),
+			semconv.URLFull(r.url),
 		)
+
 		span.SetStatus(codes.Error, msg)
 		span.RecordError(err)
 
