@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
+	"github.com/relychan/gohttpc"
+	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/gohttpc/loadbalancer"
 )
 
@@ -337,5 +339,100 @@ func TestRoundRobinIntegration(t *testing.T) {
 
 	if hosts[2].State() != circuitbreaker.HalfOpenState {
 		t.Errorf("expected half-open state on host 3; got: %s", hosts[2].State().String())
+	}
+}
+
+func TestRoundRobinIntegrationWithRetry(t *testing.T) {
+	counter1 := atomic.Int32{}
+	counter2 := atomic.Int32{}
+	counter3 := atomic.Int32{}
+
+	handler1 := http.NewServeMux()
+	handler1.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		counter1.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler2 := http.NewServeMux()
+	handler2.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		counter2.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	})
+
+	handler3 := http.NewServeMux()
+	handler3.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		counter3.Add(1)
+		w.WriteHeader(http.StatusBadGateway)
+	})
+
+	testServer1 := httptest.NewServer(handler1)
+	defer testServer1.Close()
+
+	testServer2 := httptest.NewServer(handler2)
+	defer testServer2.Close()
+
+	testServer3 := httptest.NewServer(handler3)
+	defer testServer3.Close()
+
+	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host3, err := loadbalancer.NewHost(http.DefaultClient, testServer3.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hosts := []*loadbalancer.Host{host1, host2, host3}
+
+	wrr, err := NewWeightedRoundRobin(hosts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	retryConfig, err := (httpconfig.HTTPRetryConfig{
+		MaxAttempts: 3,
+		Delay:       new(int64(100)),
+	}).ToRetryPolicy()
+	if err != nil {
+		t.Fatalf("failed to create retry config: %s", err)
+	}
+
+	lb := loadbalancer.NewLoadBalancerClientWithOptions(
+		wrr,
+		gohttpc.NewClientOptions(gohttpc.WithRetry(retryConfig)),
+	)
+
+	for range 10 {
+		resp, err := lb.R(http.MethodGet, "/").Execute(context.TODO())
+		if err != nil {
+			t.Errorf("expected no err, got: %s", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("expected HTTP 200, got: %d", resp.StatusCode)
+		}
+	}
+
+	if counter1.Load() != 10 {
+		t.Errorf("expected 10 requests to host 1; got: %d", counter1.Load())
+	}
+
+	if counter2.Load() != 3 {
+		t.Errorf("expected 3 requests to host 2; got: %d", counter2.Load())
+	}
+
+	if counter3.Load() != 3 {
+		t.Errorf("expected 3 requests to host 3; got: %d", counter3.Load())
+	}
+
+	if hosts[2].State() != circuitbreaker.OpenState {
+		t.Errorf("expected open state on host 3; got: %s", hosts[2].State().String())
 	}
 }
