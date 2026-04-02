@@ -60,15 +60,28 @@ func NewClientFromConfig(
 	config *HTTPClientConfig,
 	options ...gohttpc.ClientOption,
 ) (*gohttpc.Client, error) {
+	opts, err := NewClientOptionsFromConfig(config, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return gohttpc.NewClientWithOptions(opts), nil
+}
+
+// NewClientOptionsFromConfig creates a client options from configuration.
+func NewClientOptionsFromConfig(
+	config *HTTPClientConfig,
+	options ...gohttpc.ClientOption,
+) (*gohttpc.ClientOptions, error) {
+	opts := gohttpc.NewClientOptions(options...)
+
 	if config == nil {
-		config = &HTTPClientConfig{}
+		return opts, nil
 	}
 
 	if config.Timeout > 0 {
-		options = append(options, gohttpc.WithTimeout(time.Duration(config.Timeout)*time.Second))
+		opts.Timeout = time.Duration(config.Timeout) * time.Second
 	}
-
-	opts := gohttpc.NewClientOptions(options...)
 
 	if config.Retry != nil {
 		retry, err := config.Retry.ToRetryPolicy() //nolint:bodyclose
@@ -98,7 +111,7 @@ func NewClientFromConfig(
 
 	opts.HTTPClient = httpClient
 
-	return gohttpc.NewClientWithOptions(opts), nil
+	return opts, nil
 }
 
 // NewHTTPClientFromConfig creates a HTTP client with configuration.
