@@ -5,13 +5,13 @@ go 1.26
 require (
 	github.com/failsafe-go/failsafe-go v0.9.6
 	github.com/google/uuid v1.6.0
-	github.com/hasura/goenvconf v0.6.2
+	github.com/hasura/goenvconf v0.7.0
 	github.com/hasura/gotel v0.7.2
 	github.com/relychan/gocompress v0.1.2
-	github.com/relychan/goutils v0.0.0-20260320085159-a456d46cc0d9
-	go.opentelemetry.io/otel v1.42.0
-	go.opentelemetry.io/otel/metric v1.42.0
-	go.opentelemetry.io/otel/trace v1.42.0
+	github.com/relychan/goutils v0.0.0-20260404183650-6657ea84ff81
+	go.opentelemetry.io/otel v1.43.0
+	go.opentelemetry.io/otel/metric v1.43.0
+	go.opentelemetry.io/otel/trace v1.43.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260301223609-d604f65988bf
 	golang.org/x/oauth2 v0.36.0
 )

@@ -133,6 +133,18 @@ func (s *Host) SetHeaders(headers map[string]string) *Host {
 	return s
 }
 
+// Authenticator returns the custom authenticator to this host.
+func (s *Host) Authenticator() authscheme.HTTPClientAuthenticator {
+	return s.authenticator
+}
+
+// SetAuthenticator sets the authenticator to this host.
+func (s *Host) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) *Host {
+	s.authenticator = authenticator
+
+	return s
+}
+
 // Weight returns the weight of this host.
 func (s *Host) Weight() int {
 	return s.weight
