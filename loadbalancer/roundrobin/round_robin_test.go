@@ -20,12 +20,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
+	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc"
+	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/gohttpc/loadbalancer"
 )
@@ -153,9 +157,9 @@ func TestWeightedRoundRobin(t *testing.T) {
 }
 
 func TestWeightedRoundRobinIntegration(t *testing.T) {
-	counter1 := atomic.Int32{}
-	counter2 := atomic.Int32{}
-	counter3 := atomic.Int32{}
+	counter1 := &atomic.Int32{}
+	counter2 := &atomic.Int32{}
+	counter3 := &atomic.Int32{}
 
 	handler1 := http.NewServeMux()
 	handler1.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -248,56 +252,26 @@ func TestWeightedRoundRobinIntegration(t *testing.T) {
 }
 
 func TestRoundRobinIntegration(t *testing.T) {
-	counter1 := atomic.Int32{}
-	counter2 := atomic.Int32{}
-	counter3 := atomic.Int32{}
+	counter1 := &atomic.Int32{}
+	counter2 := &atomic.Int32{}
+	counter3 := &atomic.Int32{}
 
-	handler1 := http.NewServeMux()
-	handler1.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		counter1.Add(1)
-		w.WriteHeader(http.StatusOK)
-	})
+	token1 := "test-token-1"
+	token2 := "test-token-2"
+	token3 := "test-token-3"
 
-	handler2 := http.NewServeMux()
-	handler2.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		counter2.Add(1)
-		w.WriteHeader(http.StatusOK)
-	})
-
-	handler3 := http.NewServeMux()
-	handler3.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		counter3.Add(1)
-		w.WriteHeader(http.StatusBadGateway)
-	})
-
-	testServer1 := httptest.NewServer(handler1)
+	testServer1 := newMockServer(token1, counter1)
 	defer testServer1.Close()
 
-	testServer2 := httptest.NewServer(handler2)
+	testServer2 := newMockServer(token2, counter2)
 	defer testServer2.Close()
 
-	testServer3 := httptest.NewServer(handler3)
+	testServer3 := newMockServer(token3, counter3)
 	defer testServer3.Close()
 
-	host1, err := loadbalancer.NewHost(http.DefaultClient, testServer1.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	host2, err := loadbalancer.NewHost(http.DefaultClient, testServer2.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	host3, err := loadbalancer.NewHost(
-		http.DefaultClient,
-		testServer3.URL,
-		loadbalancer.WithHTTPHealthCheckPolicyBuilder(loadbalancer.NewHTTPHealthCheckPolicyBuilder().
-			WithInterval(100*time.Millisecond).
-			WithFailureThreshold(1)))
-	if err != nil {
-		t.Fatal(err)
-	}
+	host1 := newTestHost(t, testServer1.URL, token1)
+	host2 := newTestHost(t, testServer2.URL, token2)
+	host3 := newTestHost(t, testServer3.URL, token3)
 
 	hosts := []*loadbalancer.Host{host1, host2, host3}
 
@@ -307,38 +281,38 @@ func TestRoundRobinIntegration(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
+	defer cancel()
+
 	lb := loadbalancer.NewLoadBalancerClient(wrr)
 	go lb.StartHealthCheck(ctx)
 
+	time.Sleep(time.Second)
+
 	for range 10 {
-		lb.R(http.MethodGet, "/").Execute(context.TODO())
+		resp, err := lb.R(http.MethodGet, "/").Execute(context.TODO())
+		if err != nil {
+			t.Errorf("expected not error; got: %s", err)
+		}
+
+		if resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("expected HTTP 200; got: %d", resp.StatusCode)
+		}
 	}
 
-	if counter1.Load() != 5 {
-		t.Errorf("expected 5 requests to host 1; got: %d", counter1.Load())
+	if counter1.Load() != 4 {
+		t.Errorf("expected 4 requests to host 1; got: %d", counter1.Load())
 	}
 
-	if counter2.Load() != 4 {
-		t.Errorf("expected 4 requests to host 2; got: %d", counter2.Load())
+	if counter2.Load() != 3 {
+		t.Errorf("expected 3 requests to host 2; got: %d", counter2.Load())
 	}
 
-	if counter3.Load() != 1 {
-		t.Errorf("expected 1 requests to host 3; got: %d", counter3.Load())
-	}
-
-	if hosts[2].State() != circuitbreaker.OpenState {
-		t.Errorf("expected open state on host 3; got: %s", hosts[2].State().String())
-	}
-
-	time.Sleep(100 * time.Millisecond)
-	cancel()
-
-	for range 3 {
-		wrr.nextRoundRobin()
-	}
-
-	if hosts[2].State() != circuitbreaker.HalfOpenState {
-		t.Errorf("expected half-open state on host 3; got: %s", hosts[2].State().String())
+	if counter3.Load() != 3 {
+		t.Errorf("expected 3 requests to host 3; got: %d", counter3.Load())
 	}
 }
 
@@ -435,4 +409,62 @@ func TestRoundRobinIntegrationWithRetry(t *testing.T) {
 	if hosts[2].State() != circuitbreaker.OpenState {
 		t.Errorf("expected open state on host 3; got: %s", hosts[2].State().String())
 	}
+}
+
+func newTestHost(t *testing.T, uri string, token string) *loadbalancer.Host {
+	t.Helper()
+
+	parsedURI, err := url.Parse(uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host, err := loadbalancer.NewHost(http.DefaultClient, uri)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authenticator, err := httpauth.NewHTTPCredential(&httpauth.HTTPAuthConfig{
+		TokenLocation: authscheme.TokenLocation{
+			In:     authscheme.InHeader,
+			Name:   "Authorization",
+			Scheme: "bearer",
+		},
+		Value: goenvconf.NewEnvStringValue(token),
+	}, nil)
+	if err != nil {
+		t.Fatalf("failed to create authenticator: %s", err.Error())
+	}
+
+	host.SetAuthenticator(authenticator)
+
+	healthCheckConfig, err := (loadbalancer.HTTPHealthCheckConfig{
+		Path: "/healthz",
+	}).ToPolicy(parsedURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host.SetHealthCheckPolicy(healthCheckConfig)
+
+	return host
+}
+
+func newMockServer(token string, counter *atomic.Int32) *httptest.Server {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer "+token {
+			w.WriteHeader(401)
+
+			return
+		}
+
+		counter.Add(1)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	return httptest.NewServer(handler)
 }
