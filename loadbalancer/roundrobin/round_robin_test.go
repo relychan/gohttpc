@@ -286,12 +286,11 @@ func TestRoundRobinIntegration(t *testing.T) {
 	lb := loadbalancer.NewLoadBalancerClient(wrr)
 	go lb.StartHealthCheck(ctx)
 
-	time.Sleep(time.Second)
-
 	for range 10 {
 		resp, err := lb.R(http.MethodGet, "/").Execute(context.TODO())
 		if err != nil {
 			t.Errorf("expected not error; got: %s", err)
+			continue
 		}
 
 		if resp.Body != nil {
@@ -453,7 +452,7 @@ func newMockServer(token string, counter *atomic.Int32) *httptest.Server {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer "+token {
-			w.WriteHeader(401)
+			w.WriteHeader(http.StatusUnauthorized)
 
 			return
 		}

@@ -133,12 +133,12 @@ func (s *Host) SetHeaders(headers map[string]string) *Host {
 	return s
 }
 
-// Authenticator returns the custom authenticator to this host.
+// Authenticator returns the custom authenticator for this host.
 func (s *Host) Authenticator() authscheme.HTTPClientAuthenticator {
 	return s.authenticator
 }
 
-// SetAuthenticator sets the authenticator to this host.
+// SetAuthenticator sets the authenticator for this host.
 func (s *Host) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) *Host {
 	s.authenticator = authenticator
 
