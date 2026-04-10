@@ -19,7 +19,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/relychan/goutils"
 	"github.com/relychan/goutils/httpheader"
@@ -44,13 +43,16 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 
 	defer goutils.CatchWarnErrorFunc(resp.Body.Close)
 
-	if strings.HasPrefix(resp.Header.Get(httpheader.ContentType), httpheader.ContentTypeJSON) {
+	if httpheader.IsContentTypeJSON(resp.Header.Get(httpheader.ContentType)) {
 		var httpError goutils.RFC9457ErrorWithExtensions
 
 		err := json.NewDecoder(resp.Body).Decode(&httpError)
 		if err != nil {
 			return httpErrorFromNoContentResponse(resp)
 		}
+
+		// Make sure the response body is EOF.
+		_, _ = io.Copy(io.Discard, resp.Body)
 
 		if httpError.Status == 0 {
 			httpError.Status = resp.StatusCode

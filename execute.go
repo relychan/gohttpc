@@ -165,13 +165,12 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 	startTime time.Time,
 	err error,
 ) error {
-	var requestHeaders, responseHeaders [][]string
-
-	var requestSize, responseSize int
-
-	var requestURL string
-
-	var requestDurationAttrs []attribute.KeyValue
+	var (
+		requestHeaders, responseHeaders [][]string
+		requestSize, responseSize       int
+		requestURL                      string
+		requestDurationAttrs            []attribute.KeyValue
+	)
 
 	if r.options.CustomAttributesFunc != nil {
 		requestDurationAttrs = r.options.CustomAttributesFunc(r)

@@ -251,6 +251,8 @@ func (s *Host) CheckHealth(ctx context.Context) {
 	}
 
 	if resp.Body != nil {
+		_, _ = io.Copy(io.Discard, resp.Body)
+
 		goutils.CatchWarnErrorFunc(resp.Body.Close)
 	}
 
@@ -331,7 +333,7 @@ func (s *Host) newRequest(
 	switch {
 	case url == "" || url == "/":
 		reqURL = s.url
-	case !strings.HasPrefix(url, "http"):
+	case !goutils.HasStringPrefixFold(url, "http"):
 		if url[0] == '/' {
 			reqURL = s.url + url
 		} else {

@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/hasura/gotel v0.7.2
 	github.com/relychan/gohttpc v0.0.0-20260402045657-59c0214cec37
-	github.com/relychan/goutils v0.0.0-20260404183650-6657ea84ff81
+	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d
 	go.opentelemetry.io/otel v1.43.0
 )
 
@@ -48,7 +48,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260301223609-d604f65988bf // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
