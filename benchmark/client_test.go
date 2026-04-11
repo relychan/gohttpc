@@ -84,7 +84,7 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 			continue
 		}
 
-		_ = resp.Body.Close()
+		gohttpc.CloseResponse(resp)
 
 		if resp.StatusCode != 200 {
 			slog.Error(resp.Status)

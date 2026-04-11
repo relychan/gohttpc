@@ -568,7 +568,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 
 	span.SetAttributes(protocolVersionAttr)
 	span.SetMetricAttributes(commonAttrs)
-
 	maps.Copy(req.Header, r.header)
 
 	err = r.applyAuth(req)
@@ -673,7 +672,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 			responseEncoding,
 		)
 		if err != nil {
-			goutils.CatchWarnErrorFunc(rawResp.Body.Close)
+			CloseResponse(rawResp)
 
 			msg := "failed to decompress response body"
 			span.SetStatus(codes.Error, msg)

@@ -41,18 +41,16 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 		return httpErrorFromNoContentResponse(resp)
 	}
 
-	defer goutils.CatchWarnErrorFunc(resp.Body.Close)
-
 	if httpheader.IsContentTypeJSON(resp.Header.Get(httpheader.ContentType)) {
 		var httpError goutils.RFC9457ErrorWithExtensions
 
 		err := json.NewDecoder(resp.Body).Decode(&httpError)
+
+		CloseResponse(resp)
+
 		if err != nil {
 			return httpErrorFromNoContentResponse(resp)
 		}
-
-		// Make sure the response body is EOF.
-		_, _ = io.Copy(io.Discard, resp.Body)
 
 		if httpError.Status == 0 {
 			httpError.Status = resp.StatusCode
@@ -68,8 +66,10 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 	}
 
 	result := httpErrorFromNoContentResponse(resp)
-
 	rawBody, readErr := io.ReadAll(resp.Body)
+
+	goutils.CatchWarnErrorFunc(resp.Body.Close)
+
 	if readErr == nil {
 		result.Detail = string(rawBody)
 	} else {

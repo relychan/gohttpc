@@ -250,11 +250,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	if resp.Body != nil {
-		_, _ = io.Copy(io.Discard, resp.Body)
-
-		goutils.CatchWarnErrorFunc(resp.Body.Close)
-	}
+	gohttpc.CloseResponse(resp)
 
 	s.healthCheckPolicy.RecordResult(resp.StatusCode)
 }

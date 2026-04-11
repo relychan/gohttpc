@@ -98,7 +98,7 @@ func TestClient(t *testing.T) {
 			if err != nil {
 				t.Fatal("failed to get: " + err.Error())
 			}
-			defer goutils.CatchWarnErrorFunc(resp.Body.Close)
+			defer gohttpc.CloseResponse(resp)
 
 			if resp.StatusCode != http.StatusOK {
 				t.Fatalf("expected HTTP 200, get: %d", resp.StatusCode)
