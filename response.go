@@ -27,7 +27,7 @@ import (
 // CloseResponse gracefully closes the HTTP response and tries to drain the body if it exists.
 // It makes a best effort to reuse the HTTP connection.
 func CloseResponse(resp *http.Response) {
-	if resp == nil || resp.Close || resp.Body == nil || resp.Body == http.NoBody {
+	if resp == nil || resp.Body == nil || resp.Body == http.NoBody {
 		return
 	}
 

@@ -114,7 +114,7 @@ func TestCloseResponse_UnknownContentLength_HeaderFallback(t *testing.T) {
 		StatusCode:    http.StatusOK,
 		Body:          spy,
 		ContentLength: -1, // unknown from Transport
-		Header:        http.Header{
+		Header: http.Header{
 			"Content-Length": []string{fmt.Sprintf("%d", len(body))},
 		},
 	}
