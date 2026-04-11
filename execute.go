@@ -182,6 +182,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 		if r.options.IsTraceRequestHeadersEnabled() {
 			requestHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Request.Header,
+				nil,
 				r.options.AllowedTraceRequestHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
@@ -190,6 +191,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 		if r.options.IsTraceResponseHeadersEnabled() {
 			responseHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Header,
+				nil,
 				r.options.AllowedTraceResponseHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
@@ -736,7 +738,7 @@ func (r *Request) logRequestAttempt(
 	logAttrs := make([]any, 0, 4)
 
 	if req != nil {
-		requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
+		requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header, nil)
 		otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
 
 		requestLogAttrs := []slog.Attr{
@@ -749,7 +751,7 @@ func (r *Request) logRequestAttempt(
 	}
 
 	if resp != nil {
-		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header)
+		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header, nil)
 
 		otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
 

@@ -6,7 +6,7 @@ require (
 	github.com/failsafe-go/failsafe-go v0.9.6
 	github.com/google/uuid v1.6.0
 	github.com/hasura/goenvconf v0.7.0
-	github.com/hasura/gotel v0.7.2
+	github.com/hasura/gotel v0.8.0
 	github.com/relychan/gocompress v0.1.2
 	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d
 	go.opentelemetry.io/otel v1.43.0

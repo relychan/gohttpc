@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hasura/goenvconf v0.7.0 // indirect
-	github.com/hasura/gotel v0.7.2 // indirect
+	github.com/hasura/gotel v0.8.0 // indirect
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
