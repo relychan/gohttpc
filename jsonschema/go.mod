@@ -17,17 +17,17 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hasura/goenvconf v0.7.0 // indirect
-	github.com/hasura/gotel v0.7.2 // indirect
+	github.com/hasura/gotel v0.8.0 // indirect
 	github.com/influxdata/tdigest v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/relychan/gocompress v0.1.2 // indirect
-	github.com/relychan/goutils v0.0.0-20260404183650-6657ea84ff81 // indirect
+	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260316011301-aadd5c28b882 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 )
 

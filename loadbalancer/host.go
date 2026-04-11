@@ -250,9 +250,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	if resp.Body != nil {
-		goutils.CatchWarnErrorFunc(resp.Body.Close)
-	}
+	gohttpc.CloseResponse(resp)
 
 	s.healthCheckPolicy.RecordResult(resp.StatusCode)
 }
@@ -331,7 +329,7 @@ func (s *Host) newRequest(
 	switch {
 	case url == "" || url == "/":
 		reqURL = s.url
-	case !strings.HasPrefix(url, "http"):
+	case !goutils.HasStringPrefixFold(url, "http"):
 		if url[0] == '/' {
 			reqURL = s.url + url
 		} else {

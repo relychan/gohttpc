@@ -67,7 +67,7 @@ func BenchmarkRestyGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   22177	     51086 ns/op	    7940 B/op	     105 allocs/op
+// BenchmarkGoHTTPCGet-11    	   28893	     38925 ns/op	    8022 B/op	     102 allocs/op
 func BenchmarkGoHTTPCGet(b *testing.B) {
 	client := gohttpc.NewClient()
 	defer client.Close()
@@ -84,7 +84,7 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 			continue
 		}
 
-		_ = resp.Body.Close()
+		gohttpc.CloseResponse(resp)
 
 		if resp.StatusCode != 200 {
 			slog.Error(resp.Status)
@@ -96,7 +96,7 @@ func BenchmarkGoHTTPCGet(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkHTTPClientPost-11    	    3142	    343308 ns/op	   53783 B/op	     144 allocs/op
+// BenchmarkHTTPClientPost-11    	     488	   2404312 ns/op	   53162 B/op	     142 allocs/op
 func BenchmarkHTTPClientPost(b *testing.B) {
 	client := http.DefaultClient
 
@@ -104,6 +104,11 @@ func BenchmarkHTTPClientPost(b *testing.B) {
 		resp, err := client.Post(serverURL, "application/json", strings.NewReader(randomData))
 		if err != nil {
 			continue
+		}
+
+		_, err = io.Copy(io.Discard, resp.Body)
+		if err != nil {
+			slog.Error("failed to read response", "error", err)
 		}
 
 		_ = resp.Body.Close()
@@ -143,7 +148,7 @@ func BenchmarkRestyPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	    3320	    346107 ns/op	   58374 B/op	     213 allocs/op
+// BenchmarkGoHTTPCPost-11    	     583	   2154626 ns/op	   57315 B/op	     208 allocs/op
 func BenchmarkGoHTTPCPost(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -161,6 +166,11 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 			continue
 		}
 
+		_, err = io.Copy(io.Discard, resp.Body)
+		if err != nil {
+			slog.Error(err.Error())
+		}
+
 		if resp.StatusCode != 200 {
 			slog.Error(resp.Status)
 		}
@@ -173,7 +183,7 @@ func BenchmarkGoHTTPCPost(b *testing.B) {
 // goarch: arm64
 // pkg: github.com/relychan/gohttpc/benchmark
 // cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPostWithClientTrace-11    	    3346	    344606 ns/op	   60605 B/op	     251 allocs/op
+// BenchmarkGoHTTPCPostWithClientTrace-11    	     524	   2151059 ns/op	   59701 B/op	     246 allocs/op
 func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -191,6 +201,11 @@ func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
 		resp, err := req.Execute(ctx)
 		if err != nil {
 			continue
+		}
+
+		_, err = io.Copy(io.Discard, resp.Body)
+		if err != nil {
+			slog.Error(err.Error())
 		}
 
 		if resp.StatusCode != 200 {

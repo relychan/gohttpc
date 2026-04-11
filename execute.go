@@ -165,13 +165,12 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 	startTime time.Time,
 	err error,
 ) error {
-	var requestHeaders, responseHeaders [][]string
-
-	var requestSize, responseSize int
-
-	var requestURL string
-
-	var requestDurationAttrs []attribute.KeyValue
+	var (
+		requestHeaders, responseHeaders [][]string
+		requestSize, responseSize       int
+		requestURL                      string
+		requestDurationAttrs            []attribute.KeyValue
+	)
 
 	if r.options.CustomAttributesFunc != nil {
 		requestDurationAttrs = r.options.CustomAttributesFunc(r)
@@ -183,6 +182,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 		if r.options.IsTraceRequestHeadersEnabled() {
 			requestHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Request.Header,
+				nil,
 				r.options.AllowedTraceRequestHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
@@ -191,6 +191,7 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 		if r.options.IsTraceResponseHeadersEnabled() {
 			responseHeaders = otelutils.ExtractTelemetryHeaders(
 				resp.Header,
+				nil,
 				r.options.AllowedTraceResponseHeaders...,
 			)
 			otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
@@ -569,7 +570,6 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 
 	span.SetAttributes(protocolVersionAttr)
 	span.SetMetricAttributes(commonAttrs)
-
 	maps.Copy(req.Header, r.header)
 
 	err = r.applyAuth(req)
@@ -674,7 +674,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 			responseEncoding,
 		)
 		if err != nil {
-			goutils.CatchWarnErrorFunc(rawResp.Body.Close)
+			CloseResponse(rawResp)
 
 			msg := "failed to decompress response body"
 			span.SetStatus(codes.Error, msg)
@@ -738,7 +738,7 @@ func (r *Request) logRequestAttempt(
 	logAttrs := make([]any, 0, 4)
 
 	if req != nil {
-		requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header)
+		requestHeaders := otelutils.ExtractTelemetryHeaders(req.Header, nil)
 		otelutils.SetSpanHeaderMatrixAttributes(span, "http.request.header", requestHeaders)
 
 		requestLogAttrs := []slog.Attr{
@@ -751,7 +751,7 @@ func (r *Request) logRequestAttempt(
 	}
 
 	if resp != nil {
-		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header)
+		responseHeaders := otelutils.ExtractTelemetryHeaders(resp.Header, nil)
 
 		otelutils.SetSpanHeaderMatrixAttributes(span, "http.response.header", responseHeaders)
 
