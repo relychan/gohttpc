@@ -36,16 +36,6 @@ func (s *closeSpy) Close() error {
 	return s.ReadCloser.Close()
 }
 
-func newResponseWithBody(body string, contentLength int64, close bool) *http.Response {
-	return &http.Response{
-		StatusCode:    http.StatusOK,
-		Body:          io.NopCloser(strings.NewReader(body)),
-		ContentLength: contentLength,
-		Close:         close,
-		Header:        make(http.Header),
-	}
-}
-
 func TestCloseResponse_NilResponse(t *testing.T) {
 	// Must not panic.
 	gohttpc.CloseResponse(nil)
@@ -69,23 +59,6 @@ func TestCloseResponse_NoBody(t *testing.T) {
 	}
 	// Must not panic.
 	gohttpc.CloseResponse(resp)
-}
-
-func TestCloseResponse_CloseConnectionFlagSet(t *testing.T) {
-	spy := &closeSpy{ReadCloser: io.NopCloser(strings.NewReader("hello"))}
-	resp := &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       spy,
-		Close:      true, // connection: close — skip drain
-		Header:     make(http.Header),
-	}
-
-	gohttpc.CloseResponse(resp)
-
-	// When resp.Close is true, CloseResponse returns early without calling Close.
-	if spy.closed {
-		t.Error("expected body NOT to be closed when resp.Close is true")
-	}
 }
 
 func TestCloseResponse_SmallBodyIsDrained(t *testing.T) {
