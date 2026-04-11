@@ -24,8 +24,8 @@ import (
 	"github.com/relychan/goutils/httpheader"
 )
 
-// CloseResponse gracefully closes the HTTP response that try to drain the body if exist.
-// Make the best effort to reuse the HTTP connection.
+// CloseResponse gracefully closes the HTTP response and tries to drain the body if it exists.
+// It makes a best effort to reuse the HTTP connection.
 func CloseResponse(resp *http.Response) {
 	if resp == nil || resp.Close || resp.Body == nil || resp.Body == http.NoBody {
 		return
