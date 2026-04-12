@@ -55,8 +55,11 @@ func (r *Request) Execute( //nolint:funlen
 
 	var requestBodyStr string
 
+	contentTypes := r.Header()[httpheader.ContentType]
+
 	if isDebug && r.body != nil &&
-		otelutils.IsContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
+		len(contentTypes) > 0 &&
+		otelutils.IsContentTypeDebuggable(contentTypes[0]) {
 		body, err := io.ReadAll(r.body)
 		if err != nil {
 			logger.Error(
@@ -306,12 +309,14 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 			)
 		}
 
+		contentTypes := r.Header()[httpheader.ContentType]
 		statusCodeAttr := semconv.HTTPResponseStatusCode(resp.StatusCode)
 
 		span.SetAttributes(statusCodeAttr)
 
 		if resp.Body != nil && isDebug &&
-			otelutils.IsContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
+			len(contentTypes) > 0 &&
+			otelutils.IsContentTypeDebuggable(contentTypes[0]) {
 			body, readErr := io.ReadAll(resp.Body)
 
 			goutils.CatchWarnErrorFunc(resp.Body.Close)
@@ -442,13 +447,13 @@ func (r *Request) compressBody(logger *slog.Logger) (io.Reader, error) {
 		return body, nil
 	}
 
-	encoding := r.Header().Get(httpheader.ContentEncoding)
-	if encoding == "" {
+	encoding, ok := r.Header()[httpheader.ContentEncoding]
+	if !ok || len(encoding) == 0 {
 		return body, nil
 	}
 
 	// should ignore the compression if the encoding isn't supported.
-	formats, err := gocompress.DefaultCompressor.ParseSupportedEncoding(encoding)
+	formats, err := gocompress.DefaultCompressor.ParseSupportedEncoding(encoding[0])
 	if err != nil {
 		logger.Warn(err.Error())
 	}
@@ -671,12 +676,12 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		return rawResp, nil
 	}
 
-	responseEncoding := rawResp.Header.Get(httpheader.ContentEncoding)
+	responseEncoding := rawResp.Header[httpheader.ContentEncoding]
 
-	if rawResp.Body != nil && responseEncoding != "" {
+	if rawResp.Body != nil && len(responseEncoding) > 0 {
 		decompressedBody, err := gocompress.DefaultCompressor.Decompress(
 			rawResp.Body,
-			responseEncoding,
+			responseEncoding[0],
 		)
 		if err != nil {
 			CloseResponse(rawResp)

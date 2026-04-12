@@ -41,7 +41,9 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 		return httpErrorFromNoContentResponse(resp)
 	}
 
-	if httpheader.IsContentTypeJSON(resp.Header.Get(httpheader.ContentType)) {
+	contentTypes := resp.Header[httpheader.ContentType]
+
+	if len(contentTypes) > 0 && httpheader.IsContentTypeJSON(contentTypes[0]) {
 		var httpError goutils.RFC9457ErrorWithExtensions
 
 		err := json.NewDecoder(resp.Body).Decode(&httpError)

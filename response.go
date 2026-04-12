@@ -33,9 +33,9 @@ func CloseResponse(resp *http.Response) {
 
 	contentLength := resp.ContentLength
 	if contentLength == -1 {
-		rawContentLength := resp.Header.Get(httpheader.ContentLength)
-		if rawContentLength != "" {
-			intContentLength, err := strconv.ParseInt(rawContentLength, 10, 64)
+		rawContentLength := resp.Header[httpheader.ContentLength]
+		if len(rawContentLength) > 0 {
+			intContentLength, err := strconv.ParseInt(rawContentLength[0], 10, 64)
 			if err == nil {
 				contentLength = intContentLength
 			}

@@ -126,10 +126,8 @@ func (r *Request) URL() string {
 }
 
 // SetURL sets the request URL.
-func (r *Request) SetURL(value string) *Request {
+func (r *Request) SetURL(value string) {
 	r.url = value
-
-	return r
 }
 
 // Method returns the request method.
@@ -138,10 +136,8 @@ func (r *Request) Method() string {
 }
 
 // SetMethod sets the request method.
-func (r *Request) SetMethod(method string) *Request {
+func (r *Request) SetMethod(method string) {
 	r.method = method
-
-	return r
 }
 
 // Timeout returns the request timeout.
@@ -150,10 +146,8 @@ func (r *Request) Timeout() time.Duration {
 }
 
 // SetTimeout sets the request timeout.
-func (r *Request) SetTimeout(timeout time.Duration) *Request {
+func (r *Request) SetTimeout(timeout time.Duration) {
 	r.timeout = timeout
-
-	return r
 }
 
 // Body returns the request body.
@@ -162,10 +156,8 @@ func (r *Request) Body() io.Reader {
 }
 
 // SetBody sets the request body.
-func (r *Request) SetBody(body io.Reader) *Request {
+func (r *Request) SetBody(body io.Reader) {
 	r.body = body
-
-	return r
 }
 
 // Retry returns the retry policy.
@@ -174,10 +166,8 @@ func (r *Request) Retry() retrypolicy.RetryPolicy[*http.Response] {
 }
 
 // SetRetry sets the retry policy.
-func (r *Request) SetRetry(retry retrypolicy.RetryPolicy[*http.Response]) *Request {
+func (r *Request) SetRetry(retry retrypolicy.RetryPolicy[*http.Response]) {
 	r.retry = retry
-
-	return r
 }
 
 // Authenticator returns the HTTP client authenticator.
@@ -186,10 +176,8 @@ func (r *Request) Authenticator() authscheme.HTTPClientAuthenticator {
 }
 
 // SetAuthenticator sets the HTTP authenticator.
-func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) *Request {
+func (r *Request) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator) {
 	r.authenticator = authenticator
-
-	return r
 }
 
 func (r *Request) applyAuth(req *http.Request) error {
@@ -257,6 +245,19 @@ func NewRequestWithClient(req *Request, client HTTPClientGetter) *RequestWithCli
 		Request: req,
 		client:  client,
 	}
+}
+
+// Clone creates a new request. The body can be nil if it was already read.
+func (r *RequestWithClient) Clone() *RequestWithClient {
+	newRequest := &RequestWithClient{
+		client: r.client,
+	}
+
+	if r.Request != nil {
+		newRequest.Request = r.Request.Clone()
+	}
+
+	return newRequest
 }
 
 // Execute handles the HTTP request to the remote server.

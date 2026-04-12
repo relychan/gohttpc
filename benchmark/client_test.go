@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -13,204 +14,210 @@ import (
 	"resty.dev/v3"
 )
 
-const serverURL = "http://localhost:8080/mock"
-
-var randomData = strings.Repeat("1", 1000000)
-
 // goos: darwin
 // goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
+// pkg: github.com/relychan/gohttpc/example
 // cpu: Apple M3 Pro
-// BenchmarkHTTPClientGet-11    	   25221	     45798 ns/op	    3206 B/op	      39 allocs/op
-func BenchmarkHTTPClientGet(b *testing.B) {
-	client := http.DefaultClient
+// BenchmarkHTTPClient/http_get-11         	   39042	     29450 ns/op	    4690 B/op	      54 allocs/op
+// BenchmarkHTTPClient/resty_get-11        	   35859	     34325 ns/op	    6903 B/op	      72 allocs/op
+// BenchmarkHTTPClient/gohttpc_get-11      	   35144	     33978 ns/op	    9543 B/op	     117 allocs/op
+// BenchmarkHTTPClient/http_post-11        	    3519	    336920 ns/op	   53786 B/op	     185 allocs/op
+// BenchmarkHTTPClient/resty_post-11       	    2394	    442824 ns/op	 2241756 B/op	     222 allocs/op
+// BenchmarkHTTPClient/gohttpc_post-11     	    3493	    370145 ns/op	   57652 B/op	     250 allocs/op
+// BenchmarkHTTPClient/gohttpc_post_trace-11    3541	    370773 ns/op	   59462 B/op	     284 allocs/op
+func BenchmarkHTTPClient(b *testing.B) {
+	server := startHTTPServer()
+	defer server.Close()
 
-	for b.Loop() {
-		resp, err := client.Get(serverURL)
-		if err != nil {
-			continue
-		}
+	randomData := strings.Repeat("1234567890", 100000)
 
-		if resp.StatusCode != 200 {
-			slog.Error(resp.Status)
+	b.Run("http_get", func(b *testing.B) {
+		client := http.DefaultClient
+
+		for b.Loop() {
+			resp, err := client.Get(server.URL)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if resp.StatusCode != 200 {
+				slog.Error(resp.Status)
+			}
+			_ = resp.Body.Close()
 		}
-		_ = resp.Body.Close()
-	}
+	})
+
+	b.Run("resty_get", func(b *testing.B) {
+		client := resty.New()
+
+		defer func() {
+			_ = client.Close()
+		}()
+
+		for b.Loop() {
+			resp, err := client.R().Get(server.URL)
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode() != 200 {
+				slog.Error(resp.RawResponse.Status)
+			}
+		}
+	})
+
+	b.Run("gohttpc_get", func(b *testing.B) {
+		client := gohttpc.NewClient()
+		defer func() {
+			_ = client.Close()
+		}()
+
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+		ctx := otelutils.NewContextWithLogger(context.Background(), logger)
+
+		for b.Loop() {
+			resp, err := client.R(http.MethodGet, server.URL).
+				Execute(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			gohttpc.CloseResponse(resp)
+
+			if resp.StatusCode != 200 {
+				slog.Error(resp.Status)
+			}
+		}
+	})
+
+	b.Run("http_post", func(b *testing.B) {
+		client := http.DefaultClient
+
+		for b.Loop() {
+			resp, err := client.Post(server.URL, "application/json", strings.NewReader(randomData))
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			if err != nil {
+				slog.Error("failed to read response", "error", err)
+			}
+
+			_ = resp.Body.Close()
+
+			if resp.StatusCode != 200 {
+				slog.Error(resp.Status)
+			}
+		}
+	})
+
+	b.Run("resty_post", func(b *testing.B) {
+		client := resty.New()
+		defer func() {
+			_ = client.Close()
+		}()
+
+		for b.Loop() {
+			resp, err := client.R().SetBody(randomData).Post(server.URL)
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode() != 200 {
+				slog.Error(resp.RawResponse.Status)
+			}
+		}
+	})
+
+	b.Run("gohttpc_post", func(b *testing.B) {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+		client := gohttpc.NewClient()
+		defer func() {
+			_ = client.Close()
+		}()
+
+		ctx := otelutils.NewContextWithLogger(context.Background(), logger)
+
+		for b.Loop() {
+			req := client.R(http.MethodPost, server.URL)
+			req.SetBody(strings.NewReader(randomData))
+			resp, err := req.Execute(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			if err != nil {
+				slog.Error(err.Error())
+			}
+
+			if resp.StatusCode != 200 {
+				slog.Error(resp.Status)
+			}
+
+			_ = resp.Body.Close()
+		}
+	})
+
+	b.Run("gohttpc_post_trace", func(b *testing.B) {
+		logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+
+		client := gohttpc.NewClient(gohttpc.EnableClientTrace(true))
+		defer func() {
+			_ = client.Close()
+		}()
+
+		ctx := otelutils.NewContextWithLogger(context.Background(), logger)
+
+		for b.Loop() {
+			req := client.R(http.MethodPost, server.URL)
+			req.SetBody(strings.NewReader(randomData))
+
+			resp, err := req.Execute(ctx)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			_, err = io.Copy(io.Discard, resp.Body)
+			if err != nil {
+				slog.Error(err.Error())
+			}
+
+			if resp.StatusCode != 200 {
+				slog.Error(resp.Status)
+			}
+			_ = resp.Body.Close()
+		}
+	})
 }
 
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkRestyGet-11    	   22992	     48696 ns/op	    5518 B/op	      59 allocs/op
-func BenchmarkRestyGet(b *testing.B) {
-	client := resty.New()
+func startHTTPServer() *httptest.Server {
+	mux := http.NewServeMux()
 
-	defer func() {
-		_ = client.Close()
-	}()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			w.WriteHeader(http.StatusOK)
+		case http.MethodPost:
+			w.WriteHeader(http.StatusOK)
 
-	for b.Loop() {
-		resp, err := client.R().Get(serverURL)
-		if err != nil {
-			continue
+			_, err := io.Copy(w, r.Body)
+			if err != nil {
+				slog.Error(err.Error())
+			}
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
-		defer resp.Body.Close()
+	})
 
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkGoHTTPCGet-11    	   28893	     38925 ns/op	    8022 B/op	     102 allocs/op
-func BenchmarkGoHTTPCGet(b *testing.B) {
-	client := gohttpc.NewClient()
-	defer client.Close()
-
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
-
-	for b.Loop() {
-		resp, err := client.R(http.MethodGet, serverURL).
-			Execute(ctx)
-		if err != nil {
-			continue
-		}
-
-		gohttpc.CloseResponse(resp)
-
-		if resp.StatusCode != 200 {
-			slog.Error(resp.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkHTTPClientPost-11    	     488	   2404312 ns/op	   53162 B/op	     142 allocs/op
-func BenchmarkHTTPClientPost(b *testing.B) {
-	client := http.DefaultClient
-
-	for b.Loop() {
-		resp, err := client.Post(serverURL, "application/json", strings.NewReader(randomData))
-		if err != nil {
-			continue
-		}
-
-		_, err = io.Copy(io.Discard, resp.Body)
-		if err != nil {
-			slog.Error("failed to read response", "error", err)
-		}
-
-		_ = resp.Body.Close()
-
-		if resp.StatusCode != 200 {
-			slog.Error(resp.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkRestyPost-11    	     609	   2613460 ns/op	 2243928 B/op	     182 allocs/op
-func BenchmarkRestyPost(b *testing.B) {
-	client := resty.New()
-
-	defer func() {
-		_ = client.Close()
-	}()
-
-	for b.Loop() {
-		resp, err := client.R().SetBody(randomData).Post(serverURL)
-		if err != nil {
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode() != 200 {
-			slog.Error(resp.RawResponse.Status)
-		}
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPost-11    	     583	   2154626 ns/op	   57315 B/op	     208 allocs/op
-func BenchmarkGoHTTPCPost(b *testing.B) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	client := gohttpc.NewClient()
-	defer client.Close()
-
-	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
-
-	for b.Loop() {
-		resp, err := client.R(http.MethodPost, serverURL).
-			SetBody(strings.NewReader(randomData)).
-			Execute(ctx, client)
-		if err != nil {
-			continue
-		}
-
-		_, err = io.Copy(io.Discard, resp.Body)
-		if err != nil {
-			slog.Error(err.Error())
-		}
-
-		if resp.StatusCode != 200 {
-			slog.Error(resp.Status)
-		}
-
-		_ = resp.Body.Close()
-	}
-}
-
-// goos: darwin
-// goarch: arm64
-// pkg: github.com/relychan/gohttpc/benchmark
-// cpu: Apple M3 Pro
-// BenchmarkGoHTTPCPostWithClientTrace-11    	     524	   2151059 ns/op	   59701 B/op	     246 allocs/op
-func BenchmarkGoHTTPCPostWithClientTrace(b *testing.B) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-
-	client := gohttpc.NewClient(gohttpc.EnableClientTrace(true))
-	defer client.Close()
-
-	ctx := otelutils.NewContextWithLogger(context.Background(), logger)
-
-	for b.Loop() {
-		req := client.R(http.MethodPost, serverURL)
-		req.SetBody(strings.NewReader(randomData))
-
-		resp, err := req.Execute(ctx)
-		if err != nil {
-			continue
-		}
-
-		_, err = io.Copy(io.Discard, resp.Body)
-		if err != nil {
-			slog.Error(err.Error())
-		}
-
-		if resp.StatusCode != 200 {
-			slog.Error(resp.Status)
-		}
-		_ = resp.Body.Close()
-	}
+	return httptest.NewServer(mux)
 }
