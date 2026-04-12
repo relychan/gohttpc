@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hasura/goenvconf v0.7.0
 	github.com/hasura/gotel v0.8.0
-	github.com/relychan/gocompress v0.1.2
+	github.com/relychan/gocompress v0.2.0
 	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/metric v1.43.0

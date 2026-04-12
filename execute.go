@@ -55,8 +55,11 @@ func (r *Request) Execute( //nolint:funlen
 
 	var requestBodyStr string
 
+	contentTypes := r.Header()[httpheader.ContentType]
+
 	if isDebug && r.body != nil &&
-		otelutils.IsContentTypeDebuggable(r.Header().Get(httpheader.ContentType)) {
+		len(contentTypes) > 0 &&
+		otelutils.IsContentTypeDebuggable(contentTypes[0]) {
 		body, err := io.ReadAll(r.body)
 		if err != nil {
 			logger.Error(
@@ -100,7 +103,7 @@ func (r *Request) Execute( //nolint:funlen
 
 	defer span.End()
 
-	body, err := r.compressBody()
+	body, err := r.compressBody(logger)
 	if err != nil {
 		return nil, r.logExecution(
 			ctx,
@@ -306,12 +309,14 @@ func (r *Request) logExecution( //nolint:gocognit,funlen,maintidx,cyclop
 			)
 		}
 
+		contentTypes := r.Header()[httpheader.ContentType]
 		statusCodeAttr := semconv.HTTPResponseStatusCode(resp.StatusCode)
 
 		span.SetAttributes(statusCodeAttr)
 
 		if resp.Body != nil && isDebug &&
-			otelutils.IsContentTypeDebuggable(resp.Header.Get(httpheader.ContentType)) {
+			len(contentTypes) > 0 &&
+			otelutils.IsContentTypeDebuggable(contentTypes[0]) {
 			body, readErr := io.ReadAll(resp.Body)
 
 			goutils.CatchWarnErrorFunc(resp.Body.Close)
@@ -433,7 +438,7 @@ func (r *Request) executeWithRetries(
 	return failsafe.With(r.getRetryPolicy()).Get(operation)
 }
 
-func (r *Request) compressBody() (io.Reader, error) {
+func (r *Request) compressBody(logger *slog.Logger) (io.Reader, error) {
 	body := r.body
 	r.body = nil
 
@@ -442,13 +447,18 @@ func (r *Request) compressBody() (io.Reader, error) {
 		return body, nil
 	}
 
-	encoding := r.Header().Get(httpheader.ContentEncoding)
-	if encoding == "" {
+	encoding, ok := r.Header()[httpheader.ContentEncoding]
+	if !ok || len(encoding) == 0 {
 		return body, nil
 	}
 
 	// should ignore the compression if the encoding isn't supported.
-	if !gocompress.DefaultCompressor.IsEncodingSupported(encoding) {
+	formats, err := gocompress.DefaultCompressor.ParseSupportedEncoding(encoding[0])
+	if err != nil {
+		logger.Warn(err.Error())
+	}
+
+	if len(formats) == 0 {
 		r.Header().Del(httpheader.ContentEncoding)
 
 		return body, nil
@@ -456,7 +466,7 @@ func (r *Request) compressBody() (io.Reader, error) {
 
 	var buf bytes.Buffer
 
-	_, err := gocompress.DefaultCompressor.Compress(&buf, encoding, body)
+	_, err = gocompress.DefaultCompressor.CompressFormat(&buf, body, formats...)
 	if err != nil {
 		return nil, err
 	}
@@ -666,12 +676,12 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 		return rawResp, nil
 	}
 
-	responseEncoding := rawResp.Header.Get(httpheader.ContentEncoding)
+	responseEncoding := rawResp.Header[httpheader.ContentEncoding]
 
-	if rawResp.Body != nil && responseEncoding != "" {
+	if rawResp.Body != nil && len(responseEncoding) > 0 {
 		decompressedBody, err := gocompress.DefaultCompressor.Decompress(
 			rawResp.Body,
-			responseEncoding,
+			responseEncoding[0],
 		)
 		if err != nil {
 			CloseResponse(rawResp)

@@ -17,7 +17,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hasura/goenvconf v0.7.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
-	github.com/relychan/gocompress v0.1.2 // indirect
+	github.com/relychan/gocompress v0.2.0 // indirect
 	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
