@@ -100,7 +100,7 @@ func (r *Request) Execute( //nolint:funlen
 
 	defer span.End()
 
-	body, err := r.compressBody()
+	body, err := r.compressBody(logger)
 	if err != nil {
 		return nil, r.logExecution(
 			ctx,
@@ -433,7 +433,7 @@ func (r *Request) executeWithRetries(
 	return failsafe.With(r.getRetryPolicy()).Get(operation)
 }
 
-func (r *Request) compressBody() (io.Reader, error) {
+func (r *Request) compressBody(logger *slog.Logger) (io.Reader, error) {
 	body := r.body
 	r.body = nil
 
@@ -448,7 +448,12 @@ func (r *Request) compressBody() (io.Reader, error) {
 	}
 
 	// should ignore the compression if the encoding isn't supported.
-	if !gocompress.DefaultCompressor.IsEncodingSupported(encoding) {
+	formats, err := gocompress.DefaultCompressor.ParseSupportedEncoding(encoding)
+	if err != nil {
+		logger.Warn(err.Error())
+	}
+
+	if len(formats) == 0 {
 		r.Header().Del(httpheader.ContentEncoding)
 
 		return body, nil
@@ -456,7 +461,7 @@ func (r *Request) compressBody() (io.Reader, error) {
 
 	var buf bytes.Buffer
 
-	_, err := gocompress.DefaultCompressor.Compress(&buf, encoding, body)
+	_, err = gocompress.DefaultCompressor.CompressFormat(&buf, body, formats...)
 	if err != nil {
 		return nil, err
 	}

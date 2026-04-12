@@ -48,8 +48,8 @@ github.com/prometheus/otlptranslator v1.0.0 h1:s0LJW/iN9dkIH+EnhiD3BlkkP5QVIUVEo
 github.com/prometheus/otlptranslator v1.0.0/go.mod h1:vRYWnXvI6aWGpsdY/mOT/cbeVRBlPWtBNDb7kGR3uKM=
 github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEycfc=
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
-github.com/relychan/gocompress v0.1.2 h1:IQfmMM/acGOm2YZde0GVK8/2Spl6p6FnHwyBHJj8+Nw=
-github.com/relychan/gocompress v0.1.2/go.mod h1:CjeGuDGHFAT8wNIOGunjJyDbtl13txB7wscu+a2SvLw=
+github.com/relychan/gocompress v0.2.0 h1:+Tyab2eGuZdlljN8XsN8gvkneUGjHdT3ABSRK7NlEqU=
+github.com/relychan/gocompress v0.2.0/go.mod h1:A+vVoEJlf34V/oSiAicUyEyUbvLY0t/ZsfyTCkRiAHA=
 github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d h1:yKkznxmsz6m9N2yuZJEtY1ggFd1qYNunYahLA16fs3g=
 github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d/go.mod h1:4rQgpPl85UVNvtTv01ZWlJN5S0P1r+kM5hOl3oQvXXU=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
