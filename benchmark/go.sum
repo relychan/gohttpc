@@ -27,8 +27,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/relychan/gocompress v0.2.0 h1:+Tyab2eGuZdlljN8XsN8gvkneUGjHdT3ABSRK7NlEqU=
 github.com/relychan/gocompress v0.2.0/go.mod h1:A+vVoEJlf34V/oSiAicUyEyUbvLY0t/ZsfyTCkRiAHA=
-github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d h1:yKkznxmsz6m9N2yuZJEtY1ggFd1qYNunYahLA16fs3g=
-github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d/go.mod h1:4rQgpPl85UVNvtTv01ZWlJN5S0P1r+kM5hOl3oQvXXU=
+github.com/relychan/goutils v0.0.0-20260424152002-b262b08e6c6e h1:JrNYJC/EDtbKkpupbWCBDRl6kgMsH+VZcseO6MJTsEE=
+github.com/relychan/goutils v0.0.0-20260424152002-b262b08e6c6e/go.mod h1:4rQgpPl85UVNvtTv01ZWlJN5S0P1r+kM5hOl3oQvXXU=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
