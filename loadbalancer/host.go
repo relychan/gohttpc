@@ -28,6 +28,7 @@ import (
 	"github.com/relychan/gohttpc"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/goutils"
+	"github.com/relychan/goutils/httperror"
 )
 
 // Host represents the host information and its weight to load balance the requests.
@@ -250,7 +251,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	gohttpc.CloseResponse(resp)
+	goutils.CloseResponse(resp)
 
 	s.healthCheckPolicy.RecordResult(resp.StatusCode)
 }
@@ -277,7 +278,7 @@ func (s *Host) NewRequest(
 		lastHTTPErrorStatus, isOutage := s.GetLastHTTPErrorStatus()
 		if isOutage {
 			// Returns error directly if HTTP status >= 502, except 504.
-			return nil, goutils.NewRFC9457Error(int(lastHTTPErrorStatus), "")
+			return nil, httperror.NewHTTPError(int(lastHTTPErrorStatus), "")
 		}
 	}
 

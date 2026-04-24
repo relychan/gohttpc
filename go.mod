@@ -8,7 +8,7 @@ require (
 	github.com/hasura/goenvconf v0.7.0
 	github.com/hasura/gotel v0.8.0
 	github.com/relychan/gocompress v0.2.0
-	github.com/relychan/goutils v0.0.0-20260410181000-7cadbbfb748d
+	github.com/relychan/goutils v0.0.0-20260424152002-b262b08e6c6e
 	go.opentelemetry.io/otel v1.43.0
 	go.opentelemetry.io/otel/metric v1.43.0
 	go.opentelemetry.io/otel/trace v1.43.0

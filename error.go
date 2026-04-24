@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/relychan/goutils"
+	"github.com/relychan/goutils/httperror"
 	"github.com/relychan/goutils/httpheader"
 )
 
@@ -36,7 +37,7 @@ var (
 )
 
 // httpErrorFromResponse creates an error from the HTTP response.
-func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensions {
+func httpErrorFromResponse(resp *http.Response) *goutils.HTTPErrorWithExtensions {
 	if resp.Body == nil {
 		return httpErrorFromNoContentResponse(resp)
 	}
@@ -44,11 +45,11 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 	contentTypes := resp.Header[httpheader.ContentType]
 
 	if len(contentTypes) > 0 && httpheader.IsContentTypeJSON(contentTypes[0]) {
-		var httpError goutils.RFC9457ErrorWithExtensions
+		var httpError goutils.HTTPErrorWithExtensions
 
 		err := json.NewDecoder(resp.Body).Decode(&httpError)
 
-		CloseResponse(resp)
+		goutils.CloseResponse(resp)
 
 		if err != nil {
 			return httpErrorFromNoContentResponse(resp)
@@ -81,9 +82,9 @@ func httpErrorFromResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensi
 	return result
 }
 
-func httpErrorFromNoContentResponse(resp *http.Response) *goutils.RFC9457ErrorWithExtensions {
-	return &goutils.RFC9457ErrorWithExtensions{
-		RFC9457Error: goutils.RFC9457Error{
+func httpErrorFromNoContentResponse(resp *http.Response) *goutils.HTTPErrorWithExtensions {
+	return &goutils.HTTPErrorWithExtensions{
+		HTTPError: httperror.HTTPError{
 			Status: resp.StatusCode,
 			Title:  resp.Status,
 		},
