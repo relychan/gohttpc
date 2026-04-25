@@ -35,14 +35,14 @@ func executeGet(t *testing.T, url string) (*http.Response, error) {
 	return client.R(http.MethodGet, url).Execute(t.Context())
 }
 
-func assertHTTPError(t *testing.T, err error, wantStatus int) *goutils.RFC9457ErrorWithExtensions {
+func assertHTTPError(t *testing.T, err error, wantStatus int) *goutils.HTTPErrorWithExtensions {
 	t.Helper()
 
 	if err == nil {
 		t.Fatal("expected an error, got nil")
 	}
 
-	httpErr, ok := err.(*goutils.RFC9457ErrorWithExtensions)
+	httpErr, ok := err.(*goutils.HTTPErrorWithExtensions)
 	if !ok {
 		t.Fatalf("expected *RFC9457ErrorWithExtensions, got %T: %v", err, err)
 	}

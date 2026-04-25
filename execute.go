@@ -684,7 +684,7 @@ func (r *Request) doRequest( //nolint:funlen,maintidx
 			responseEncoding[0],
 		)
 		if err != nil {
-			CloseResponse(rawResp)
+			goutils.CloseResponse(rawResp)
 
 			msg := "failed to decompress response body"
 			span.SetStatus(codes.Error, msg)
