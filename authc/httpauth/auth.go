@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/relychan/gohttpc/authc/authscheme"
+	"github.com/relychan/goutils/httpheader"
 )
 
 // HTTPCredential presents a header authentication credential.
@@ -38,7 +39,7 @@ func NewHTTPCredential(
 ) (*HTTPCredential, error) {
 	header := strings.TrimSpace(config.TokenLocation.Name)
 	if header == "" {
-		header = "Authorization"
+		header = httpheader.Authorization
 	}
 
 	scheme := strings.TrimSpace(config.TokenLocation.Scheme)

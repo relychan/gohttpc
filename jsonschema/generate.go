@@ -20,13 +20,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/invopop/jsonschema"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/gohttpc/authc/basicauth"
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
 	"github.com/relychan/gohttpc/httpconfig"
 	"github.com/relychan/gohttpc/loadbalancer"
-	"github.com/relychan/jsonschema"
 )
 
 func main() {
