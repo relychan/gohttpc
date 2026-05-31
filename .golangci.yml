@@ -12,6 +12,8 @@ linters:
     - ireturn
     - tagalign
     - tagliatelle
+    - gomodguard
+    - goconst
   settings:
     depguard:
       rules:

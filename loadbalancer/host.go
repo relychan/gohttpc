@@ -288,7 +288,7 @@ func (s *Host) NewRequest(
 // Do sends an HTTP request and returns an HTTP response, following policy
 // (such as redirects, cookies, auth) as configured on the client.
 func (s *Host) Do(req *http.Request) (*http.Response, error) {
-	resp, err := s.httpClient.Do(req) //nolint:gosec
+	resp, err := s.httpClient.Do(req)
 
 	if s.healthCheckPolicy == nil {
 		return resp, err

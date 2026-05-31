@@ -25,6 +25,7 @@ import (
 	"github.com/hasura/goenvconf"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/goutils"
+	"github.com/relychan/goutils/httpheader"
 	"golang.org/x/oauth2/clientcredentials"
 )
 
@@ -46,7 +47,7 @@ func NewOAuth2Credential(
 	if config.TokenLocation == nil {
 		location = &authscheme.TokenLocation{
 			In:   authscheme.InHeader,
-			Name: "Authorization",
+			Name: httpheader.Authorization,
 		}
 	} else {
 		tokenLocation, err := authscheme.ValidateTokenLocation(*config.TokenLocation)
