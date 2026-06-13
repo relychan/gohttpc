@@ -290,7 +290,10 @@ func (s *Host) NewRequest(
 		}
 	}
 
-	reqURL := addURLPath(s.url, requestPath)
+	reqURL, err := addURLPath(s.url, requestPath)
+	if err != nil {
+		return nil, err
+	}
 
 	return s.newRequest(ctx, method, reqURL.String(), body)
 }
@@ -416,37 +419,18 @@ func WithHTTPHealthCheckPolicyBuilder(builder *HTTPHealthCheckPolicyBuilder) Hos
 	}
 }
 
-func addURLPath(input *url.URL, uriPath string) *url.URL {
+func addURLPath(input *url.URL, uriPath string) (*url.URL, error) {
+	uriPath = strings.TrimSpace(uriPath)
 	if uriPath == "" || uriPath == "/" {
-		return input
+		return input, nil
 	}
 
 	uri := *input
 
-	path, query, fragment := goutils.SplitPathQueryFragment(uriPath)
-
-	if fragment != "" {
-		uri.Fragment = fragment
+	err := goutils.AppendURL(&uri, uriPath)
+	if err != nil {
+		return nil, err
 	}
 
-	if query != "" {
-		if uri.RawQuery == "" {
-			uri.RawQuery = query
-		} else {
-			uri.RawQuery += "&" + query
-		}
-	}
-
-	if path != "" && path != "/" {
-		switch {
-		case uri.Path == "" || uri.Path == "/":
-			uri.Path = path
-		case path[0] == '/':
-			uri.Path += path
-		default:
-			uri.Path += "/" + path
-		}
-	}
-
-	return &uri
+	return &uri, nil
 }
