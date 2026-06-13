@@ -335,16 +335,8 @@ func (hb *HTTPHealthCheckPolicyBuilder) Build(endpoint *url.URL) (*HTTPHealthChe
 	policy := *hb.HTTPHealthCheckPolicy
 	policy.CircuitBreaker = builder.Build()
 
-	policy.path = strings.TrimSpace(policy.path)
-
-	if policy.path == "" || policy.path == "/" {
-		policy.path = endpoint.String()
-	} else {
-		uri := *endpoint
-		addURLPath(&uri, policy.path)
-
-		policy.path = uri.String()
-	}
+	uri := addURLPath(endpoint, strings.TrimSpace(policy.path))
+	policy.path = uri.String()
 
 	// Record initial metrics for the closed state.
 	metrics.ServerState.Record(

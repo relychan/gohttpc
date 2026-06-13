@@ -70,7 +70,7 @@ func NewHost(
 
 	host := &Host{
 		httpClient: client,
-		weight:     int32(opts.weight),
+		weight:     opts.weight,
 	}
 
 	u, err := host.SetURL(baseURL)
@@ -327,8 +327,7 @@ func (s *Host) newRequest(
 	uriPath string,
 	body io.Reader,
 ) (*http.Request, error) {
-	reqURL := *s.url
-	addURLPath(&reqURL, uriPath)
+	reqURL := addURLPath(s.url, uriPath)
 
 	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), body)
 	if err != nil {
@@ -411,10 +410,12 @@ func WithHTTPHealthCheckPolicyBuilder(builder *HTTPHealthCheckPolicyBuilder) Hos
 	}
 }
 
-func addURLPath(uri *url.URL, uriPath string) {
+func addURLPath(input *url.URL, uriPath string) *url.URL {
 	if uriPath == "" || uriPath == "/" {
-		return
+		return input
 	}
+
+	uri := *input
 
 	path, query, fragment := goutils.SplitPathQueryFragment(uriPath)
 
@@ -440,4 +441,6 @@ func addURLPath(uri *url.URL, uriPath string) {
 			uri.Path += "/" + path
 		}
 	}
+
+	return &uri
 }
