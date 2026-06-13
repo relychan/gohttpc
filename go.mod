@@ -8,16 +8,16 @@ require (
 	github.com/hasura/goenvconf v0.7.0
 	github.com/hasura/gotel v0.8.1
 	github.com/relychan/gocompress v0.2.1
-	github.com/relychan/goutils v0.0.0-20260529174539-fae163d678da
+	github.com/relychan/goutils v0.0.0-20260613111651-8ff7af4ccb85
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc
+	go.yaml.in/yaml/v4 v4.0.0-rc.5
 	golang.org/x/oauth2 v0.36.0
 )
 
 require (
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

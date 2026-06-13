@@ -36,19 +36,19 @@ type Host struct {
 	// An optional unique string to refer to the host designated by the URL.
 	name string
 	// A URL to the target host.
-	url string
+	url *url.URL
 	// Defines custom headers to be injected to incoming requests.
 	headers map[string]string
-	// Defines the weight of the server endpoint for load balancing.
-	weight int
 	// The HTTP client is used for this server.
 	httpClient *http.Client
 	// The custom authenticator for the current server.
 	authenticator authscheme.HTTPClientAuthenticator
 	// The health check policy.
 	healthCheckPolicy *HTTPHealthCheckPolicy
+	// Defines the weight of the server endpoint for load balancing.
+	weight int32
 	// The current weight of the server.
-	currentWeight int
+	currentWeight int32
 	// Cache the last HTTP Error status of the host.
 	lastHTTPErrorStatus atomic.Int32
 }
@@ -83,7 +83,10 @@ func NewHost(
 		opts.healthCheckPolicyBuilder = NewHTTPHealthCheckPolicyBuilder()
 	}
 
-	host.healthCheckPolicy = opts.healthCheckPolicyBuilder.Build(u)
+	host.healthCheckPolicy, err = opts.healthCheckPolicyBuilder.Build(u)
+	if err != nil {
+		return nil, err
+	}
 
 	return host, nil
 }
@@ -96,7 +99,7 @@ func (s *Host) SetURL(baseURL string) (*url.URL, error) {
 		return nil, err
 	}
 
-	s.url = strings.TrimRight(baseURL, "/")
+	s.url = u
 
 	if s.name == "" {
 		s.name = u.Host
@@ -106,7 +109,7 @@ func (s *Host) SetURL(baseURL string) (*url.URL, error) {
 }
 
 // URL returns the base URL of this host.
-func (s *Host) URL() string {
+func (s *Host) URL() *url.URL {
 	return s.url
 }
 
@@ -147,12 +150,12 @@ func (s *Host) SetAuthenticator(authenticator authscheme.HTTPClientAuthenticator
 }
 
 // Weight returns the weight of this host.
-func (s *Host) Weight() int {
+func (s *Host) Weight() int32 {
 	return s.weight
 }
 
 // SetWeight sets the weight of this host.
-func (s *Host) SetWeight(weight int) *Host {
+func (s *Host) SetWeight(weight int32) *Host {
 	s.weight = weight
 
 	return s
@@ -164,12 +167,12 @@ func (s *Host) AddCurrentWeight() {
 }
 
 // ResetCurrentWeight resets the current weight.
-func (s *Host) ResetCurrentWeight(totalWeight int) {
+func (s *Host) ResetCurrentWeight(totalWeight int32) {
 	s.currentWeight -= totalWeight
 }
 
 // CurrentWeight adds the weight to the current weight.
-func (s *Host) CurrentWeight() int {
+func (s *Host) CurrentWeight() int32 {
 	return s.currentWeight
 }
 
@@ -212,8 +215,6 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	healthURL := s.url + s.healthCheckPolicy.path
-
 	timeout := s.healthCheckPolicy.timeout
 	if timeout <= 0 {
 		timeout = 5 * time.Second
@@ -231,7 +232,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 	req, err := s.newRequest(
 		requestContext,
 		s.healthCheckPolicy.method,
-		healthURL,
+		s.healthCheckPolicy.path,
 		body,
 	)
 	if err != nil {
@@ -271,7 +272,7 @@ func (s *Host) GetLastHTTPErrorStatus() (int32, bool) {
 func (s *Host) NewRequest(
 	ctx context.Context,
 	method string,
-	url string,
+	requestPath string,
 	body io.Reader,
 ) (*http.Request, error) {
 	if s.healthCheckPolicy != nil && s.healthCheckPolicy.State() == circuitbreaker.OpenState {
@@ -282,7 +283,12 @@ func (s *Host) NewRequest(
 		}
 	}
 
-	return s.newRequest(ctx, method, url, body)
+	reqURL, err := addURLPath(s.url, requestPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.newRequest(ctx, method, reqURL.String(), body)
 }
 
 // Do sends an HTTP request and returns an HTTP response, following policy
@@ -325,22 +331,7 @@ func (s *Host) newRequest(
 	url string,
 	body io.Reader,
 ) (*http.Request, error) {
-	reqURL := url
-
-	switch {
-	case url == "" || url == "/":
-		reqURL = s.url
-	case !goutils.HasStringPrefixFold(url, "http"):
-		if url[0] == '/' {
-			reqURL = s.url + url
-		} else {
-			reqURL = s.url + "/" + url
-		}
-
-		reqURL = strings.TrimRight(reqURL, "/")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +386,7 @@ type ServerMetrics struct {
 }
 
 type hostOptions struct {
-	weight                   int
+	weight                   int32
 	healthCheckPolicyBuilder *HTTPHealthCheckPolicyBuilder
 }
 
@@ -403,7 +394,7 @@ type hostOptions struct {
 type HostOption func(*hostOptions)
 
 // WithWeight sets the weight for the host.
-func WithWeight(weight int) HostOption {
+func WithWeight(weight int32) HostOption {
 	return func(ho *hostOptions) {
 		if weight > 0 {
 			ho.weight = weight
@@ -419,4 +410,20 @@ func WithHTTPHealthCheckPolicyBuilder(builder *HTTPHealthCheckPolicyBuilder) Hos
 			ho.healthCheckPolicyBuilder = builder
 		}
 	}
+}
+
+func addURLPath(input *url.URL, uriPath string) (*url.URL, error) {
+	uriPath = strings.TrimSpace(uriPath)
+	if uriPath == "" || uriPath == "/" {
+		return input, nil
+	}
+
+	uri := *input
+
+	err := goutils.AppendURL(&uri, uriPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &uri, nil
 }
