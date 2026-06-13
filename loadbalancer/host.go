@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -214,8 +215,6 @@ func (s *Host) CheckHealth(ctx context.Context) {
 		return
 	}
 
-	healthURL := s.healthCheckPolicy.path
-
 	timeout := s.healthCheckPolicy.timeout
 	if timeout <= 0 {
 		timeout = 5 * time.Second
@@ -233,7 +232,7 @@ func (s *Host) CheckHealth(ctx context.Context) {
 	req, err := s.newRequest(
 		requestContext,
 		s.healthCheckPolicy.method,
-		healthURL,
+		s.healthCheckPolicy.path,
 		body,
 	)
 	if err != nil {
@@ -273,9 +272,16 @@ func (s *Host) GetLastHTTPErrorStatus() (int32, bool) {
 func (s *Host) NewRequest(
 	ctx context.Context,
 	method string,
-	url string,
+	requestPath string,
 	body io.Reader,
 ) (*http.Request, error) {
+	if strings.Contains(requestPath, "://") {
+		err := httperror.NewBadRequestError()
+		err.Detail = "Request path must be relative"
+
+		return nil, err
+	}
+
 	if s.healthCheckPolicy != nil && s.healthCheckPolicy.State() == circuitbreaker.OpenState {
 		lastHTTPErrorStatus, isOutage := s.GetLastHTTPErrorStatus()
 		if isOutage {
@@ -284,7 +290,9 @@ func (s *Host) NewRequest(
 		}
 	}
 
-	return s.newRequest(ctx, method, url, body)
+	reqURL := addURLPath(s.url, requestPath)
+
+	return s.newRequest(ctx, method, reqURL.String(), body)
 }
 
 // Do sends an HTTP request and returns an HTTP response, following policy
@@ -324,12 +332,10 @@ func (s *Host) Close() {
 func (s *Host) newRequest(
 	ctx context.Context,
 	method string,
-	uriPath string,
+	url string,
 	body io.Reader,
 ) (*http.Request, error) {
-	reqURL := addURLPath(s.url, uriPath)
-
-	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
