@@ -275,13 +275,6 @@ func (s *Host) NewRequest(
 	requestPath string,
 	body io.Reader,
 ) (*http.Request, error) {
-	if strings.Contains(requestPath, "://") {
-		err := httperror.NewBadRequestError()
-		err.Detail = "Request path must be relative"
-
-		return nil, err
-	}
-
 	if s.healthCheckPolicy != nil && s.healthCheckPolicy.State() == circuitbreaker.OpenState {
 		lastHTTPErrorStatus, isOutage := s.GetLastHTTPErrorStatus()
 		if isOutage {
