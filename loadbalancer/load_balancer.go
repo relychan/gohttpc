@@ -96,7 +96,7 @@ func (lbc *LoadBalancerClient) ServerMetrics() map[string]ServerMetrics {
 
 		metrics := server.healthCheckPolicy.Metrics()
 
-		result[server.url] = ServerMetrics{
+		result[server.url.String()] = ServerMetrics{
 			Executions:  metrics.Executions(),
 			Failures:    metrics.Failures(),
 			FailureRate: metrics.FailureRate(),

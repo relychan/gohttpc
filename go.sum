@@ -1,5 +1,5 @@
-github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
-github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
+github.com/bits-and-blooms/bitset v1.24.5 h1:654xBVHc23gJMAgOTkPNoCVfiRxuIOAUnAZFtopqJ4w=
+github.com/bits-and-blooms/bitset v1.24.5/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -28,8 +28,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/relychan/gocompress v0.2.1 h1:QFXF7vS106szD7nKbCFv4WUpe7OHNQSxG0yB1//4rDQ=
 github.com/relychan/gocompress v0.2.1/go.mod h1:rU3CWbSGXWVYCMzDti6WjnHMFAj/D82+pON52N6B+pQ=
-github.com/relychan/goutils v0.0.0-20260529174539-fae163d678da h1:j2Oo0pTwhdBQ7L0uVGO0nkrnGeGRSYQT2RKmrk/tSmU=
-github.com/relychan/goutils v0.0.0-20260529174539-fae163d678da/go.mod h1:4rQgpPl85UVNvtTv01ZWlJN5S0P1r+kM5hOl3oQvXXU=
+github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268 h1:LN4VjVK7QmiHhUBY1jELamUeC3+LFNGE48CV/7m5hvo=
+github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268/go.mod h1:HNGLpZJN8D4zv/NYw/tPvcFBsx7amX41VFdeyFLWyCg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
@@ -42,8 +42,8 @@ go.opentelemetry.io/otel/sdk v1.44.0 h1:nHYwb9lK+fJPU/dnT6s7W7Z8itMWyqrnVfbheVYr
 go.opentelemetry.io/otel/sdk v1.44.0/go.mod h1:Osuydd3Se74nqjAKxid74N5eC+jfEqfTegHRnq58oK0=
 go.opentelemetry.io/otel/trace v1.44.0 h1:jxF5CsGYCe74MCRx2X4g7WsY/VBKRqqpNvXlX/6gtIk=
 go.opentelemetry.io/otel/trace v1.44.0/go.mod h1:oLl1jrMQAVo6v3GAggN+1VH9VIz9iUSvW53sW1Q8PIE=
-go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc h1:EU9opzW0fIABG90OiB5LCDIdWEEb0yi9kQdYdFHID7s=
-go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
+go.yaml.in/yaml/v4 v4.0.0-rc.5 h1:JVliQq9EGOYaTgMi+k8BhUJyqcGk4ZqeuiN1Cirba9c=
+go.yaml.in/yaml/v4 v4.0.0-rc.5/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de h1:xSjD6HQTqT0H/k60N5yYBtnN1OEkVy7WIo/DYyxKRO0=
 golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/net v0.55.0 h1:bcvxaJn3e1U6InsFWt1JUq1aSjnRxLzT2rtD2KfkDF8=

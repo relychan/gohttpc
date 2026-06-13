@@ -32,7 +32,7 @@ type WeightedRoundRobin struct {
 	lock         sync.Mutex
 	hosts        []*loadbalancer.Host
 	isSameWeight bool
-	totalWeight  int
+	totalWeight  int32
 	tick         *time.Ticker
 }
 
@@ -89,8 +89,8 @@ func (wrr *WeightedRoundRobin) Refresh(servers []*loadbalancer.Host) error {
 	defer wrr.lock.Unlock()
 
 	isSameWeight := true
-	lastWeight := 0
-	newTotalWeight := 0
+
+	var newTotalWeight, lastWeight int32
 
 	for i, h := range servers {
 		weight := h.Weight()
@@ -182,7 +182,7 @@ func (wrr *WeightedRoundRobin) StartHealthCheck(ctx context.Context) {
 
 // Returns the next server based on the Round-Robin algorithm.
 func (rr *WeightedRoundRobin) nextRoundRobin() *loadbalancer.Host {
-	totalServers := len(rr.hosts)
+	totalServers := int32(len(rr.hosts))
 
 	var fallbackHost *loadbalancer.Host
 
@@ -221,9 +221,10 @@ func (rr *WeightedRoundRobin) nextRoundRobin() *loadbalancer.Host {
 
 // nextWeightRoundRobin returns the next server based on the Weighted Round-Robin algorithm.
 func (wrr *WeightedRoundRobin) nextWeightRoundRobin() *loadbalancer.Host {
-	var best, fallbackHost *loadbalancer.Host
-
-	total := 0
+	var (
+		best, fallbackHost *loadbalancer.Host
+		total              int32
+	)
 
 	for _, h := range wrr.hosts {
 		policy := h.HealthCheckPolicy()

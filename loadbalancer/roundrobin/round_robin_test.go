@@ -67,7 +67,7 @@ func TestWeightedRoundRobin(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			result = append(result, server.URL())
+			result = append(result, server.URL().String())
 		}
 
 		expected := []string{
@@ -125,7 +125,7 @@ func TestWeightedRoundRobin(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			result = append(result, server.URL())
+			result = append(result, server.URL().String())
 		}
 
 		expected := []string{

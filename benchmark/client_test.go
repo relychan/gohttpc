@@ -11,6 +11,7 @@ import (
 
 	"github.com/hasura/gotel/otelutils"
 	"github.com/relychan/gohttpc"
+	"github.com/relychan/goutils"
 	"resty.dev/v3"
 )
 
@@ -85,7 +86,7 @@ func BenchmarkHTTPClient(b *testing.B) {
 				b.Fatal(err)
 			}
 
-			gohttpc.CloseResponse(resp)
+			goutils.CloseResponse(resp)
 
 			if resp.StatusCode != 200 {
 				slog.Error(resp.Status)

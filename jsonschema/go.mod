@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/failsafe-go/failsafe-go v0.9.6 // indirect
@@ -22,12 +22,12 @@ require (
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/relychan/gocompress v0.2.1 // indirect
-	github.com/relychan/goutils v0.0.0-20260529174539-fae163d678da // indirect
+	github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.4.0.20260405193028-802e24f4fbcc // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 )
 

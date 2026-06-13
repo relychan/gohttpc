@@ -19,6 +19,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
@@ -458,6 +459,29 @@ func TestHost_NewRequest_CircuitBreakerIntegration(t *testing.T) {
 
 		if req == nil {
 			t.Error("expected request to be created when status is 500")
+		}
+	})
+}
+
+func BenchmarkXxx(b *testing.B) {
+	b.Run("string", func(b *testing.B) {
+		for b.Loop() {
+			h := "http://localhost:8080"
+			p := "/path"
+			q := "foo=bar&bar=baz"
+
+			_ = h + p + q
+		}
+	})
+
+	b.Run("url", func(b *testing.B) {
+		for b.Loop() {
+			u := &url.URL{
+				Path:     "/path",
+				RawQuery: "foo=bar&bar=baz",
+			}
+
+			_ = "http://localhost:8080" + u.String()
 		}
 	})
 }

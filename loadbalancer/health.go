@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
@@ -154,7 +155,7 @@ func (hc HTTPHealthCheckConfig) ToPolicy(endpoint *url.URL) (*HTTPHealthCheckPol
 		return nil, err
 	}
 
-	return builder.Build(endpoint), nil
+	return builder.Build(endpoint)
 }
 
 // HTTPHealthCheckPolicy represents an HTTP health check policy state.
@@ -310,17 +311,12 @@ func (hb *HTTPHealthCheckPolicyBuilder) WithFailureThreshold(
 }
 
 // Build builds the [HTTPHealthCheckPolicy].
-func (hb *HTTPHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthCheckPolicy {
+func (hb *HTTPHealthCheckPolicyBuilder) Build(endpoint *url.URL) (*HTTPHealthCheckPolicy, error) {
 	metrics := gohttpc.GetHTTPClientMetrics()
-	urlScheme := "http"
-
-	if endpoint.Scheme != "" {
-		urlScheme = endpoint.Scheme
-	}
 
 	metricsAttrs := metric.WithAttributeSet(attribute.NewSet(
 		semconv.ServerAddress(endpoint.Host),
-		semconv.URLScheme(urlScheme),
+		semconv.URLScheme(endpoint.Scheme),
 	))
 
 	builder := circuitbreaker.NewBuilder[int]().
@@ -339,6 +335,17 @@ func (hb *HTTPHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthChec
 	policy := *hb.HTTPHealthCheckPolicy
 	policy.CircuitBreaker = builder.Build()
 
+	policy.path = strings.TrimSpace(policy.path)
+
+	if policy.path == "" || policy.path == "/" {
+		policy.path = endpoint.String()
+	} else {
+		uri := *endpoint
+		addURLPath(&uri, policy.path)
+
+		policy.path = uri.String()
+	}
+
 	// Record initial metrics for the closed state.
 	metrics.ServerState.Record(
 		context.TODO(),
@@ -346,5 +353,5 @@ func (hb *HTTPHealthCheckPolicyBuilder) Build(endpoint *url.URL) *HTTPHealthChec
 		metricsAttrs,
 	)
 
-	return &policy
+	return &policy, nil
 }
