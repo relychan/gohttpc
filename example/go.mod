@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/hasura/gotel v0.8.1
 	github.com/relychan/gohttpc v0.0.0-20260402045657-59c0214cec37
-	github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268
+	github.com/relychan/goutils v0.0.0-20260614073806-a16b657a9f06
 	go.opentelemetry.io/otel v1.44.0
 )
 

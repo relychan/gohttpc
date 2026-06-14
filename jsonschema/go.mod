@@ -22,7 +22,7 @@ require (
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/relychan/gocompress v0.2.1 // indirect
-	github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268 // indirect
+	github.com/relychan/goutils v0.0.0-20260614073806-a16b657a9f06 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
