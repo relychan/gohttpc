@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/hasura/gotel v0.8.1
 	github.com/relychan/gohttpc v0.0.0-20260531030038-6fc91e67f25f
+	github.com/relychan/goutils v0.0.0-20260614073806-a16b657a9f06
 	resty.dev/v3 v3.0.0-rc.1
 )
 
@@ -18,7 +19,6 @@ require (
 	github.com/hasura/goenvconf v0.7.0 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
 	github.com/relychan/gocompress v0.2.1 // indirect
-	github.com/relychan/goutils v0.0.0-20260613065315-d1a220eea268 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect

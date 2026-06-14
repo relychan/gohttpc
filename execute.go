@@ -80,7 +80,7 @@ func (r *Request) Execute( //nolint:funlen
 		r.body = bytes.NewReader(body)
 	}
 
-	endpoint, err := goutils.ParsePathOrHTTPURL(r.url)
+	endpoint, err := goutils.ParseHTTPURL(r.url)
 	if err != nil {
 		logger.Error(
 			"invalid request url: "+err.Error(),
