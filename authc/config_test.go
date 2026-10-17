@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/hasura/goenvconf"
+	"github.com/pb33f/go-yaml"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"github.com/relychan/gohttpc/authc/basicauth"
 	"github.com/relychan/gohttpc/authc/httpauth"
 	"github.com/relychan/gohttpc/authc/oauth2scheme"
-	"go.yaml.in/yaml/v4"
 )
 
 func TestHTTPClientAuthConfig_UnmarshalJSON(t *testing.T) {

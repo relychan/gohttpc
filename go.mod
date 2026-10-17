@@ -6,12 +6,12 @@ require (
 	github.com/failsafe-go/failsafe-go v0.9.8
 	github.com/hasura/goenvconf v0.7.0
 	github.com/hasura/gotel v0.9.0
+	github.com/pb33f/go-yaml v0.1.1
 	github.com/relychan/gocompress v0.2.1
-	github.com/relychan/goutils v0.0.0-20261016081333-a535416d898b
+	github.com/relychan/goutils v0.0.0-20261017111743-d09d3d665f7f
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/metric v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	golang.org/x/oauth2 v0.37.0
 )
 
