@@ -74,11 +74,9 @@ type ClientOptions struct {
 // NewClientOptions create a new [ClientOptions] instance.
 func NewClientOptions(options ...ClientOption) *ClientOptions {
 	opts := ClientOptions{
-		RequestOptions: RequestOptions{
-			UserAgent:          "gohttpc/" + getBuildVersion(),
-			ClientTraceEnabled: os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
-			LogLevel:           slog.LevelDebug,
-		},
+		UserAgent:                      "gohttpc/" + getBuildVersion(),
+		ClientTraceEnabled:             os.Getenv("HTTP_CLIENT_TRACE_ENABLED") == "true",
+		LogLevel:                       slog.LevelDebug,
 		HTTPClientAuthenticatorOptions: *authscheme.NewHTTPClientAuthenticatorOptions(),
 	}
 

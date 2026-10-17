@@ -21,9 +21,9 @@ import (
 	"maps"
 	"net/http"
 	"time"
+	"uuid"
 
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
-	"github.com/google/uuid"
 	"github.com/hasura/gotel/otelutils"
 	"github.com/relychan/gohttpc/authc/authscheme"
 	"go.opentelemetry.io/otel/trace"
@@ -226,7 +226,7 @@ func (r *Request) getLogger(ctx context.Context) *slog.Logger {
 	if spanContext.HasTraceID() {
 		requestID = spanContext.TraceID().String()
 	} else {
-		requestID = uuid.NewString()
+		requestID = uuid.New().String()
 	}
 
 	return slog.Default().With(typeAttr, slog.String("request_id", requestID))

@@ -45,9 +45,7 @@ func NewWeightedRoundRobin(
 	options ...WeightedRoundRobinOption,
 ) (*WeightedRoundRobin, error) {
 	wrr := &WeightedRoundRobin{
-		weightedRoundRobinOptions: weightedRoundRobinOptions{
-			healthCheckInterval: 0,
-		},
+		healthCheckInterval: 0,
 	}
 
 	for _, opt := range options {

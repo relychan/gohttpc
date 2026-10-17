@@ -179,9 +179,7 @@ func retryHandleFunc(httpStatus []int) func(resp *http.Response, err error) bool
 				return false
 			}
 
-			var urlError *url.Error
-
-			if errors.As(err, &urlError) {
+			if urlError, ok := errors.AsType[*url.Error](err); ok {
 				var uae x509.UnknownAuthorityError
 				// Do not retry on unknown authority errors
 				if errors.Is(urlError.Err, &uae) {
