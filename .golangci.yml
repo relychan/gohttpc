@@ -14,6 +14,7 @@ linters:
     - tagliatelle
     - gomodguard
     - goconst
+    - exhaustruct_v5
   settings:
     depguard:
       rules:

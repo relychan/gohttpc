@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/relychan/goutils"
-	"github.com/relychan/goutils/httperror"
 	"github.com/relychan/goutils/httpheader"
 )
 
@@ -84,10 +83,8 @@ func httpErrorFromResponse(resp *http.Response) *goutils.HTTPErrorWithExtensions
 
 func httpErrorFromNoContentResponse(resp *http.Response) *goutils.HTTPErrorWithExtensions {
 	return &goutils.HTTPErrorWithExtensions{
-		HTTPError: httperror.HTTPError{
-			Status: resp.StatusCode,
-			Title:  resp.Status,
-		},
+		Status: resp.StatusCode,
+		Title:  resp.Status,
 		Extensions: map[string]any{
 			"headers": goutils.ExtractHeaders(resp.Header),
 		},

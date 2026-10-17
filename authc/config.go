@@ -40,7 +40,7 @@ var (
 // The schema follows [OpenAPI 3] specification with extensions.
 //
 // [OpenAPI 3]: https://swagger.io/docs/specification/authentication
-type HTTPClientAuthConfig struct {
+type HTTPClientAuthConfig struct { //nolint:recvcheck
 	authscheme.HTTPClientAuthenticatorConfig `yaml:",inline"`
 }
 
